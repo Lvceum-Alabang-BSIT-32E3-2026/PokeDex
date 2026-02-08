@@ -9,23 +9,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Identity Services with Roles & Password Complexity
-builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
+// 2. Identity Services - Traditional Configuration (Requirement 1.1.4)
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    // Password Requirements
     options.Password.RequiredLength = 8;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = false;
-
-    // User Requirements
     options.User.RequireUniqueEmail = true;
 })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
-// 3. Controller Support
+// 3. Controller Support (Requirement 1.1.5)
 builder.Services.AddControllers();
 
 // 4. Swagger support
@@ -44,8 +41,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // 6. Map Endpoints
-app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
-app.MapControllers();
+// REMOVED: MapIdentityApi (Fixes the IEmailSender error)
+app.MapControllers(); // This maps your custom AuthController
 
 // 7. Auto-Migration on Startup
 using (var scope = app.Services.CreateScope())
