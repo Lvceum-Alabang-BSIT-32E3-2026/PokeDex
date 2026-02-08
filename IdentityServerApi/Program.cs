@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+=======
+using IdentityServerApi.Models;
+>>>>>>> Stashed changes
 using IdentityServerApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +13,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 2. Identity Services
+<<<<<<< Updated upstream
 builder.Services.AddIdentityApiEndpoints<IdentityUser>()
+=======
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
+>>>>>>> Stashed changes
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -27,7 +35,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // 4. Map Identity Endpoints (Adds /register, /login, etc. automatically)
+<<<<<<< Updated upstream
 app.MapGroup("/identity").MapIdentityApi<IdentityUser>();
+=======
+app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
+>>>>>>> Stashed changes
 
 // 5. Database Auto-Migration
 using (var scope = app.Services.CreateScope())
@@ -36,4 +48,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+<<<<<<< Updated upstream
 app.Run();
+=======
+app.Run();
+>>>>>>> Stashed changes

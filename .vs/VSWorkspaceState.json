@@ -1,8 +1,15 @@
 {
   "ExpandedNodes": [
     "",
+<<<<<<< Updated upstream
     "\\IdentityServerApi"
   ],
   "SelectedNode": "\\IdentityServerApi\\Program.cs",
+=======
+    "\\IdentityServerApi",
+    "\\IdentityServerApi\\Models"
+  ],
+  "SelectedNode": "\\IdentityServerApi\\Models",
+>>>>>>> Stashed changes
   "PreviewInSolutionExplorer": false
 }
