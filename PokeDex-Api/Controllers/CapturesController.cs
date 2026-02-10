@@ -17,7 +17,7 @@ public class CapturesController : ControllerBase
         _pokemonService = pokemonService;
     }
 
-    // Existing Task 3.2.1 endpoint (capture stats)
+  
     [HttpGet("stats")]
     [Authorize]
     public IActionResult GetCaptureStats()
@@ -27,18 +27,16 @@ public class CapturesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        // Total captured by the user
+     
         int totalCaptured = _captureService.GetCapturedPokemonIds(userId).Count;
 
-        // Total available Pokemon in the system
         int totalAvailable = _pokemonService.GetAll().Count();
 
-        // Percent complete (1 decimal place)
+      
         double percentComplete = totalAvailable > 0
             ? Math.Round(totalCaptured * 100.0 / totalAvailable, 1)
             : 0;
 
-        // Return stats
         var stats = new
         {
             totalCaptured,
