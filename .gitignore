@@ -2,3 +2,5 @@ node_modules/
 .vscode/
 bin/
 obj/
+/PokeDex-Api/.vs/PokeDex-Api
+/PokeDex-Api
