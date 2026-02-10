@@ -2,5 +2,8 @@ node_modules/
 .vscode/
 bin/
 obj/
+/PokeDex-Api/.vs/PokeDex-Api/FileContentIndex
+/PokeDex-Api/.vs/PokeDex-Api/v18
+/PokeDex-Api/PokeDex-Api.csproj.user
 /PokeDex-Api/.vs/PokeDex-Api
 /PokeDex-Api
