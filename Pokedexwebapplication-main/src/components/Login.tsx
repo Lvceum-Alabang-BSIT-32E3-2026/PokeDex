@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { authService } from '../services/authService'; // import your authService
+import { authService } from '../services/authService'; 
 
 interface LoginProps {
     onLogin: () => void;

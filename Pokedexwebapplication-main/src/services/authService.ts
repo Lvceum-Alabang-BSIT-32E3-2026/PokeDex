@@ -7,7 +7,6 @@ if (!API_URL) {
 }
 
 export const authService = {
-  // Register a new user
   async register(data: RegisterDto): Promise<{ message: string }> {
     try {
       const response = await fetch(`${API_URL}/register`, {
@@ -28,7 +27,6 @@ export const authService = {
     }
   },
 
-  // Login a user
   async login(data: LoginDto): Promise<TokenResponse> {
     try {
       const response = await fetch(`${API_URL}/login`, {

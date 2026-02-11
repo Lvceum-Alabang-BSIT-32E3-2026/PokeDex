@@ -3,7 +3,7 @@ import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
-import { AuthProvider, AuthContext } from './contexts/AuthContext';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
 function AppContent() {
   const { isAuthenticated, logout } = useContext(AuthContext)!;
