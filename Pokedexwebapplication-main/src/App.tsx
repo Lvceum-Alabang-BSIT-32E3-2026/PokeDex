@@ -1,39 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
+import { AuthProvider, AuthContext } from './contexts/AuthContext';
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function AppContent() {
+  const { isAuthenticated, logout } = useContext(AuthContext)!;
   const [view, setView] = useState<'pokedex' | 'cms' | 'recommendations'>('pokedex');
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setView('pokedex');
-  };
+  if (!isAuthenticated) {
+    return <Login onLogin={() => {}} />;
+  }
 
   return (
-    <div className="font-sans antialiased text-slate-900">
-      {isAuthenticated ? (
-        view === 'cms' ? (
-          <PokemonCMS onBack={() => setView('pokedex')} />
-        ) : view === 'recommendations' ? (
-          <Recommendations onBack={() => setView('pokedex')} />
-        ) : (
-          <Pokedex 
-            onLogout={handleLogout} 
-            onOpenCMS={() => setView('cms')}
-            onOpenRecommendations={() => setView('recommendations')}
-          />
-        )
+    <>
+      {view === 'cms' ? (
+        <PokemonCMS onBack={() => setView('pokedex')} />
+      ) : view === 'recommendations' ? (
+        <Recommendations onBack={() => setView('pokedex')} />
       ) : (
-        <Login onLogin={handleLogin} />
+        <Pokedex
+          onLogout={() => { logout(); setView('pokedex'); }}
+          onOpenCMS={() => setView('cms')}
+          onOpenRecommendations={() => setView('recommendations')}
+        />
       )}
-    </div>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <div className="font-sans antialiased text-slate-900">
+        <AppContent />
+      </div>
+    </AuthProvider>
   );
 }
