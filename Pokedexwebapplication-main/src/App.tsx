@@ -7,12 +7,12 @@ import { Collection } from './components/Collection';
 import { Profile } from './components/Profile';
 import { Recommendations } from './components/Recommendations';
 
+// Define public routes that don't require authentication
+const publicRoutes = ['login', 'register'];
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentRoute, setCurrentRoute] = useState('login');
-
-  // Define public routes that don't require authentication
-  const publicRoutes = ['login', 'register'];
 
   // Parse hash on load and navigation
   useEffect(() => {
