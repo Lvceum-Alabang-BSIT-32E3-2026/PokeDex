@@ -11,13 +11,16 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentRoute, setCurrentRoute] = useState('login');
 
+  // Define public routes that don't require authentication
+  const publicRoutes = ['login', 'register'];
+
   // Parse hash on load and navigation
   useEffect(() => {
     const parseHash = () => {
       // Extract route from hash, e.g., "#/login" -> "login", "#/" -> "login", "" -> "login"
       const hash = window.location.hash.slice(1); // Remove #
-      const route = hash.startsWith('/') ? hash.slice(1) : hash; // Remove leading /
-      setCurrentRoute(route || 'login'); // Default to login if empty
+      const route = hash.replace(/^\//, '') || 'login'; // Remove leading / and default to login
+      setCurrentRoute(route);
     };
 
     // Parse hash on initial load
@@ -52,7 +55,7 @@ export default function App() {
 
   const renderRoute = () => {
     // Handle unauthenticated routes
-    if (!isAuthenticated && (currentRoute === 'login' || currentRoute === 'register')) {
+    if (!isAuthenticated && publicRoutes.includes(currentRoute)) {
       if (currentRoute === 'register') {
         return (
           <Register 
