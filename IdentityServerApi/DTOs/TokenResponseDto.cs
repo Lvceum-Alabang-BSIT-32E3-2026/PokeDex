@@ -1,8 +1,8 @@
-﻿namespace IdentityServerApi.DTOs
+﻿namespace PokeDex_Api.DTOs
 {
     public class TokenResponseDto
     {
-        public string Token { get; set; } = null!;
-        public DateTime Expiration { get; set; }
+        public required string Token { get; set; }
+        public required string User { get; set; }
     }
 }
