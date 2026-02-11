@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { authService } from '../services/authService'; // import your authService
 
 interface LoginProps {
     onLogin: () => void;
@@ -13,40 +14,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+        setLoading(true);
 
-        // --- JWT AUTHENTICATION PLACEHOLDER ---
-        // In a real application, you would make a POST request here:
-        // 
-        // try {
-        //   const response = await fetch('https://api.example.com/auth/login', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email, password })
-        //   });
-        //   const data = await response.json();
-        //   if (data.token) {
-        //     localStorage.setItem('jwt', data.token);
-        //     onLogin();
-        //   }
-        // } catch (err) { ... }
-        // --------------------------------------
-
-        // Hardcoded logic for "Example Login"
-        setTimeout(() => {
+        try {
+            const response = await authService.login({ email, password });
+            localStorage.setItem('token', response.token);
+            onLogin();
+        } catch (err: any) {
+            setError(err?.message || 'Login failed');
+        } finally {
             setLoading(false);
-
-            if (email === 'ash@ketchum.com' && password === 'pikachu') {
-                // Success
-                onLogin();
-            } else {
-                // Error
-                setError('Invalid credentials. Hint: ash@ketchum.com / pikachu');
-            }
-        }, 1000);
+        }
     };
 
     return (
@@ -56,7 +37,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700"
             >
-                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-red-500 rounded-full mx-auto flex items-center justify-center mb-4 shadow-lg ring-4 ring-slate-700">
                         <div className="w-12 h-12 bg-white rounded-full border-4 border-slate-800 relative">
@@ -67,7 +47,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <p className="text-slate-400">Enter your credentials</p>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {error && (
                         <motion.div
@@ -79,8 +58,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             {error}
                         </motion.div>
                     )}
-
-                    {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
                         <div className="relative">
@@ -96,7 +73,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </div>
                     </div>
 
-                    {/* Password */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
                         <div className="relative">
@@ -112,21 +88,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </div>
                     </div>
 
-                    {/* Submit button */}
                     <button
                         type="submit"
                         disabled={loading}
                         className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-red-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            'Access Pokedex'
-                        )}
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Access Pokedex'}
                     </button>
                 </form>
 
-                {/* Auto-fill and API mode */}
                 <div className="mt-6 text-center space-y-2">
                     <button
                         type="button"
@@ -143,7 +113,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
                 </div>
 
-                {/* Registration link */}
                 <div className="mt-4 text-center">
                     <p className="text-sm text-slate-400">
                         Don't have an account?{' '}
@@ -155,7 +124,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </Link>
                     </p>
                 </div>
-
             </motion.div>
         </div>
     );
