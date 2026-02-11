@@ -17,15 +17,6 @@ export default function App() {
       const hash = window.location.hash.slice(1) || '/login'; // Remove # and default to /login
       const route = hash.split('/')[1] || 'login'; // Extract route name
       setCurrentRoute(route);
-      
-      // Update authentication state based on route
-      const protectedRoutes = ['pokedex', 'cms', 'collection', 'profile'];
-      if (!protectedRoutes.includes(route)) {
-        // Routes like login and register don't require authentication
-        if (route === 'login' || route === 'register') {
-          setIsAuthenticated(false);
-        }
-      }
     };
 
     // Parse hash on initial load
@@ -82,6 +73,8 @@ export default function App() {
     switch (currentRoute) {
       case 'cms':
         return <PokemonCMS onBack={() => navigateTo('pokedex')} />;
+      case 'recommendations':
+        return <Recommendations onBack={() => navigateTo('pokedex')} />;
       case 'collection':
         return <Collection onBack={() => navigateTo('pokedex')} />;
       case 'profile':
@@ -92,7 +85,7 @@ export default function App() {
           <Pokedex 
             onLogout={handleLogout} 
             onOpenCMS={() => navigateTo('cms')}
-            onOpenRecommendations={() => navigateTo('collection')}
+            onOpenRecommendations={() => navigateTo('recommendations')}
             onOpenProfile={() => navigateTo('profile')}
             onOpenCollection={() => navigateTo('collection')}
           />

@@ -9,7 +9,7 @@ interface CollectionProps {
 export const Collection: React.FC<CollectionProps> = ({ onBack }) => {
   // Placeholder collection data
   const collection = [
-    { id: 1, name: 'Pikachu', number: 25, type: 'Electric', favorite: true },
+    { id: 25, name: 'Pikachu', number: 25, type: 'Electric', favorite: true },
     { id: 4, name: 'Charmander', number: 4, type: 'Fire', favorite: true },
     { id: 7, name: 'Squirtle', number: 7, type: 'Water', favorite: false },
     { id: 1, name: 'Bulbasaur', number: 1, type: 'Grass', favorite: false },
