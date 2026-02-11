@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { Pokedex } from './components/Pokedex';
@@ -34,16 +34,16 @@ export default function App() {
     };
   }, []);
 
+  const navigateTo = useCallback((route: string) => {
+    window.location.hash = `#/${route}`;
+  }, []);
+
   // Redirect to login if trying to access protected route without auth
   useEffect(() => {
     if (!isAuthenticated && !publicRoutes.includes(currentRoute)) {
       navigateTo('login');
     }
-  }, [isAuthenticated, currentRoute]);
-
-  const navigateTo = (route: string) => {
-    window.location.hash = `#/${route}`;
-  };
+  }, [isAuthenticated, currentRoute, navigateTo]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
