@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb } from 'lucide-react';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, Heart } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
@@ -9,9 +9,11 @@ interface PokedexProps {
   onLogout: () => void;
   onOpenCMS: () => void;
   onOpenRecommendations: () => void;
+  onOpenProfile?: () => void;
+  onOpenCollection?: () => void;
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, onOpenCollection }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,6 +133,15 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
                     <span>Captured:</span>
                     <span className="bg-white text-red-600 px-2 rounded-full">{captured.size}</span>
                  </div>
+                 {onOpenCollection && (
+                   <button 
+                     onClick={onOpenCollection}
+                     className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                     title="My Collection"
+                   >
+                     <Heart className="w-6 h-6" />
+                   </button>
+                 )}
                  <button 
                   onClick={onOpenRecommendations}
                   className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
@@ -145,6 +156,15 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
                 >
                   <Settings className="w-6 h-6" />
                 </button>
+                {onOpenProfile && (
+                  <button 
+                    onClick={onOpenProfile}
+                    className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                    title="Profile"
+                  >
+                    <User className="w-6 h-6" />
+                  </button>
+                )}
                 <button 
                   onClick={onLogout}
                   className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
