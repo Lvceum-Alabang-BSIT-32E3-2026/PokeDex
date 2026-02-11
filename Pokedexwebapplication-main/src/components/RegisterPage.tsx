@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, Loader2, AlertCircle, User } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle, User, CheckCircle } from 'lucide-react';
 import { authService } from '../services/authService';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {
+  const navigate = useNavigate(); // For redirect
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     email: '',
@@ -38,8 +39,17 @@ const RegisterPage: React.FC = () => {
         password: form.password,
         displayName: form.displayName || undefined,
       });
-      setSuccess(result.message);
+
+      setSuccess(result.message || 'Registration successful! Redirecting to login...');
+
+      localStorage.setItem('preFillEmail', form.email);
+
       setForm({ email: '', username: '', password: '', confirmPassword: '', displayName: '' });
+
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -54,7 +64,6 @@ const RegisterPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700"
       >
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-500 rounded-full mx-auto flex items-center justify-center mb-4 shadow-lg ring-4 ring-slate-700">
             <div className="w-12 h-12 bg-white rounded-full border-4 border-slate-800 relative">
@@ -65,7 +74,6 @@ const RegisterPage: React.FC = () => {
           <p className="text-slate-400">Create your trainer account</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {(error || success) && (
             <motion.div
@@ -75,12 +83,11 @@ const RegisterPage: React.FC = () => {
                 error ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-green-500/10 border border-green-500/20 text-green-400'
               }`}
             >
-              {error && <AlertCircle className="w-4 h-4 mr-2" />}
+              {error ? <AlertCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
               {error ? error : success}
             </motion.div>
           )}
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
             <div className="relative">
@@ -97,7 +104,6 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Username */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
             <div className="relative">
@@ -114,7 +120,6 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
             <div className="relative">
@@ -131,7 +136,6 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password</label>
             <div className="relative">
@@ -148,7 +152,6 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Display Name (optional) */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Display Name (optional)</label>
             <div className="relative">
@@ -164,7 +167,6 @@ const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -174,7 +176,6 @@ const RegisterPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Back to Login Link */}
         <div className="mt-4 text-center">
           <p className="text-sm text-slate-400">
             Already have an account?{' '}
@@ -187,7 +188,6 @@ const RegisterPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Footer */}
         <footer className="mt-6 text-center text-slate-400 text-xs">
           © 2026 Pokémon Trainer Registration
         </footer>
