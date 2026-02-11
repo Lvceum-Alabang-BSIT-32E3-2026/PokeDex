@@ -14,9 +14,10 @@ export default function App() {
   // Parse hash on load and navigation
   useEffect(() => {
     const parseHash = () => {
-      const hash = window.location.hash.slice(1) || '/login'; // Remove # and default to /login
-      const route = hash.split('/')[1] || 'login'; // Extract route name
-      setCurrentRoute(route);
+      // Extract route from hash, e.g., "#/login" -> "login", "#/" -> "login", "" -> "login"
+      const hash = window.location.hash.slice(1); // Remove #
+      const route = hash.startsWith('/') ? hash.slice(1) : hash; // Remove leading /
+      setCurrentRoute(route || 'login'); // Default to login if empty
     };
 
     // Parse hash on initial load
