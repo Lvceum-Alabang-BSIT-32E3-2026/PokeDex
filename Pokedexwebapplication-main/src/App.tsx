@@ -19,7 +19,7 @@ export default function App() {
     const parseHash = () => {
       // Extract route from hash, e.g., "#/login" -> "login", "#/" -> "login", "" -> "login"
       const hash = window.location.hash.slice(1); // Remove #
-      const route = hash.replace(/^\//, '') || 'login'; // Remove leading / and default to login
+      const route = hash.replace(/^\/+/, '') || 'login'; // Remove leading slashes and default to login
       setCurrentRoute(route);
     };
 
@@ -33,6 +33,13 @@ export default function App() {
       window.removeEventListener('hashchange', parseHash);
     };
   }, []);
+
+  // Redirect to login if trying to access protected route without auth
+  useEffect(() => {
+    if (!isAuthenticated && !publicRoutes.includes(currentRoute)) {
+      navigateTo('login');
+    }
+  }, [isAuthenticated, currentRoute]);
 
   const navigateTo = (route: string) => {
     window.location.hash = `#/${route}`;
@@ -67,9 +74,8 @@ export default function App() {
       return <Login onLogin={handleLogin} />;
     }
 
-    // Redirect to login if trying to access protected route without auth
+    // Redirect to login if trying to access protected route without auth (handled by useEffect)
     if (!isAuthenticated) {
-      navigateTo('login');
       return <Login onLogin={handleLogin} />;
     }
 
