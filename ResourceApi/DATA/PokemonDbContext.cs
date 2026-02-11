@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ResourceApi.Models;
 
 namespace ResourceApi.Data
 {
@@ -6,9 +7,9 @@ namespace ResourceApi.Data
     {
         public PokemonDbContext(DbContextOptions<PokemonDbContext> options) : base(options) { }
 
+        // Updated DbSet with new Pokemon entity
         public DbSet<Pokemon> Pokemons { get; set; } = null!;
     }
-
     public class Pokemon
     {
         public int Id { get; set; }
