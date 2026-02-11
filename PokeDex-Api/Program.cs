@@ -6,17 +6,24 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Add Identity services if not already configured (needed for RoleManager/UserManager)
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddDefaultTokenProviders()
+    .AddRoles<IdentityRole>();
+
 var app = builder.Build();
 
-
 // ===============================
-// Task 1.3.1 — Seed Default Roles
+// Task 1.3.1 & 1.3.2 — Seed Default Roles & Admin User
 // ===============================
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+    var services = scope.ServiceProvider;
 
-    // Runs only if Identity is configured (safe if not yet available)
+    var roleManager = services.GetService<RoleManager<IdentityRole>>();
+    var userManager = services.GetService<UserManager<IdentityUser>>();
+
+    // Seed roles
     if (roleManager != null)
     {
         string[] roles = { "Admin", "User" };
@@ -27,11 +34,46 @@ using (var scope = app.Services.CreateScope())
             if (!exists)
             {
                 await roleManager.CreateAsync(new IdentityRole(role));
+                Console.WriteLine($"Role '{role}' created.");
             }
         }
     }
-}
 
+    // Seed default admin user
+    if (userManager != null && roleManager != null)
+    {
+        var adminEmail = "admin@pokedex.com";
+
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            var user = new IdentityUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(user, "Admin123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(user, "Admin");
+                Console.WriteLine("Default admin user created successfully.");
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Console.WriteLine($"Error creating admin: {error.Description}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("Default admin user already exists. Skipping creation.");
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
