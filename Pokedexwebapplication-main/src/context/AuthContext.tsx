@@ -5,7 +5,7 @@ export interface User {
     id: string;
     username: string;
     email: string;
-    roles?: string[]; 
+    roles?: string[];
     displayName?: string;
 }
 
@@ -24,18 +24,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [user, setUser] = useState<User | null>(null);
 
-
+    // Check token on mount & clear if expired
     useEffect(() => {
         if (token) {
             try {
-                const decoded: User = jwtDecode(token);
-                setUser(decoded);
+                const decoded: any = jwtDecode(token);
+
+                // Check expiration
+                const now = Date.now().valueOf() / 1000;
+                if (decoded.exp && decoded.exp < now) {
+                    // Token expired
+                    logout();
+                } else {
+                    setUser(decoded);
+                }
             } catch (err) {
-                console.error('Failed to decode token', err);
-                setUser(null);
+                console.error('Invalid token', err);
+                logout();
             }
-        } else {
-            setUser(null);
         }
     }, [token]);
 
@@ -50,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
     };
 
-    const isAuthenticated = Boolean(token);
+    const isAuthenticated = Boolean(token && user);
     const isAdmin = Boolean(user?.roles?.includes('Admin'));
 
     return (
