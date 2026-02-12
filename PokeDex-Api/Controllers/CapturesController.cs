@@ -7,19 +7,18 @@ public IActionResult GetCaptureStats()
     if (string.IsNullOrEmpty(userId))
         return Unauthorized();
 
-    
+    // ===== Task 59/60: totals =====
     var capturedIds = _captureService.GetCapturedPokemonIds(userId);
     int totalCaptured = capturedIds.Count;
 
-    
     var allPokemons = _pokemonService.GetAll();
     int totalAvailable = allPokemons.Count();
 
-   
     double percentComplete = totalAvailable > 0
         ? Math.Round(totalCaptured * 100.0 / totalAvailable, 1)
         : 0;
 
+    // ===== Task 61: per-generation breakdown =====
     var byGeneration = allPokemons
         .GroupBy(p => p.Generation)
         .Select(g => new
@@ -31,13 +30,27 @@ public IActionResult GetCaptureStats()
         .OrderBy(g => g.generation)
         .ToList();
 
-   
+    // ===== Task 62: per-type breakdown =====
+    var byType = allPokemons
+        .SelectMany(p => p.Types, (p, type) => new { Pokemon = p, Type = type }) // flatten dual-types
+        .GroupBy(x => x.Type)
+        .Select(g => new
+        {
+            type = g.Key,
+            total = g.Count(),
+            captured = g.Count(x => capturedIds.Contains(x.Pokemon.Id))
+        })
+        .OrderBy(g => g.type)
+        .ToList();
+
+  
     var stats = new
     {
         totalCaptured,
         totalAvailable,
         percentComplete,
-        byGeneration
+        byGeneration,
+        byType
     };
 
     return Ok(stats);
