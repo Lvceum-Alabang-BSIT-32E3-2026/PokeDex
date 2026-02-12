@@ -1,3 +1,4 @@
+using IdentityServerApi.Services;
 using IdentityServerApi.Data;
 using IdentityServerApi.Models;
 using IdentityServerApi.Settings;
@@ -56,6 +57,9 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
+
+
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 // -----------------------------
 // 4. Controllers & Swagger
