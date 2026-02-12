@@ -1,3 +1,5 @@
+// TODO: This controller will be implemented in future tasks when IPokemonService and ICaptureService are created
+/*
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,3 +44,4 @@ public class PokemonController : ControllerBase
 		_captureService = captureService;
 	}
 }
+*/
