@@ -1,7 +1,7 @@
-// TODO: This controller will be implemented in future tasks when IPokemonService and ICaptureService are created
-/*
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PokeDex_Api.Data;
 using System.Security.Claims;
 
 namespace PokeDex_Api.Controllers;
@@ -10,71 +10,36 @@ namespace PokeDex_Api.Controllers;
 [Route("api/[controller]")]
 public class CapturesController : ControllerBase
 {
-    private readonly IPokemonService _pokemonService;
-    private readonly ICaptureService _captureService;
+    private readonly ApplicationDbContext _context;
 
-    public CapturesController(IPokemonService pokemonService, ICaptureService captureService)
+    public CapturesController(ApplicationDbContext context)
     {
-        _pokemonService = pokemonService;
-        _captureService = captureService;
+        _context = context;
     }
 
-    [HttpGet("stats")]
+    /// <summary>
+    /// GET /api/captures - Returns list of captured Pokemon IDs for the current user
+    /// </summary>
+    /// <returns>Array of Pokemon IDs that the user has captured</returns>
+    [HttpGet]
     [Authorize]
-    public IActionResult GetCaptureStats()
+    public async Task<IActionResult> GetUserCaptures()
     {
+        // Extract user ID from JWT claims
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+        // Validate user ID exists
         if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        // ===== Task 59/60: totals =====
-        var capturedIds = _captureService.GetCapturedPokemonIds(userId);
-        int totalCaptured = capturedIds.Count;
-
-        var allPokemons = _pokemonService.GetAll();
-        int totalAvailable = allPokemons.Count();
-
-        double percentComplete = totalAvailable > 0
-            ? Math.Round(totalCaptured * 100.0 / totalAvailable, 1)
-            : 0;
-
-        // ===== Task 61: per-generation breakdown =====
-        var byGeneration = allPokemons
-            .GroupBy(p => p.Generation)
-            .Select(g => new
-            {
-                generation = g.Key,
-                total = g.Count(),
-                captured = g.Count(p => capturedIds.Contains(p.Id))
-            })
-            .OrderBy(g => g.generation)
-            .ToList();
-
-        // ===== Task 62: per-type breakdown =====
-        var byType = allPokemons
-            .SelectMany(p => p.Types, (p, type) => new { Pokemon = p, Type = type }) // flatten dual-types
-            .GroupBy(x => x.Type)
-            .Select(g => new
-            {
-                type = g.Key,
-                total = g.Count(),
-                captured = g.Count(x => capturedIds.Contains(x.Pokemon.Id))
-            })
-            .OrderBy(g => g.type)
-            .ToList();
-
-  
-        var stats = new
         {
-            totalCaptured,
-            totalAvailable,
-            percentComplete,
-            byGeneration,
-            byType
-        };
+            return Unauthorized(new { message = "User ID not found in token" });
+        }
 
-        return Ok(stats);
+        // Query captures filtered by current user and return only Pokemon IDs
+        var capturedPokemonIds = await _context.Captures
+            .Where(c => c.UserId == userId)
+            .Select(c => c.PokemonId)
+            .ToListAsync();
+
+        return Ok(capturedPokemonIds);
     }
 }
-*/
