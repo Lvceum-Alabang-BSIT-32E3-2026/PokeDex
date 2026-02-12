@@ -7,6 +7,7 @@ node_modules/
 # .NET Build artifacts
 bin/
 obj/
+<<<<<<< HEAD
 
 # Visual Studio
 .vs/
@@ -37,3 +38,6 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+=======
+/.vs
+>>>>>>> origin/main
