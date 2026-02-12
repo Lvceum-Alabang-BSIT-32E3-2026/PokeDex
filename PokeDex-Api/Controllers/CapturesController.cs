@@ -1,48 +1,49 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Security.Claims;
+using System.Collections.Generic;
 
-namespace PokeDex_Api.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class CapturesController : ControllerBase
 {
-	[ApiController]
-	[Route("api/[controller]")]
-	[Authorize]
-	public class CapturesController : ControllerBase
-	{
-		private readonly ApplicationDbContext _context;
+    private readonly ICaptureService _captureService;
+    private readonly IPokemonService _pokemonService;
 
-		public CapturesController(ApplicationDbContext context)
-		{
-			_context = context;
-		}
+    public CapturesController(ICaptureService captureService, IPokemonService pokemonService)
+    {
+        _captureService = captureService;
+        _pokemonService = pokemonService;
+    }
 
-		[HttpGet("stats")]
-		public async Task<IActionResult> GetCaptureStats()
-		{
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+  
+    [HttpGet("stats")]
+    [Authorize]
+    public IActionResult GetCaptureStats()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-			if (string.IsNullOrEmpty(userId))
-				return Unauthorized();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
 
-			var totalPokemon = await _context.Pokemons.CountAsync();
+     
+        int totalCaptured = _captureService.GetCapturedPokemonIds(userId).Count;
 
-			var capturedCount = await _context.Captures
-				.Where(c => c.UserId == userId)
-				.Select(c => c.PokemonId)
-				.Distinct()
-				.CountAsync();
+        int totalAvailable = _pokemonService.GetAll().Count();
 
-			var stats = new
-			{
-				TotalPokemon = totalPokemon,
-				CapturedCount = capturedCount,
-				UncapturedCount = totalPokemon - capturedCount,
-				CapturePercentage = totalPokemon == 0
-					? 0
-					: Math.Round((double)capturedCount / totalPokemon * 100, 2)
-			};
+      
+        double percentComplete = totalAvailable > 0
+            ? Math.Round(totalCaptured * 100.0 / totalAvailable, 1)
+            : 0;
 
-			return Ok(stats);
-		}
-	}
+        var stats = new
+        {
+            totalCaptured,
+            totalAvailable,
+            percentComplete
+        };
+
+        return Ok(stats);
+    }
 }
