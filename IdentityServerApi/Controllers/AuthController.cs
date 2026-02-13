@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { errors = formattedErrors });
         }
 
-        // 3️⃣ Ensure Role exists
+        // 3️ Ensure Role exists
         if (!await _roleManager.RoleExistsAsync("User"))
         {
             await _roleManager.CreateAsync(new IdentityRole("User"));
