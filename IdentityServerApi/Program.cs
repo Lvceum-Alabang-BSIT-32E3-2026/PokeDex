@@ -1,3 +1,4 @@
+using IdentityServerApi.Services;
 using IdentityServerApi.Data;
 using IdentityServerApi.Models;
 using Microsoft.AspNetCore.Identity;
@@ -42,6 +43,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+builder.Services.AddScoped<IJwtService, JwtService>();
+
 
 // 6. Middleware Pipeline
 if (app.Environment.IsDevelopment())
