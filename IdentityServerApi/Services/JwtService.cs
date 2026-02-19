@@ -44,7 +44,7 @@ public class JwtService : IJwtService
 
         // ⏰ Expiration
         var expirationMinutes = int.Parse(
-            _configuration["JwtSettings:ExpirationMinutes"]!
+            _configuration["JwtSettings:ExpirationInMinutes"]!
         );
 
         var token = new JwtSecurityToken(

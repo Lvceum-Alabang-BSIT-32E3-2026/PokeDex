@@ -1,6 +1,7 @@
 ﻿using IdentityServerApi.DTOs;
 using IdentityServerApi.Models;
 using IdentityServerApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -115,6 +116,35 @@ public class AuthController : ControllerBase
                 DisplayName = user.DisplayName,
                 Roles = roles.ToList()
             }
+        });
+    }
+
+    // ===============================
+    // ME ENDPOINT (requires valid JWT)
+    // ===============================
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> Me()
+    {
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                 ?? User.FindFirst("email")?.Value;
+
+        if (email == null)
+            return Unauthorized(new { message = "User not found in token." });
+
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            return Unauthorized(new { message = "User no longer exists." });
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new UserResponseDto
+        {
+            Id          = user.Id,
+            Username    = user.UserName!,
+            Email       = user.Email!,
+            DisplayName = user.DisplayName,
+            Roles       = roles.ToList()
         });
     }
 
