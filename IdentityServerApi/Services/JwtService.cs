@@ -17,36 +17,32 @@ public class JwtService : IJwtService
 
     public string GenerateToken(ApplicationUser user, IList<string> roles)
     {
-        // 🔐 Base Claims
+        // Base claims per task specification
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new Claim("displayName", user.DisplayName ?? ""),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Email, user.Email ?? ""),
+            new Claim(ClaimTypes.Name, user.UserName ?? ""),
+            new Claim("displayName", user.DisplayName ?? user.UserName ?? "")
         };
 
-        // ✅ Add ROLE CLAIMS (IMPORTANT PART FOR TASK)
+        // Add role claims
         foreach (var role in roles)
-        {
             claims.Add(new Claim(ClaimTypes.Role, role));
-        }
 
-        // 🔑 Key
+        // Signing key
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["JwtSettings:Secret"]!)
         );
 
-        var creds = new SigningCredentials(
-            key,
-            SecurityAlgorithms.HmacSha256
-        );
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        // ⏰ Expiration
+        // Expiration from config
         var expirationMinutes = int.Parse(
             _configuration["JwtSettings:ExpirationInMinutes"]!
         );
 
+        // Build token
         var token = new JwtSecurityToken(
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
