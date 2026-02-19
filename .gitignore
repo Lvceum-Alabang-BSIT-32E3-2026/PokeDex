@@ -1,19 +1,54 @@
 # Node modules
 node_modules/
 
-# VS Code
+# VS Code / Visual Studio Settings
 .vscode/
+
 
 # .NET Build artifacts
 bin/
 obj/
+<<<<<<< HEAD
 [Dd]ebug/
 [Rr]elease/
 
 # Visual Studio files
+=======
+
+/.vs
+
+
+# Visual Studio
+=======
+>>>>>>> dev-backend
+>>>>>>> dev-backend
 .vs/
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+<<<<<<< HEAD
 *.userprefs
+=======
+*.userprefs
+>>>>>>> origin/dev-backend
+
+# .NET Build artifacts
+bin/
+obj/
+
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+/.vs
+
+>>>>>>> dev-backend
