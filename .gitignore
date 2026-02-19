@@ -1,18 +1,8 @@
 # Node modules
 node_modules/
 
-# VS Code
+# VS Code / Visual Studio Settings
 .vscode/
-
-# .NET Build artifacts
-bin/
-obj/
-<<<<<<< HEAD
-/.vs
-=======
-<<<<<<< HEAD
-
-# Visual Studio
 .vs/
 *.suo
 *.user
@@ -20,18 +10,11 @@ obj/
 *.sln.docstates
 *.userprefs
 
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# Build results
+# .NET Build artifacts
+bin/
+obj/
 [Dd]ebug/
-[Dd]ebugPublic/
 [Rr]elease/
-[Rr]eleases/
 x64/
 x86/
 [Aa][Rr][Mm]/
@@ -41,7 +24,3 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-=======
-/.vs
->>>>>>> origin/main
->>>>>>> origin/dev-backend

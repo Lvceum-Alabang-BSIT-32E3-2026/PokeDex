@@ -3,35 +3,37 @@ using Microsoft.AspNetCore.Identity;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
-
 
 // ===============================
 // Task 1.3.1 — Seed Default Roles
 // ===============================
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetService<RoleManager<IdentityRole>>();
 
-    // Runs only if Identity is configured (safe if not yet available)
     if (roleManager != null)
     {
-        string[] roles = { "Admin", "User" };
-
-        foreach (var role in roles)
-        {
-            var exists = await roleManager.RoleExistsAsync(role);
-            if (!exists)
-            {
-                await roleManager.CreateAsync(new IdentityRole(role));
-            }
-        }
+        // Gawa tayo ng temporary async scope para sa await
+        await SeedRoles(roleManager);
     }
 }
 
+// Helper method para sa seeding (Async)
+async Task SeedRoles(RoleManager<IdentityRole> roleManager)
+{
+    string[] roles = { "Admin", "User" };
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
