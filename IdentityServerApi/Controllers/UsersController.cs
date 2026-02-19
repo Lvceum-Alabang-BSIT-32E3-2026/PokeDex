@@ -24,20 +24,16 @@ namespace IdentityServerApi.Controllers
 		[Authorize]
 		public async Task<IActionResult> GetCurrentUser()
 		{
-			// Get user ID from JWT claims
 			var userId = User?.FindFirst("sub")?.Value;
 			if (string.IsNullOrEmpty(userId))
 				return Unauthorized();
 
-			// Fetch user from database
 			var user = await _userManager.FindByIdAsync(userId);
 			if (user == null)
 				return Unauthorized();
 
-			// Get user roles
 			var roles = await _userManager.GetRolesAsync(user);
 
-			// Return user info
 			return Ok(new
 			{
 				user.Id,
@@ -56,33 +52,25 @@ namespace IdentityServerApi.Controllers
 		[Authorize]
 		public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
 		{
-			// Validate input
 			if (string.IsNullOrWhiteSpace(dto.DisplayName))
 				return BadRequest(new { Message = "DisplayName is required." });
 
-			// Get user ID from JWT claims
 			var userId = User?.FindFirst("sub")?.Value;
 			if (string.IsNullOrEmpty(userId))
 				return Unauthorized();
 
-			// Fetch user from database
 			var user = await _userManager.FindByIdAsync(userId);
 			if (user == null)
 				return Unauthorized();
 
-			// Update DisplayName (mapped to UserName)
 			user.UserName = dto.DisplayName;
 
 			var result = await _userManager.UpdateAsync(user);
 			if (!result.Succeeded)
-			{
 				return BadRequest(result.Errors.Select(e => e.Description));
-			}
 
-			// Get user roles
 			var roles = await _userManager.GetRolesAsync(user);
 
-			// Return updated user info
 			return Ok(new
 			{
 				user.Id,
@@ -91,6 +79,32 @@ namespace IdentityServerApi.Controllers
 				DisplayName = user.UserName,
 				Roles = roles
 			});
+		}
+
+		// =========================
+		// POST /api/users/me/change-password
+		// Task 1.4.2
+		// =========================
+		[HttpPost("me/change-password")]
+		[Authorize]
+		public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+		{
+			if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+				return BadRequest(new { Message = "Current and new passwords are required." });
+
+			var userId = User?.FindFirst("sub")?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized();
+
+			var user = await _userManager.FindByIdAsync(userId);
+			if (user == null)
+				return Unauthorized();
+
+			var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+			if (!result.Succeeded)
+				return BadRequest(result.Errors.Select(e => e.Description));
+
+			return Ok(new { Message = "Password changed successfully." });
 		}
 	}
 }
