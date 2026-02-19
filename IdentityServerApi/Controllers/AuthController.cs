@@ -97,7 +97,7 @@ public class AuthController : ControllerBase
         var roles = await _userManager.GetRolesAsync(user);
 
         // 4️ Generate JWT token using service
-        var token = _jwtService.GenerateToken(user, roles);
+        var token = await _jwtService.GenerateToken(user);
 
         var expirationMinutes = int.Parse(
             _configuration["JwtSettings:ExpirationInMinutes"]!

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 // Add Identity services if not already configured (needed for RoleManager/UserManager)
@@ -14,11 +13,16 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
 var app = builder.Build();
 
 // ===============================
+<<<<<<< HEAD
 // Task 1.3.1 & 1.3.2 — Seed Default Roles & Admin User
+=======
+// Task 1.3.1 — Seed Default Roles
+>>>>>>> dev-backend
 // ===============================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+<<<<<<< HEAD
 
     var roleManager = services.GetService<RoleManager<IdentityRole>>();
     var userManager = services.GetService<UserManager<IdentityUser>>();
@@ -71,6 +75,26 @@ using (var scope = app.Services.CreateScope())
         else
         {
             Console.WriteLine("Default admin user already exists. Skipping creation.");
+=======
+    var roleManager = services.GetService<RoleManager<IdentityRole>>();
+
+    if (roleManager != null)
+    {
+        // Gawa tayo ng temporary async scope para sa await
+        await SeedRoles(roleManager);
+    }
+}
+
+// Helper method para sa seeding (Async)
+async Task SeedRoles(RoleManager<IdentityRole> roleManager)
+{
+    string[] roles = { "Admin", "User" };
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+>>>>>>> dev-backend
         }
     }
 }

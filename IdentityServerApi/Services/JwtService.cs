@@ -3,19 +3,22 @@ using System.Security.Claims;
 using System.Text;
 using IdentityServerApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Identity;
 
 namespace IdentityServerApi.Services;
 
 public class JwtService : IJwtService
 {
     private readonly IConfiguration _configuration;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public JwtService(IConfiguration configuration)
+    public JwtService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
     {
         _configuration = configuration;
+        _userManager = userManager;
     }
 
-    public string GenerateToken(ApplicationUser user, IList<string> roles)
+    public async Task<string> GenerateToken(ApplicationUser user)
     {
         // Base claims per task specification
         var claims = new List<Claim>
@@ -27,8 +30,11 @@ public class JwtService : IJwtService
         };
 
         // Add role claims
+        var roles = await _userManager.GetRolesAsync(user);
         foreach (var role in roles)
+        {
             claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         // Signing key
         var key = new SymmetricSecurityKey(
