@@ -34,7 +34,7 @@ public class JwtService : IJwtService
 
         // 🔑 Key
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)
+            Encoding.UTF8.GetBytes(_configuration["JwtSettings:Secret"]!)
         );
 
         var creds = new SigningCredentials(

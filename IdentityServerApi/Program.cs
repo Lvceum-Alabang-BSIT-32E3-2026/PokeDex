@@ -1,8 +1,11 @@
 using IdentityServerApi.Services;
 using IdentityServerApi.Data;
 using IdentityServerApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,30 +26,46 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// 3. Controller Support
+// 3. JWT Configuration — reads from appsettings.json > JwtSettings
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secret      = jwtSettings["Secret"]!;
+var issuer      = jwtSettings["Issuer"]!;
+var audience    = jwtSettings["Audience"]!;
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer           = true,
+        ValidateAudience         = true,
+        ValidateLifetime         = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer              = issuer,
+        ValidAudience            = audience,
+        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// 4. JWT Service
+builder.Services.AddScoped<IJwtService, JwtService>();
+
+// 5. Controller Support
 builder.Services.AddControllers();
 
-// 4. Swagger Support
+// 6. Swagger Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 5. CORS Support - Allow Frontend Only (Task 1.2.6)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
 var app = builder.Build();
-builder.Services.AddScoped<IJwtService, JwtService>();
 
-
-// 6. Middleware Pipeline
+// 7. Middleware Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -55,16 +74,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// IMPORTANT: CORS must come before MapControllers
-app.UseCors("AllowFrontend");
-
+// IMPORTANT: Authentication must come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 7. Map Controllers
+// 8. Map Controllers
 app.MapControllers();
 
-// 8. Auto-Migration on Startup
+// 9. Auto-Migration on Startup
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

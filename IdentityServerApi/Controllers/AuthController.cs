@@ -99,7 +99,7 @@ public class AuthController : ControllerBase
         var token = _jwtService.GenerateToken(user, roles);
 
         var expirationMinutes = int.Parse(
-            _configuration["JwtSettings:ExpirationMinutes"]!
+            _configuration["JwtSettings:ExpirationInMinutes"]!
         );
 
         // 5️ Return response
