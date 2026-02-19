@@ -1,5 +1,19 @@
+# Node modules
 node_modules/
+
+# VS Code
 .vscode/
+
+# .NET Build artifacts
 bin/
 obj/
-/.vs
+[Dd]ebug/
+[Rr]elease/
+
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
