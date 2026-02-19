@@ -1,11 +1,8 @@
-using System;
+namespace IdentityServerApi.DTOs;
 
-namespace IdentityServerApi.DTOs
+public class TokenResponseDto
 {
-    public class TokenResponseDto
-    {
-        public string Token { get; set; }
-        public DateTime Expiration { get; set; }
-        public UserResponseDto User { get; set; }
-    }
+    public string Token { get; set; } = string.Empty;
+    public DateTime Expiration { get; set; }
+    public UserResponseDto User { get; set; } = new();
 }
