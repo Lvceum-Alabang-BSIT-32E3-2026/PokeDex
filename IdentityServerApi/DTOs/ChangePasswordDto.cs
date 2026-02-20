@@ -1,8 +1,9 @@
-namespace IdentityServerApi.DTOs
+public class ChangePasswordDto
 {
-    public class ChangePasswordDto
-    {
-        public string CurrentPassword { get; set; } = string.Empty;
-        public string NewPassword { get; set; } = string.Empty;
-    }
+    [Required]
+    public string CurrentPassword { get; set; }
+
+    [Required]
+    [MinLength(6)] // Or whatever your complexity rules require
+    public string NewPassword { get; set; }
 }
