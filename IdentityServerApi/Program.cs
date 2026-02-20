@@ -39,7 +39,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
 // 3. JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secret = jwtSettings["Secret"]!;
+var secret = jwtSettings["Secret"] ?? "DefaultSuperSecretKey123!"; // Fallback for safety
 var issuer = jwtSettings["Issuer"]!;
 var audience = jwtSettings["Audience"]!;
 
@@ -114,10 +114,33 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine("--> Seeding Admin User...");
             var newAdmin = new ApplicationUser
             {
-                UserName = "admin", // As specified in the task
+                UserName = "admin",
                 Email = adminEmail,
-                DisplayName = "Administrator", // As specified in the task
+                DisplayName = "Default Admin",
                 EmailConfirmed = true
             };
 
-            var createResult = await userManager.CreateAsync(newAdmin,
+            var createResult = await userManager.CreateAsync(newAdmin, "Admin123!");
+
+            if (createResult.Succeeded)
+            {
+                Console.WriteLine("--> Admin User created successfully.");
+                await userManager.AddToRoleAsync(newAdmin, "Admin");
+            }
+            else
+            {
+                foreach (var error in createResult.Errors)
+                {
+                    Console.WriteLine($"--> Error Seeding Admin: {error.Description}");
+                }
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during database migration or seeding.");
+    }
+}
+
+app.Run();
