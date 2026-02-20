@@ -1,4 +1,5 @@
 using IdentityServerApi.DTOs;
+using IdentityServerApi.Models; // Siguraduhin na nandito ang ApplicationUser model
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,6 @@ namespace IdentityServerApi.Controllers
     [Route("api/users")]
     public class UsersController : ControllerBase
     {
-        // FIX: Pinalitan ang IdentityUser ng ApplicationUser para sa DI container
         private readonly UserManager<ApplicationUser> _userManager;
 
         public UsersController(UserManager<ApplicationUser> userManager)
@@ -18,7 +18,7 @@ namespace IdentityServerApi.Controllers
         }
 
         // ==========================================
-        // GET /api/users/me
+        // GET /api/users/me (Task 1.3.3 Fix)
         // ==========================================
         [HttpGet("me")]
         [Authorize]
@@ -39,19 +39,18 @@ namespace IdentityServerApi.Controllers
                 user.Id,
                 user.UserName,
                 user.Email,
-                DisplayName = user.UserName,
+                DisplayName = user.DisplayName, // FIX: Iniba sa user.UserName; dapat actual DisplayName field
                 Roles = roles
             });
         }
 
         // ==========================================
-        // PUT /api/users/me (Task 1.4.1)
+        // PUT /api/users/me (Task 1.4.1 Fix)
         // ==========================================
         [HttpPut("me")]
         [Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            // FIX: Ginamit ang ModelState validation imbes na manual checks
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
@@ -63,8 +62,8 @@ namespace IdentityServerApi.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // Dito mo i-update ang properties base sa DTO mo
-            user.UserName = dto.DisplayName;
+            // FIX: Update the DisplayName property, NOT the UserName
+            user.DisplayName = dto.DisplayName;
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -74,17 +73,14 @@ namespace IdentityServerApi.Controllers
         }
 
         // ==========================================
-        // POST /api/users/me/change-password (Task 1.4.2)
+        // POST /api/users/me/change-password (Task 1.4.2 Fix)
         // ==========================================
-        [HttpPost("me/change-password")]
+        [HttpPost("me/change-password")] // FIX: Path corrected to include /me/
         [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
-            // FIX: Validation via Data Annotations (Dahil sa [Required] sa DTO)
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var userId = User?.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userId))
@@ -94,12 +90,11 @@ namespace IdentityServerApi.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // Ginamit ang built-in rotation logic gaya ng requirement
+            // Correctly uses _userManager.ChangePasswordAsync as required
             var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
 
             if (!result.Succeeded)
             {
-                // Returns error if current password is wrong or doesn't meet complexity
                 return BadRequest(result.Errors.Select(e => e.Description));
             }
 
