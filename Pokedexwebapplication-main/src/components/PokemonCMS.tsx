@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -187,13 +187,10 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     loadTypes();
   }, []);
 
-  // Auto-dismiss banners
-  useEffect(() => {
-    if (success) {
-      const t = setTimeout(() => setSuccess(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [success]);
+  const showSuccess = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(null), 3000);
+  };
 
   useEffect(() => {
     if (error) {
@@ -271,6 +268,8 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   const startAdd = () => {
     setIsAdding(true);
     setIsEditing(null);
+    setError(null);
+    setSuccess(null);
     setFormData({
       name: '',
       types: [],
@@ -308,9 +307,14 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
         });
         setPokemonList(prev => [created, ...prev]);
         setSuccess(`"${created.name}" was added!`);
-      } else if (isEditing) {
+      } else if (isEditing !== null) {
+        // UPDATE — calls PUT /api/pokemon/{id}
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
+        // Refresh list from source of truth
+        await loadData();
+        // Optimistically update the row in case loadData is slow
         setPokemonList(prev =>
-          prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
+          prev.map(p => (p.id === isEditing ? { ...p, ...updated } : p))
         );
         setSuccess(`"${formData.name}" was updated!`);
       }
@@ -379,7 +383,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
               <span>Inventory ({pokemonList.length})</span>
-              {loading && <span className="text-xs text-slate-400 animate-pulse">Loading…</span>}
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
@@ -422,7 +426,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
         {/* ── Editor Panel ── */}
         <AnimatePresence mode="wait">
-          {(isEditing || isAdding) && (
+          {(isEditing !== null || isAdding) && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -435,12 +439,19 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
                   <button
-                    onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                    onClick={resetForm}
                     className="p-1 hover:bg-slate-100 rounded-full"
                   >
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
                 <form onSubmit={handleSave} className="space-y-4">
                   {/* Name */}
@@ -453,6 +464,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
                     />
                   </div>
 
@@ -517,7 +529,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
                       type="button"
-                      onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                      onClick={resetForm}
                       disabled={isSaving}
                       className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -526,10 +538,19 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed"
                     >
-                      <Save className="w-4 h-4" />
-                      {isSaving ? 'Saving...' : 'Save'}
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
