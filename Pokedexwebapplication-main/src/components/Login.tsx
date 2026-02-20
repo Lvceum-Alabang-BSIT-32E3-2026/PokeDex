@@ -146,8 +146,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="mt-4 text-center">
                     <p className="text-sm text-slate-400">
                         Don't have an account?{' '}
-                        <a
-                            href="#register"
+                        <Link
+                            to="/register"
                             className="text-red-500 hover:text-red-600 hover:underline transition-colors"
                         >
                             Register
