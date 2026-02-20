@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -167,8 +167,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   // Error & success state
   const [error, setError] = useState<string | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -179,8 +178,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
@@ -204,9 +201,40 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this Pokemon?')) {
-      setPokemonList(prev => prev.filter(p => p.id !== id));
+  const loadTypes = async () => {
+    try {
+      const res = await fetch('https://pokeapi.co/api/v2/type');
+      const data = await res.json();
+      const types = data.results.map((t: any) => t.name);
+      setAvailableTypes(types);
+    } catch (err) {
+      console.error('Failed to load types:', err);
+      // fallback to FALLBACK_TYPES already in state
+    }
+  };
+
+  const handleDeleteClick = (p: Pokemon) => {
+    setDeleteTarget(p);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setIsSaving(true);
+    try {
+      await pokemonService.deletePokemon(deleteTarget.id);
+      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setSuccess('Pokemon deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delete Pokemon.');
+    } finally {
+      setIsSaving(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -241,7 +269,9 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       };
       setPokemonList([newPokemon, ...pokemonList]);
     } else if (isEditing) {
-      setPokemonList(prev => prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p));
+      setPokemonList(prev =>
+        prev.map(p => (p.id === isEditing ? ({ ...p, ...formData } as Pokemon) : p))
+      );
     }
 
     setIsAdding(false);
@@ -256,7 +286,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       electric: 'bg-yellow-100 text-yellow-800',
       psychic: 'bg-pink-100 text-pink-800',
       normal: 'bg-slate-200 text-slate-800',
-      // ... others
     };
     return colors[type] || 'bg-slate-100 text-slate-800';
   };
@@ -351,7 +380,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(p.id)}
+                      onClick={() => handleDeleteClick(p)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -396,13 +425,34 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
-                    <input
-                      type="text"
-                      value={formData.types?.join(', ')}
-                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()) })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  <div className="grid grid-cols-2 gap-4">
+                    <TypeSelect
+                      label="Primary Type"
+                      value={formData.types?.[0] || ''}
+                      options={availableTypes}
+                      required
+                      onChange={val => {
+                        const newTypes = [...(formData.types || [])];
+                        newTypes[0] = val;
+                        if (!newTypes[1]) newTypes.length = 1;
+                        setFormData({ ...formData, types: newTypes });
+                      }}
+                    />
+                    <TypeSelect
+                      label="Secondary Type"
+                      value={formData.types?.[1] || ''}
+                      options={availableTypes}
+                      disabledOption={formData.types?.[0]}
+                      allowClear
+                      onChange={val => {
+                        const newTypes = [...(formData.types || [])];
+                        if (val) {
+                          newTypes[1] = val;
+                        } else {
+                          newTypes.length = 1;
+                        }
+                        setFormData({ ...formData, types: newTypes });
+                      }}
                     />
                   </div>
 
