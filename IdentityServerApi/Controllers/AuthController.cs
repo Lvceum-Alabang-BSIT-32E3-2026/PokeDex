@@ -1,4 +1,6 @@
-﻿using IdentityServerApi.DTOs;
+﻿AuthController.cs
+
+using IdentityServerApi.DTOs;
 using IdentityServerApi.Models;
 using IdentityServerApi.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,8 +13,8 @@ namespace IdentityServerApi.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly UserManager _userManager;
+    private readonly RoleManager _roleManager;
     private readonly IConfiguration _configuration;
     private readonly IJwtService _jwtService;
 
@@ -126,13 +128,11 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                 ?? User.FindFirst("email")?.Value;
-
-        if (email == null)
+        var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "User not found in token." });
 
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             return Unauthorized(new { message = "User no longer exists." });
 
@@ -140,11 +140,11 @@ public class AuthController : ControllerBase
 
         return Ok(new UserResponseDto
         {
-            Id          = user.Id,
-            Username    = user.UserName!,
-            Email       = user.Email!,
+            Id = user.Id,
+            Username = user.UserName!,
+            Email = user.Email!,
             DisplayName = user.DisplayName,
-            Roles       = roles.ToList()
+            Roles = roles.ToList()
         });
     }
 
@@ -189,3 +189,4 @@ public class AuthController : ControllerBase
         };
     }
 }
+

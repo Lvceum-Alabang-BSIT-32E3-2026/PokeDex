@@ -1,3 +1,5 @@
+UsersController.cs
+
 using IdentityServerApi.DTOs;
 using IdentityServerApi.Models; // Siguraduhin na nandito ang ApplicationUser model
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +12,7 @@ namespace IdentityServerApi.Controllers
     [Route("api/users")]
     public class UsersController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly UserManager _userManager;
 
         public UsersController(UserManager<ApplicationUser> userManager)
         {
@@ -24,7 +26,7 @@ namespace IdentityServerApi.Controllers
         [Authorize]
         public async Task<IActionResult> GetCurrentUser()
         {
-            var userId = User?.FindFirst("sub")?.Value;
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -54,7 +56,7 @@ namespace IdentityServerApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = User?.FindFirst("sub")?.Value;
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -82,7 +84,7 @@ namespace IdentityServerApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = User?.FindFirst("sub")?.Value;
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -102,3 +104,4 @@ namespace IdentityServerApi.Controllers
         }
     }
 }
+
