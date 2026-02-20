@@ -1,19 +1,169 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon, ChevronDown, Loader2 } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
   onBack: () => void;
 }
 
-export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
+// All 18 Pokemon types (fallback if API fails)
+const FALLBACK_TYPES = [
+  'normal', 'fire', 'water', 'electric', 'grass', 'ice',
+  'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug',
+  'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'
+];
+
+const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
+  normal: { bg: 'bg-slate-100', text: 'text-slate-700', badge: 'bg-slate-300 text-slate-800' },
+  fire: { bg: 'bg-orange-100', text: 'text-orange-700', badge: 'bg-orange-400 text-white' },
+  water: { bg: 'bg-blue-100', text: 'text-blue-700', badge: 'bg-blue-500 text-white' },
+  electric: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'bg-yellow-400 text-slate-900' },
+  grass: { bg: 'bg-green-100', text: 'text-green-700', badge: 'bg-green-500 text-white' },
+  ice: { bg: 'bg-cyan-100', text: 'text-cyan-700', badge: 'bg-cyan-400 text-white' },
+  fighting: { bg: 'bg-red-100', text: 'text-red-700', badge: 'bg-red-600 text-white' },
+  poison: { bg: 'bg-purple-100', text: 'text-purple-700', badge: 'bg-purple-500 text-white' },
+  ground: { bg: 'bg-amber-100', text: 'text-amber-700', badge: 'bg-amber-600 text-white' },
+  flying: { bg: 'bg-indigo-100', text: 'text-indigo-700', badge: 'bg-indigo-400 text-white' },
+  psychic: { bg: 'bg-pink-100', text: 'text-pink-700', badge: 'bg-pink-500 text-white' },
+  bug: { bg: 'bg-lime-100', text: 'text-lime-700', badge: 'bg-lime-500 text-white' },
+  rock: { bg: 'bg-stone-100', text: 'text-stone-700', badge: 'bg-stone-500 text-white' },
+  ghost: { bg: 'bg-violet-100', text: 'text-violet-700', badge: 'bg-violet-600 text-white' },
+  dragon: { bg: 'bg-blue-100', text: 'text-blue-900', badge: 'bg-blue-800 text-white' },
+  dark: { bg: 'bg-slate-200', text: 'text-slate-900', badge: 'bg-slate-700 text-white' },
+  steel: { bg: 'bg-slate-100', text: 'text-slate-600', badge: 'bg-slate-400 text-white' },
+  fairy: { bg: 'bg-rose-100', text: 'text-rose-700', badge: 'bg-rose-400 text-white' },
+};
+
+const getTypeBadge = (type: string) => {
+  const c = TYPE_COLORS[type] || { badge: 'bg-slate-200 text-slate-700' };
+  return c.badge;
+};
+
+// ─── TypeSelect Component ───────────────────────────────────────────────────
+interface TypeSelectProps {
+  label: string;
+  value: string;
+  options: string[];
+  disabledOption?: string;   // prevent duplicate selection
+  onChange: (val: string) => void;
+  required?: boolean;
+  allowClear?: boolean;
+}
+
+const TypeSelect: React.FC<TypeSelectProps> = ({
+  label, value, options, disabledOption, onChange, required = false, allowClear = false
+}) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (type: string) => {
+    onChange(type);
+    setOpen(false);
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-slate-700 mb-1">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+        {!required && <span className="text-slate-400 text-xs ml-1">(optional)</span>}
+      </label>
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        className={`w-full flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-white
+          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors
+          ${open ? 'border-blue-500 ring-2 ring-blue-500' : 'border-slate-300 hover:border-slate-400'}`}
+      >
+        {value ? (
+          <span className={`inline-flex items-center gap-1.5 font-semibold capitalize px-2 py-0.5 rounded-full text-xs ${getTypeBadge(value)}`}>
+            {value}
+          </span>
+        ) : (
+          <span className="text-slate-400">Select type…</span>
+        )}
+        <div className="flex items-center gap-1">
+          {allowClear && value && (
+            <span
+              role="button"
+              onClick={handleClear}
+              className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+          >
+            {/* Clear option */}
+            {allowClear && (
+              <button
+                type="button"
+                onClick={() => handleSelect('')}
+                className="w-full text-left px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 font-medium border-b border-slate-100 flex items-center gap-1.5"
+              >
+                <X className="w-3 h-3" /> Clear selection
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-0.5 p-1.5 max-h-52 overflow-y-auto">
+              {options.map(type => {
+                const isDisabled = type === disabledOption;
+                const isSelected = type === value;
+                const c = TYPE_COLORS[type] || { bg: 'bg-slate-100', text: 'text-slate-700' };
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && handleSelect(type)}
+                    className={`capitalize text-xs font-semibold px-2 py-1.5 rounded-lg text-left transition-all
+                      ${isSelected ? `${c.bg} ${c.text} ring-2 ring-blue-500` : isDisabled
+                        ? 'opacity-30 cursor-not-allowed bg-slate-50 text-slate-400'
+                        : `${c.bg} ${c.text} hover:brightness-95 cursor-pointer`
+                      }`}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click-outside backdrop */}
+      {open && (
+        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+// ─── Main CMS Component ─────────────────────────────────────────────────────
+export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -22,34 +172,67 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     image: ''
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
+  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+
   const isOperating = loading || isSaving || deletingId !== null;
 
   useEffect(() => {
     loadData();
+    loadTypes();
   }, []);
+
+  const loadTypes = async () => {
+    // Note: pokemonService does not currently have a getTypes method.
+    // availableTypes is initialized with FALLBACK_TYPES.
+  };
+
+  const showSuccess = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
 
   const loadData = async () => {
     setLoading(true);
-    try {
-      const data = await pokemonService.getList(0, 50);
-      setPokemonList(data);
-    } finally {
-      setLoading(false);
-    }
+    // For CMS, let's just fetch the first page or a mock list to manage
+    const data = await pokemonService.getList(0, 50);
+    setPokemonList(data);
+    setLoading(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this Pokemon?')) return;
-    setDeletingId(id);
+  const handleDelete = (p: Pokemon) => {
+    if (isOperating) return;
+    setDeleteTarget(p);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeletingId(deleteTarget.id);
+    setIsSaving(true);
+    setError(null);
+
     try {
-      // Simulate async delete (replace with real API call if available)
-      await new Promise(resolve => setTimeout(resolve, 600));
-      setPokemonList(prev => prev.filter(p => p.id !== id));
-      if (isEditing === id) {
-        setIsEditing(null);
-      }
+      await pokemonService.deletePokemon(deleteTarget.id);
+      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+      showSuccess(`"${deleteTarget.name}" deleted successfully!`);
+    } catch (err) {
+      setError("Failed to delete Pokemon. Please try again.");
     } finally {
+      setIsSaving(false);
       setDeletingId(null);
+      setDeleteTarget(null);
     }
   };
 
@@ -58,12 +241,15 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
+    setError(null);
   };
 
   const startAdd = () => {
     if (isOperating) return;
     setIsAdding(true);
     setIsEditing(null);
+    setError(null);
+    setSuccess(null);
     setFormData({
       name: '',
       types: [],
@@ -73,41 +259,50 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name) {
+      setError("Please provide a name.");
+      return;
+    }
+
     setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+
     try {
-      // Simulate async save (replace with real API call if available)
-      await new Promise(resolve => setTimeout(resolve, 700));
-
       if (isAdding) {
-        const newId = pokemonList.length > 0 ? Math.max(...pokemonList.map(p => p.id)) + 1 : 1;
-        const newPokemon: Pokemon = {
-          id: newId,
-          name: formData.name || 'Unknown',
-          types: formData.types || ['normal'],
-          image: formData.image || ''
-        };
+        const newPokemon = await pokemonService.createPokemon(formData as Omit<Pokemon, 'id'>);
         setPokemonList([newPokemon, ...pokemonList]);
+        showSuccess(`"${newPokemon.name}" added successfully!`);
       } else if (isEditing) {
-        setPokemonList(prev =>
-          prev.map(p => (p.id === isEditing ? { ...p, ...formData } as Pokemon : p))
-        );
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
+        setPokemonList(prev => prev.map(p => p.id === isEditing ? updated : p));
+        showSuccess(`"${updated.name}" updated successfully!`);
       }
-
       setIsAdding(false);
       setIsEditing(null);
+    } catch (err) {
+      setError(`Failed to save Pokemon: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const cancelEdit = () => {
-    if (isSaving) return;
-    setIsEditing(null);
-    setIsAdding(false);
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      fire: 'bg-orange-100 text-orange-800',
+      water: 'bg-blue-100 text-blue-800',
+      grass: 'bg-green-100 text-green-800',
+      electric: 'bg-yellow-100 text-yellow-800',
+      psychic: 'bg-pink-100 text-pink-800',
+      normal: 'bg-slate-200 text-slate-800',
+      // ... others
+    };
+    return colors[type] || 'bg-slate-100 text-slate-800';
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* ── Header ── */}
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -131,91 +326,84 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
         </div>
       </header>
 
+      {/* ── Banners ── */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="max-w-7xl mx-auto px-4 mt-4"
+          >
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">⚠️ {error}</span>
+              <button onClick={() => setError(null)} className="ml-4 hover:text-red-900"><X className="w-4 h-4" /></button>
+            </div>
+          </motion.div>
+        )}
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="max-w-7xl mx-auto px-4 mt-4"
+          >
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">✅ {success}</span>
+              <button onClick={() => setSuccess(null)} className="ml-4 hover:text-green-900"><X className="w-4 h-4" /></button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <main className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* List View */}
+        {/* ── List View ── */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between items-center">
               <span>Inventory ({pokemonList.length})</span>
-              {loading && (
-                <span className="flex items-center gap-2 text-blue-500 text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading...
-                </span>
-              )}
             </div>
 
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
-              {/* Loading Spinner for List */}
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                  <p className="text-slate-500 text-sm font-medium">Loading Pokémon...</p>
-                </div>
-              ) : pokemonList.length === 0 ? (
-                <div className="py-16 text-center text-slate-400 text-sm">
-                  No Pokémon found. Add one to get started!
-                </div>
-              ) : (
-                pokemonList.map(p => (
-                  <div
-                    key={p.id}
-                    className={`p-4 flex items-center justify-between transition-colors ${
-                      isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1"
-                      />
-                      <div>
-                        <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
-                        <div className="flex gap-1 mt-1">
-                          {p.types.map(t => (
-                            <span
-                              key={t}
-                              className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
+              {pokemonList.map(p => (
+                <div
+                  key={p.id}
+                  className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <img src={p.image} alt={p.name} className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1" />
+                    <div>
+                      <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
+                      <div className="flex gap-1 mt-1">
+                        {p.types.map(t => (
+                          <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                            {t}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => startEdit(p)}
-                        disabled={isOperating}
-                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      {/* Delete Button with per-row spinner */}
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        disabled={isOperating}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        title="Delete"
-                      >
-                        {deletingId === p.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-red-400" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
                   </div>
-                ))
-              )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p)}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Editor Panel */}
+        {/* ── Editor Panel ── */}
         <AnimatePresence mode="wait">
           {(isEditing || isAdding) && (
             <motion.div
@@ -230,44 +418,36 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
                   <button
-                    onClick={cancelEdit}
-                    disabled={isSaving}
-                    className="p-1 hover:bg-slate-100 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                    className="p-1 hover:bg-slate-100 rounded-full"
                   >
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
+                  {/* Name */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      disabled={isSaving}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400"
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Type (comma separated)
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
                     <input
                       type="text"
                       value={formData.types?.join(', ')}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          types: e.target.value.split(',').map(s => s.trim())
-                        })
-                      }
-                      disabled={isSaving}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400"
+                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()) })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
+                  {/* Image URL */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
@@ -276,8 +456,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                           type="text"
                           value={formData.image}
                           onChange={e => setFormData({ ...formData, image: e.target.value })}
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                       </div>
                     </div>
@@ -291,16 +470,14 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
                       type="button"
-                      onClick={cancelEdit}
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
                       {isSaving ? (
                         <>
@@ -321,6 +498,57 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+              onClick={() => setDeleteTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-100 p-2.5 rounded-full">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Confirm Delete</h3>
+                </div>
+                <p className="text-slate-600 text-sm mb-6">
+                  Are you sure you want to delete{' '}
+                  <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
+                  This action cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteTarget(null)}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={isSaving}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSaving ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
