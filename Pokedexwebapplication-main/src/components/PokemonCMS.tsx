@@ -32,9 +32,25 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     setLoading(false);
   };
 
+<<<<<<< Updated upstream
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this Pokemon?')) {
+=======
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this Pokemon?')) return;
+    setErrorMessage(null);
+    try {
+      await pokemonService.deletePokemon(id);
+>>>>>>> Stashed changes
       setPokemonList(prev => prev.filter(p => p.id !== id));
+      showSuccess('Pokemon deleted successfully!');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to delete Pokémon. Please try again.');
     }
   };
 
