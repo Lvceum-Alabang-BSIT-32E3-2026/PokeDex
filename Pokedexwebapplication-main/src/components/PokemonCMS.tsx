@@ -9,30 +9,30 @@ interface PokemonCMSProps {
 
 // All 18 Pokemon types (fallback if API fails)
 const FALLBACK_TYPES = [
-  'normal','fire','water','electric','grass','ice',
-  'fighting','poison','ground','flying','psychic','bug',
-  'rock','ghost','dragon','dark','steel','fairy'
+  'normal', 'fire', 'water', 'electric', 'grass', 'ice',
+  'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug',
+  'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'
 ];
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  normal:   { bg: 'bg-slate-100',   text: 'text-slate-700',   badge: 'bg-slate-300 text-slate-800' },
-  fire:     { bg: 'bg-orange-100',  text: 'text-orange-700',  badge: 'bg-orange-400 text-white' },
-  water:    { bg: 'bg-blue-100',    text: 'text-blue-700',    badge: 'bg-blue-500 text-white' },
-  electric: { bg: 'bg-yellow-100',  text: 'text-yellow-700',  badge: 'bg-yellow-400 text-slate-900' },
-  grass:    { bg: 'bg-green-100',   text: 'text-green-700',   badge: 'bg-green-500 text-white' },
-  ice:      { bg: 'bg-cyan-100',    text: 'text-cyan-700',    badge: 'bg-cyan-400 text-white' },
-  fighting: { bg: 'bg-red-100',     text: 'text-red-700',     badge: 'bg-red-600 text-white' },
-  poison:   { bg: 'bg-purple-100',  text: 'text-purple-700',  badge: 'bg-purple-500 text-white' },
-  ground:   { bg: 'bg-amber-100',   text: 'text-amber-700',   badge: 'bg-amber-600 text-white' },
-  flying:   { bg: 'bg-indigo-100',  text: 'text-indigo-700',  badge: 'bg-indigo-400 text-white' },
-  psychic:  { bg: 'bg-pink-100',    text: 'text-pink-700',    badge: 'bg-pink-500 text-white' },
-  bug:      { bg: 'bg-lime-100',    text: 'text-lime-700',    badge: 'bg-lime-500 text-white' },
-  rock:     { bg: 'bg-stone-100',   text: 'text-stone-700',   badge: 'bg-stone-500 text-white' },
-  ghost:    { bg: 'bg-violet-100',  text: 'text-violet-700',  badge: 'bg-violet-600 text-white' },
-  dragon:   { bg: 'bg-blue-100',    text: 'text-blue-900',    badge: 'bg-blue-800 text-white' },
-  dark:     { bg: 'bg-slate-200',   text: 'text-slate-900',   badge: 'bg-slate-700 text-white' },
-  steel:    { bg: 'bg-slate-100',   text: 'text-slate-600',   badge: 'bg-slate-400 text-white' },
-  fairy:    { bg: 'bg-rose-100',    text: 'text-rose-700',    badge: 'bg-rose-400 text-white' },
+  normal: { bg: 'bg-slate-100', text: 'text-slate-700', badge: 'bg-slate-300 text-slate-800' },
+  fire: { bg: 'bg-orange-100', text: 'text-orange-700', badge: 'bg-orange-400 text-white' },
+  water: { bg: 'bg-blue-100', text: 'text-blue-700', badge: 'bg-blue-500 text-white' },
+  electric: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'bg-yellow-400 text-slate-900' },
+  grass: { bg: 'bg-green-100', text: 'text-green-700', badge: 'bg-green-500 text-white' },
+  ice: { bg: 'bg-cyan-100', text: 'text-cyan-700', badge: 'bg-cyan-400 text-white' },
+  fighting: { bg: 'bg-red-100', text: 'text-red-700', badge: 'bg-red-600 text-white' },
+  poison: { bg: 'bg-purple-100', text: 'text-purple-700', badge: 'bg-purple-500 text-white' },
+  ground: { bg: 'bg-amber-100', text: 'text-amber-700', badge: 'bg-amber-600 text-white' },
+  flying: { bg: 'bg-indigo-100', text: 'text-indigo-700', badge: 'bg-indigo-400 text-white' },
+  psychic: { bg: 'bg-pink-100', text: 'text-pink-700', badge: 'bg-pink-500 text-white' },
+  bug: { bg: 'bg-lime-100', text: 'text-lime-700', badge: 'bg-lime-500 text-white' },
+  rock: { bg: 'bg-stone-100', text: 'text-stone-700', badge: 'bg-stone-500 text-white' },
+  ghost: { bg: 'bg-violet-100', text: 'text-violet-700', badge: 'bg-violet-600 text-white' },
+  dragon: { bg: 'bg-blue-100', text: 'text-blue-900', badge: 'bg-blue-800 text-white' },
+  dark: { bg: 'bg-slate-200', text: 'text-slate-900', badge: 'bg-slate-700 text-white' },
+  steel: { bg: 'bg-slate-100', text: 'text-slate-600', badge: 'bg-slate-400 text-white' },
+  fairy: { bg: 'bg-rose-100', text: 'text-rose-700', badge: 'bg-rose-400 text-white' },
 };
 
 const getTypeBadge = (type: string) => {
@@ -164,6 +164,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [typesLoading, setTypesLoading] = useState(false);
 
@@ -186,13 +187,20 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     loadTypes();
   }, []);
 
-  // Auto-dismiss success banner
+  // Auto-dismiss banners
   useEffect(() => {
     if (success) {
       const t = setTimeout(() => setSuccess(null), 3000);
       return () => clearTimeout(t);
     }
   }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
 
   const loadData = async () => {
     setLoading(true);
@@ -271,7 +279,13 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     setError(null);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setIsAdding(false);
+    setIsEditing(null);
+    setFormData({ name: '', types: [], image: '' });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -284,25 +298,28 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       return;
     }
 
-    if (isAdding) {
-      const newId = pokemonList.length ? Math.max(...pokemonList.map(p => p.id)) + 1 : 1;
-      const newPokemon: Pokemon = {
-        id: newId,
-        name: formData.name.trim(),
-        types: formData.types || ['normal'],
-        image: formData.image || ''
-      };
-      setPokemonList(prev => [newPokemon, ...prev]);
-      setSuccess(`"${newPokemon.name}" was added!`);
-    } else if (isEditing) {
-      setPokemonList(prev =>
-        prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
-      );
-      setSuccess(`"${formData.name}" was updated!`);
+    setIsSaving(true);
+    try {
+      if (isAdding) {
+        const created = await pokemonService.createPokemon({
+          name: formData.name.trim(),
+          types: formData.types || ['normal'],
+          image: formData.image || '',
+        });
+        setPokemonList(prev => [created, ...prev]);
+        setSuccess(`"${created.name}" was added!`);
+      } else if (isEditing) {
+        setPokemonList(prev =>
+          prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
+        );
+        setSuccess(`"${formData.name}" was updated!`);
+      }
+      resetForm();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save Pokemon. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsAdding(false);
-    setIsEditing(null);
   };
 
   return (
@@ -336,7 +353,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
             className="max-w-7xl mx-auto px-4 mt-4"
           >
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
-              <span>⚠️ {error}</span>
+              <span className="flex items-center gap-2">⚠️ {error}</span>
               <button onClick={() => setError(null)} className="ml-4 hover:text-red-900"><X className="w-4 h-4" /></button>
             </div>
           </motion.div>
@@ -349,7 +366,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
             className="max-w-7xl mx-auto px-4 mt-4"
           >
             <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
-              <span>✅ {success}</span>
+              <span className="flex items-center gap-2">✅ {success}</span>
               <button onClick={() => setSuccess(null)} className="ml-4 hover:text-green-900"><X className="w-4 h-4" /></button>
             </div>
           </motion.div>
@@ -501,16 +518,18 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     <button
                       type="button"
                       onClick={() => { setIsEditing(null); setIsAdding(false); }}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <Save className="w-4 h-4" />
-                      Save
+                      {isSaving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
                 </form>
