@@ -63,14 +63,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
-// 4. JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
-
-// 5. Controller Support
 builder.Services.AddControllers();
-
-// 6. Swagger Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -85,10 +79,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 // 8. Auto-Migration and Seeding Logic
@@ -100,7 +92,6 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.Migrate();
 
-        // Managers required for seeding
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
@@ -114,33 +105,47 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        // Seed Default Admin User (Task 1.3.2)
+        // --- FIXED SEED DEFAULT ADMIN USER (Task 1.3.2) ---
         var adminEmail = "admin@pokedex.com";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
         if (adminUser == null)
         {
+            Console.WriteLine("--> Seeding Admin User...");
             var newAdmin = new ApplicationUser
             {
                 UserName = adminEmail,
                 Email = adminEmail,
                 EmailConfirmed = true
+                // TANDAAN: Kung may required fields ang ApplicationUser model mo 
+                // (ex. FirstName), dapat mo silang i-include dito.
             };
 
-            // Using the password specified in the requirements
             var createResult = await userManager.CreateAsync(newAdmin, "Admin123!");
 
             if (createResult.Succeeded)
             {
-                // Assign the "Admin" role to the new user
                 await userManager.AddToRoleAsync(newAdmin, "Admin");
+                Console.WriteLine("? SUCCESS: admin@pokedex.com created and assigned to Admin role.");
             }
+            else
+            {
+                Console.WriteLine("? ERROR seeding admin:");
+                foreach (var error in createResult.Errors)
+                {
+                    Console.WriteLine($"- {error.Description}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("?? INFO: Admin user already exists. Skipping seeding.");
         }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database migration or seeding.");
+        logger.LogError(ex, "An error occurred during seeding.");
     }
 }
 
