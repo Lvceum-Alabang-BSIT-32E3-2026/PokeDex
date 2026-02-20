@@ -9,7 +9,7 @@ namespace IdentityServerApi.DTOs
         public string Email { get; set; }
 
         [Required]
-        [StringLength(100)]
+        [StringLength(50)]
         public string FullName { get; set; }
 
         // Maaari mong dagdagan base sa user properties niyo
