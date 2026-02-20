@@ -10,7 +10,7 @@ namespace IdentityServerApi.DTOs
 
         [Required]
         [StringLength(50)]
-        public string FullName { get; set; }
+        public string DisplayName { get; set; }
 
         // Maaari mong dagdagan base sa user properties niyo
         public string? PhoneNumber { get; set; }
