@@ -95,7 +95,7 @@ using (var scope = app.Services.CreateScope())
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
-        // Seed Roles
+        // --- SEED ROLES ---
         string[] roleNames = { "Admin", "User" };
         foreach (var roleName in roleNames)
         {
@@ -105,7 +105,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        // --- FIXED SEED DEFAULT ADMIN USER (Task 1.3.2) ---
+        // --- TASK 1.3.2: SEED ADMIN USER ---
         var adminEmail = "admin@pokedex.com";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
@@ -114,39 +114,10 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine("--> Seeding Admin User...");
             var newAdmin = new ApplicationUser
             {
-                UserName = adminEmail,
+                UserName = "admin", // As specified in the task
                 Email = adminEmail,
+                DisplayName = "Administrator", // As specified in the task
                 EmailConfirmed = true
-                // TANDAAN: Kung may required fields ang ApplicationUser model mo 
-                // (ex. FirstName), dapat mo silang i-include dito.
             };
 
-            var createResult = await userManager.CreateAsync(newAdmin, "Admin123!");
-
-            if (createResult.Succeeded)
-            {
-                await userManager.AddToRoleAsync(newAdmin, "Admin");
-                Console.WriteLine("? SUCCESS: admin@pokedex.com created and assigned to Admin role.");
-            }
-            else
-            {
-                Console.WriteLine("? ERROR seeding admin:");
-                foreach (var error in createResult.Errors)
-                {
-                    Console.WriteLine($"- {error.Description}");
-                }
-            }
-        }
-        else
-        {
-            Console.WriteLine("?? INFO: Admin user already exists. Skipping seeding.");
-        }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during seeding.");
-    }
-}
-
-app.Run();
+            var createResult = await userManager.CreateAsync(newAdmin,
