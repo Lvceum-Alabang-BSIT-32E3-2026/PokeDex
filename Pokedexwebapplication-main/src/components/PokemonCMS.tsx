@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Loader2 } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -12,6 +12,9 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -26,10 +29,14 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   const loadData = async () => {
     setLoading(true);
-    // For CMS, let's just fetch the first page or a mock list to manage
     const data = await pokemonService.getList(0, 50);
     setPokemonList(data);
     setLoading(false);
+  };
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   const handleDelete = (id: number) => {
@@ -42,11 +49,15 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
+    setErrorMessage(null);
+    setSuccessMessage(null);
   };
 
   const startAdd = () => {
     setIsAdding(true);
     setIsEditing(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     setFormData({
       name: '',
       types: [],
@@ -54,41 +65,67 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     });
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isAdding) {
-      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
-      const newPokemon: Pokemon = {
-        id: newId,
-        name: formData.name || 'Unknown',
-        types: formData.types || ['normal'],
-        image: formData.image || ''
-      };
-      setPokemonList([newPokemon, ...pokemonList]);
-    } else if (isEditing) {
-      setPokemonList(prev => prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p));
-    }
-
-    setIsAdding(false);
+  const handleCancel = () => {
     setIsEditing(null);
+    setIsAdding(false);
+    setErrorMessage(null);
   };
 
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      fire: 'bg-orange-100 text-orange-800',
-      water: 'bg-blue-100 text-blue-800',
-      grass: 'bg-green-100 text-green-800',
-      electric: 'bg-yellow-100 text-yellow-800',
-      psychic: 'bg-pink-100 text-pink-800',
-      normal: 'bg-slate-200 text-slate-800',
-      // ... others
-    };
-    return colors[type] || 'bg-slate-100 text-slate-800';
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setIsSaving(true);
+
+    try {
+      if (isAdding) {
+        // Add Pokemon (existing local logic — POST is a separate task)
+        const newId = Math.max(...pokemonList.map(p => p.id), 0) + 1;
+        const newPokemon: Pokemon = {
+          id: newId,
+          name: formData.name || 'Unknown',
+          types: formData.types || ['normal'],
+          image: formData.image || ''
+        };
+        setPokemonList([newPokemon, ...pokemonList]);
+        showSuccess('Pokemon added successfully!');
+      } else if (isEditing !== null) {
+        // UPDATE — calls PUT /api/pokemon/{id}
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
+        // Refresh list from source of truth
+        await loadData();
+        // Optimistically update the row in case loadData is slow
+        setPokemonList(prev =>
+          prev.map(p => (p.id === isEditing ? { ...p, ...updated } : p))
+        );
+        showSuccess('Pokemon updated successfully!');
+      }
+
+      setIsAdding(false);
+      setIsEditing(null);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Success Toast */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg font-medium flex items-center gap-2"
+          >
+            <span>✓</span>
+            {successMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -97,7 +134,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
             </button>
             <h1 className="text-xl font-bold">CMS Dashboard</h1>
           </div>
-          <button 
+          <button
             onClick={startAdd}
             className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"
           >
@@ -113,11 +150,12 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
               <span>Inventory ({pokemonList.length})</span>
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
-                <div 
-                  key={p.id} 
+                <div
+                  key={p.id}
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                 >
                   <div className="flex items-center gap-4">
@@ -134,13 +172,13 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => startEdit(p)}
                       className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(p.id)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -155,8 +193,8 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
         {/* Editor Panel */}
         <AnimatePresence mode="wait">
-          {(isEditing || isAdding) && (
-            <motion.div 
+          {(isEditing !== null || isAdding) && (
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -167,31 +205,39 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <h2 className="text-lg font-bold text-slate-800">
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
-                  <button 
-                    onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                  <button
+                    onClick={handleCancel}
                     className="p-1 hover:bg-slate-100 rounded-full"
                   >
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
 
+                {/* Error Message */}
+                {errorMessage && (
+                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {errorMessage}
+                  </div>
+                )}
+
                 <form onSubmit={handleSave} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.types?.join(', ')}
-                      onChange={e => setFormData({...formData, types: e.target.value.split(',').map(s => s.trim())})}
+                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
@@ -200,10 +246,10 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.image}
-                          onChange={e => setFormData({...formData, image: e.target.value})}
+                          onChange={e => setFormData({ ...formData, image: e.target.value })}
                           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                       </div>
@@ -216,19 +262,30 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => { setIsEditing(null); setIsAdding(false); }}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-50"
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       type="submit"
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
                     >
-                      <Save className="w-4 h-4" />
-                      Save
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
