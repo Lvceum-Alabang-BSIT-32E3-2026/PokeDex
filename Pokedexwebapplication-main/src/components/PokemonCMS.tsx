@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon, ChevronDown, Loader2 } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -164,16 +164,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
-  const [typesLoading, setTypesLoading] = useState(false);
-
-  // Deletion confirmation state
-  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
-
-  // Error / success banners
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -182,10 +172,24 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     image: ''
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
+  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+
+  const isOperating = loading || isSaving || deletingId !== null;
+
   useEffect(() => {
     loadData();
     loadTypes();
   }, []);
+
+  const loadTypes = async () => {
+    // Note: pokemonService does not currently have a getTypes method.
+    // availableTypes is initialized with FALLBACK_TYPES.
+  };
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -201,73 +205,39 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   const loadData = async () => {
     setLoading(true);
-    try {
-      const data = await pokemonService.getList(0, 50);
-      setPokemonList(data);
-    } catch {
-      setError('Failed to load Pokemon list.');
-    } finally {
-      setLoading(false);
-    }
+    // For CMS, let's just fetch the first page or a mock list to manage
+    const data = await pokemonService.getList(0, 50);
+    setPokemonList(data);
+    setLoading(false);
   };
 
-  const loadTypes = async () => {
-    setTypesLoading(true);
-    try {
-      const res = await fetch('https://pokeapi.co/api/v2/type?limit=100');
-      const data = await res.json();
-      // Filter out "unknown" and "shadow" — not real battle types
-      const names: string[] = data.results
-        .map((t: { name: string }) => t.name)
-        .filter((n: string) => n !== 'unknown' && n !== 'shadow');
-      setAvailableTypes(names.length ? names : FALLBACK_TYPES);
-    } catch {
-      setAvailableTypes(FALLBACK_TYPES);
-    } finally {
-      setTypesLoading(false);
-    }
+  const handleDelete = (p: Pokemon) => {
+    if (isOperating) return;
+    setDeleteTarget(p);
   };
-
-  // Derived helpers for primary / secondary
-  const primaryType = formData.types?.[0] ?? '';
-  const secondaryType = formData.types?.[1] ?? '';
-
-  const setPrimaryType = (val: string) => {
-    const sec = secondaryType === val ? '' : secondaryType;
-    setFormData(prev => ({
-      ...prev,
-      types: val ? (sec ? [val, sec] : [val]) : (sec ? [sec] : [])
-    }));
-  };
-
-  const setSecondaryType = (val: string) => {
-    setFormData(prev => ({
-      ...prev,
-      types: val ? [primaryType || val, ...(primaryType ? [val] : [])] : (primaryType ? [primaryType] : [])
-    }));
-  };
-
-  // ── Deletion ──
-  const handleDeleteClick = (p: Pokemon) => setDeleteTarget(p);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+
+    setDeletingId(deleteTarget.id);
     setIsSaving(true);
     setError(null);
+
     try {
       await pokemonService.deletePokemon(deleteTarget.id);
-      setPokemonList((prev: Pokemon[]) => prev.filter((p: Pokemon) => p.id !== deleteTarget.id));
-      showSuccess(`"${deleteTarget.name}" was deleted.`);
-      setDeleteTarget(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete Pokémon.');
+      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+      showSuccess(`"${deleteTarget.name}" deleted successfully!`);
+    } catch (err) {
+      setError("Failed to delete Pokemon. Please try again.");
     } finally {
       setIsSaving(false);
+      setDeletingId(null);
+      setDeleteTarget(null);
     }
   };
 
-  // ── Editing ──
   const startEdit = (p: Pokemon) => {
+    if (isOperating) return;
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
@@ -275,6 +245,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   };
 
   const startAdd = () => {
+    if (isOperating) return;
     setIsAdding(true);
     setIsEditing(null);
     setError(null);
@@ -286,52 +257,47 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     });
   };
 
-  const resetForm = () => {
-    setIsAdding(false);
-    setIsEditing(null);
-    setFormData({ name: '', types: [], image: '' });
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!formData.name?.trim()) {
-      setError('Pokemon name is required.');
-      return;
-    }
-    if (!primaryType) {
-      setError('Please select at least a primary type.');
+    if (!formData.name) {
+      setError("Please provide a name.");
       return;
     }
 
     setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+
     try {
       if (isAdding) {
-        const created = await pokemonService.createPokemon({
-          name: formData.name.trim(),
-          types: formData.types || ['normal'],
-          image: formData.image || '',
-        });
-        setPokemonList(prev => [created, ...prev]);
-        showSuccess(`"${created.name}" was added!`);
-      } else if (isEditing !== null) {
-        // UPDATE — calls PUT /api/pokemon/{id}
+        const newPokemon = await pokemonService.createPokemon(formData as Omit<Pokemon, 'id'>);
+        setPokemonList([newPokemon, ...pokemonList]);
+        showSuccess(`"${newPokemon.name}" added successfully!`);
+      } else if (isEditing) {
         const updated = await pokemonService.updatePokemon(isEditing, formData);
-        // Refresh list from source of truth
-        await loadData();
-        // Optimistically update the row in case loadData is slow
-        setPokemonList((prev: Pokemon[]) =>
-          prev.map((p: Pokemon) => (p.id === isEditing ? ({ ...p, ...updated } as Pokemon) : p))
-        );
-        showSuccess(`"${formData.name}" was updated!`);
+        setPokemonList(prev => prev.map(p => p.id === isEditing ? updated : p));
+        showSuccess(`"${updated.name}" updated successfully!`);
       }
-      resetForm();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save Pokemon. Please try again.');
+      setIsAdding(false);
+      setIsEditing(null);
+    } catch (err) {
+      setError(`Failed to save Pokemon: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      fire: 'bg-orange-100 text-orange-800',
+      water: 'bg-blue-100 text-blue-800',
+      grass: 'bg-green-100 text-green-800',
+      electric: 'bg-yellow-100 text-yellow-800',
+      psychic: 'bg-pink-100 text-pink-800',
+      normal: 'bg-slate-200 text-slate-800',
+      // ... others
+    };
+    return colors[type] || 'bg-slate-100 text-slate-800';
   };
 
   return (
@@ -340,14 +306,19 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+            <button
+              onClick={onBack}
+              disabled={isOperating}
+              className="p-2 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold">CMS Dashboard</h1>
           </div>
           <button
             onClick={startAdd}
-            className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"
+            disabled={isOperating}
+            className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Add New Pokemon
@@ -389,10 +360,10 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         {/* ── List View ── */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between items-center">
               <span>Inventory ({pokemonList.length})</span>
-              {loading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
             </div>
+
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
                 <div
@@ -405,7 +376,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
                         {p.types.map(t => (
-                          <span key={t} className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full ${getTypeBadge(t)}`}>
+                          <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
                             {t}
                           </span>
                         ))}
@@ -420,7 +391,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteClick(p)}
+                      onClick={() => handleDelete(p)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -434,7 +405,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
         {/* ── Editor Panel ── */}
         <AnimatePresence mode="wait">
-          {(isEditing !== null || isAdding) && (
+          {(isEditing || isAdding) && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -447,7 +418,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
                   <button
-                    onClick={resetForm}
+                    onClick={() => { setIsEditing(null); setIsAdding(false); }}
                     className="p-1 hover:bg-slate-100 rounded-full"
                   >
                     <X className="w-5 h-5 text-slate-400" />
@@ -457,54 +428,23 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 <form onSubmit={handleSave} className="space-y-4">
                   {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Name <span className="text-red-500">*</span>
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      required
                     />
                   </div>
 
-                  {/* ── Multi-Select Type Dropdowns ── */}
-                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      {typesLoading ? '⏳ Loading types from API…' : 'Types'}
-                    </p>
-
-                    <TypeSelect
-                      label="Primary Type"
-                      value={primaryType}
-                      options={availableTypes}
-                      onChange={setPrimaryType}
-                      required
-                      allowClear={false}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
+                    <input
+                      type="text"
+                      value={formData.types?.join(', ')}
+                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()) })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
-
-                    <TypeSelect
-                      label="Secondary Type"
-                      value={secondaryType}
-                      options={availableTypes}
-                      disabledOption={primaryType}
-                      onChange={setSecondaryType}
-                      required={false}
-                      allowClear={true}
-                    />
-
-                    {/* Live preview */}
-                    {(primaryType || secondaryType) && (
-                      <div className="flex gap-1.5 flex-wrap pt-1">
-                        <span className="text-xs text-slate-400 self-center">Preview:</span>
-                        {[primaryType, secondaryType].filter(Boolean).map(t => (
-                          <span key={t} className={`text-[11px] uppercase font-bold px-2 py-0.5 rounded-full ${getTypeBadge(t)}`}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Image URL */}
@@ -530,16 +470,14 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
                       type="button"
-                      onClick={resetForm}
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
                       {isSaving ? (
                         <>

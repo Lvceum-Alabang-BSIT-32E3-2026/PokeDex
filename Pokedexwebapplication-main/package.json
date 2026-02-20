@@ -1,5 +1,5 @@
 {
-      "name": "Pokedex web application",
+      "name": "pokedex-web-application",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
