@@ -16,7 +16,7 @@ interface Recommendation {
   category: Category;
 }
 
-export const Recommendations: React.FC<RecommendationsProps> = ({ onBack }) => {
+export const Recommendations = ({ onBack }: RecommendationsProps) => {
   const recommendations: Recommendation[] = [
     // Backend (.NET Core Web API)
     {
@@ -161,14 +161,14 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onBack }) => {
                             <p className="text-slate-500 text-sm leading-relaxed mb-3">{rec.description}</p>
                             <div className="flex gap-2">
                               <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full ${rec.difficulty === 'High' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                  rec.difficulty === 'Medium' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                                    'bg-green-50 text-green-600 border border-green-100'
+                                rec.difficulty === 'Medium' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                                  'bg-green-50 text-green-600 border border-green-100'
                                 }`}>
                                 Diff: {rec.difficulty}
                               </span>
                               <span className={`text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full ${rec.impact === 'High' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
-                                  rec.impact === 'Medium' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
-                                    'bg-slate-50 text-slate-600 border border-slate-100'
+                                rec.impact === 'Medium' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                                  'bg-slate-50 text-slate-600 border border-slate-100'
                                 }`}>
                                 Impact: {rec.impact}
                               </span>

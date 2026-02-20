@@ -159,7 +159,7 @@ const TypeSelect: React.FC<TypeSelectProps> = ({
 };
 
 // ─── Main CMS Component ─────────────────────────────────────────────────────
-export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
+export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -250,11 +250,20 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   // ── Deletion ──
   const handleDeleteClick = (p: Pokemon) => setDeleteTarget(p);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
-    setSuccess(`"${deleteTarget.name}" was deleted.`);
-    setDeleteTarget(null);
+    setIsSaving(true);
+    setError(null);
+    try {
+      await pokemonService.deletePokemon(deleteTarget.id);
+      setPokemonList((prev: Pokemon[]) => prev.filter((p: Pokemon) => p.id !== deleteTarget.id));
+      showSuccess(`"${deleteTarget.name}" was deleted.`);
+      setDeleteTarget(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete Pokémon.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // ── Editing ──
@@ -275,7 +284,6 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       types: [],
       image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
-    setError(null);
   };
 
   const resetForm = () => {
@@ -306,17 +314,17 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           image: formData.image || '',
         });
         setPokemonList(prev => [created, ...prev]);
-        setSuccess(`"${created.name}" was added!`);
+        showSuccess(`"${created.name}" was added!`);
       } else if (isEditing !== null) {
         // UPDATE — calls PUT /api/pokemon/{id}
         const updated = await pokemonService.updatePokemon(isEditing, formData);
         // Refresh list from source of truth
         await loadData();
         // Optimistically update the row in case loadData is slow
-        setPokemonList(prev =>
-          prev.map(p => (p.id === isEditing ? { ...p, ...updated } : p))
+        setPokemonList((prev: Pokemon[]) =>
+          prev.map((p: Pokemon) => (p.id === isEditing ? ({ ...p, ...updated } as Pokemon) : p))
         );
-        setSuccess(`"${formData.name}" was updated!`);
+        showSuccess(`"${formData.name}" was updated!`);
       }
       resetForm();
     } catch (err: any) {
@@ -445,13 +453,6 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
 
                 <form onSubmit={handleSave} className="space-y-4">
                   {/* Name */}
@@ -599,9 +600,10 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   </button>
                   <button
                     onClick={confirmDelete}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                    disabled={isSaving}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
-                    Delete
+                    {isSaving ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>

@@ -158,6 +158,27 @@ export const pokemonService = {
     }
   },
 
+  async deletePokemon(id: number): Promise<void> {
+    if (!USE_LIVE_API) {
+      // Mock: just log
+      console.log('Mock: deletePokemon called for id', id);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete Pokémon.');
+    }
+  },
+
   async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
       // Mock: return the merged object immediately
