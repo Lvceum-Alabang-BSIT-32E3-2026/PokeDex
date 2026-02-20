@@ -1,20 +1,179 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
   onBack: () => void;
 }
 
+// All 18 Pokemon types (fallback if API fails)
+const FALLBACK_TYPES = [
+  'normal', 'fire', 'water', 'electric', 'grass', 'ice',
+  'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug',
+  'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'
+];
+
+const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
+  normal: { bg: 'bg-slate-100', text: 'text-slate-700', badge: 'bg-slate-300 text-slate-800' },
+  fire: { bg: 'bg-orange-100', text: 'text-orange-700', badge: 'bg-orange-400 text-white' },
+  water: { bg: 'bg-blue-100', text: 'text-blue-700', badge: 'bg-blue-500 text-white' },
+  electric: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'bg-yellow-400 text-slate-900' },
+  grass: { bg: 'bg-green-100', text: 'text-green-700', badge: 'bg-green-500 text-white' },
+  ice: { bg: 'bg-cyan-100', text: 'text-cyan-700', badge: 'bg-cyan-400 text-white' },
+  fighting: { bg: 'bg-red-100', text: 'text-red-700', badge: 'bg-red-600 text-white' },
+  poison: { bg: 'bg-purple-100', text: 'text-purple-700', badge: 'bg-purple-500 text-white' },
+  ground: { bg: 'bg-amber-100', text: 'text-amber-700', badge: 'bg-amber-600 text-white' },
+  flying: { bg: 'bg-indigo-100', text: 'text-indigo-700', badge: 'bg-indigo-400 text-white' },
+  psychic: { bg: 'bg-pink-100', text: 'text-pink-700', badge: 'bg-pink-500 text-white' },
+  bug: { bg: 'bg-lime-100', text: 'text-lime-700', badge: 'bg-lime-500 text-white' },
+  rock: { bg: 'bg-stone-100', text: 'text-stone-700', badge: 'bg-stone-500 text-white' },
+  ghost: { bg: 'bg-violet-100', text: 'text-violet-700', badge: 'bg-violet-600 text-white' },
+  dragon: { bg: 'bg-blue-100', text: 'text-blue-900', badge: 'bg-blue-800 text-white' },
+  dark: { bg: 'bg-slate-200', text: 'text-slate-900', badge: 'bg-slate-700 text-white' },
+  steel: { bg: 'bg-slate-100', text: 'text-slate-600', badge: 'bg-slate-400 text-white' },
+  fairy: { bg: 'bg-rose-100', text: 'text-rose-700', badge: 'bg-rose-400 text-white' },
+};
+
+const getTypeBadge = (type: string) => {
+  const c = TYPE_COLORS[type] || { badge: 'bg-slate-200 text-slate-700' };
+  return c.badge;
+};
+
+// ─── TypeSelect Component ───────────────────────────────────────────────────
+interface TypeSelectProps {
+  label: string;
+  value: string;
+  options: string[];
+  disabledOption?: string;   // prevent duplicate selection
+  onChange: (val: string) => void;
+  required?: boolean;
+  allowClear?: boolean;
+}
+
+const TypeSelect: React.FC<TypeSelectProps> = ({
+  label, value, options, disabledOption, onChange, required = false, allowClear = false
+}) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (type: string) => {
+    onChange(type);
+    setOpen(false);
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-slate-700 mb-1">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+        {!required && <span className="text-slate-400 text-xs ml-1">(optional)</span>}
+      </label>
+
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        className={`w-full flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-white
+          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors
+          ${open ? 'border-blue-500 ring-2 ring-blue-500' : 'border-slate-300 hover:border-slate-400'}`}
+      >
+        {value ? (
+          <span className={`inline-flex items-center gap-1.5 font-semibold capitalize px-2 py-0.5 rounded-full text-xs ${getTypeBadge(value)}`}>
+            {value}
+          </span>
+        ) : (
+          <span className="text-slate-400">Select type…</span>
+        )}
+        <div className="flex items-center gap-1">
+          {allowClear && value && (
+            <span
+              role="button"
+              onClick={handleClear}
+              className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+          >
+            {/* Clear option */}
+            {allowClear && (
+              <button
+                type="button"
+                onClick={() => handleSelect('')}
+                className="w-full text-left px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 font-medium border-b border-slate-100 flex items-center gap-1.5"
+              >
+                <X className="w-3 h-3" /> Clear selection
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-0.5 p-1.5 max-h-52 overflow-y-auto">
+              {options.map(type => {
+                const isDisabled = type === disabledOption;
+                const isSelected = type === value;
+                const c = TYPE_COLORS[type] || { bg: 'bg-slate-100', text: 'text-slate-700' };
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && handleSelect(type)}
+                    className={`capitalize text-xs font-semibold px-2 py-1.5 rounded-lg text-left transition-all
+                      ${isSelected ? `${c.bg} ${c.text} ring-2 ring-blue-500` : isDisabled
+                        ? 'opacity-30 cursor-not-allowed bg-slate-50 text-slate-400'
+                        : `${c.bg} ${c.text} hover:brightness-95 cursor-pointer`
+                      }`}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click-outside backdrop */}
+      {open && (
+        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+// ─── Main CMS Component ─────────────────────────────────────────────────────
 export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [typesLoading, setTypesLoading] = useState(false);
+
+  // Deletion confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+
+  // Error / success banners
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -25,26 +184,88 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   useEffect(() => {
     loadData();
+    loadTypes();
   }, []);
+
+  // Auto-dismiss banners
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => setSuccess(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
 
   const loadData = async () => {
     setLoading(true);
-    // For CMS, let's just fetch the first page or a mock list to manage
-    const data = await pokemonService.getList(0, 50);
-    setPokemonList(data);
-    setLoading(false);
-  };
-
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this Pokemon?')) {
-      setPokemonList(prev => prev.filter(p => p.id !== id));
+    try {
+      const data = await pokemonService.getList(0, 50);
+      setPokemonList(data);
+    } catch {
+      setError('Failed to load Pokemon list.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const loadTypes = async () => {
+    setTypesLoading(true);
+    try {
+      const res = await fetch('https://pokeapi.co/api/v2/type?limit=100');
+      const data = await res.json();
+      // Filter out "unknown" and "shadow" — not real battle types
+      const names: string[] = data.results
+        .map((t: { name: string }) => t.name)
+        .filter((n: string) => n !== 'unknown' && n !== 'shadow');
+      setAvailableTypes(names.length ? names : FALLBACK_TYPES);
+    } catch {
+      setAvailableTypes(FALLBACK_TYPES);
+    } finally {
+      setTypesLoading(false);
+    }
+  };
+
+  // Derived helpers for primary / secondary
+  const primaryType = formData.types?.[0] ?? '';
+  const secondaryType = formData.types?.[1] ?? '';
+
+  const setPrimaryType = (val: string) => {
+    const sec = secondaryType === val ? '' : secondaryType;
+    setFormData(prev => ({
+      ...prev,
+      types: val ? (sec ? [val, sec] : [val]) : (sec ? [sec] : [])
+    }));
+  };
+
+  const setSecondaryType = (val: string) => {
+    setFormData(prev => ({
+      ...prev,
+      types: val ? [primaryType || val, ...(primaryType ? [val] : [])] : (primaryType ? [primaryType] : [])
+    }));
+  };
+
+  // ── Deletion ──
+  const handleDeleteClick = (p: Pokemon) => setDeleteTarget(p);
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+    setSuccess(`"${deleteTarget.name}" was deleted.`);
+    setDeleteTarget(null);
+  };
+
+  // ── Editing ──
   const startEdit = (p: Pokemon) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
+    setError(null);
   };
 
   const startAdd = () => {
@@ -55,6 +276,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       types: [],
       image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
+    setError(null);
   };
 
   const resetForm = () => {
@@ -63,57 +285,46 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     setFormData({ name: '', types: [], image: '' });
   };
 
-  const showSuccess = (msg: string) => {
-    setSuccessMessage(msg);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  const showError = (msg: string) => {
-    setErrorMessage(msg);
-    setTimeout(() => setErrorMessage(null), 4000);
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
-    if (isAdding) {
-      setIsSaving(true);
-      try {
+    if (!formData.name?.trim()) {
+      setError('Pokemon name is required.');
+      return;
+    }
+    if (!primaryType) {
+      setError('Please select at least a primary type.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isAdding) {
         const created = await pokemonService.createPokemon({
-          name: formData.name || 'Unknown',
+          name: formData.name.trim(),
           types: formData.types || ['normal'],
           image: formData.image || '',
         });
         setPokemonList(prev => [created, ...prev]);
-        resetForm();
-        showSuccess('Pokemon added successfully!');
-      } catch (err: any) {
-        showError(err.message || 'Failed to add Pokemon. Please try again.');
-      } finally {
-        setIsSaving(false);
+        setSuccess(`"${created.name}" was added!`);
+      } else if (isEditing) {
+        setPokemonList(prev =>
+          prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
+        );
+        setSuccess(`"${formData.name}" was updated!`);
       }
-    } else if (isEditing) {
-      setPokemonList(prev => prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p));
       resetForm();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save Pokemon. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-  };
-
-
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      fire: 'bg-orange-100 text-orange-800',
-      water: 'bg-blue-100 text-blue-800',
-      grass: 'bg-green-100 text-green-800',
-      electric: 'bg-yellow-100 text-yellow-800',
-      psychic: 'bg-pink-100 text-pink-800',
-      normal: 'bg-slate-200 text-slate-800',
-      // ... others
-    };
-    return colors[type] || 'bg-slate-100 text-slate-800';
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* ── Header ── */}
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -132,46 +343,43 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
         </div>
       </header>
 
-      {/* Success Banner */}
+      {/* ── Banners ── */}
       <AnimatePresence>
-        {successMessage && (
+        {error && (
           <motion.div
-            initial={{ opacity: 0, y: -16 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            className="max-w-7xl mx-auto px-4 pt-4"
+            exit={{ opacity: 0, y: -10 }}
+            className="max-w-7xl mx-auto px-4 mt-4"
           >
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-3 flex items-center gap-2 font-medium">
-              <Save className="w-4 h-4 text-emerald-600" />
-              {successMessage}
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">⚠️ {error}</span>
+              <button onClick={() => setError(null)} className="ml-4 hover:text-red-900"><X className="w-4 h-4" /></button>
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Error Banner */}
-      <AnimatePresence>
-        {errorMessage && (
+        {success && (
           <motion.div
-            initial={{ opacity: 0, y: -16 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            className="max-w-7xl mx-auto px-4 pt-4"
+            exit={{ opacity: 0, y: -10 }}
+            className="max-w-7xl mx-auto px-4 mt-4"
           >
-            <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 flex items-center gap-2 font-medium">
-              <X className="w-4 h-4 text-red-600" />
-              {errorMessage}
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">✅ {success}</span>
+              <button onClick={() => setSuccess(null)} className="ml-4 hover:text-green-900"><X className="w-4 h-4" /></button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* List View */}
+        {/* ── List View ── */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
               <span>Inventory ({pokemonList.length})</span>
+              {loading && <span className="text-xs text-slate-400 animate-pulse">Loading…</span>}
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
@@ -185,7 +393,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
                         {p.types.map(t => (
-                          <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                          <span key={t} className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full ${getTypeBadge(t)}`}>
                             {t}
                           </span>
                         ))}
@@ -200,7 +408,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(p.id)}
+                      onClick={() => handleDeleteClick(p)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -212,7 +420,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Editor Panel */}
+        {/* ── Editor Panel ── */}
         <AnimatePresence mode="wait">
           {(isEditing || isAdding) && (
             <motion.div
@@ -235,8 +443,11 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
+                  {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={formData.name}
@@ -245,16 +456,45 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
-                    <input
-                      type="text"
-                      value={formData.types?.join(', ')}
-                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()) })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  {/* ── Multi-Select Type Dropdowns ── */}
+                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      {typesLoading ? '⏳ Loading types from API…' : 'Types'}
+                    </p>
+
+                    <TypeSelect
+                      label="Primary Type"
+                      value={primaryType}
+                      options={availableTypes}
+                      onChange={setPrimaryType}
+                      required
+                      allowClear={false}
                     />
+
+                    <TypeSelect
+                      label="Secondary Type"
+                      value={secondaryType}
+                      options={availableTypes}
+                      disabledOption={primaryType}
+                      onChange={setSecondaryType}
+                      required={false}
+                      allowClear={true}
+                    />
+
+                    {/* Live preview */}
+                    {(primaryType || secondaryType) && (
+                      <div className="flex gap-1.5 flex-wrap pt-1">
+                        <span className="text-xs text-slate-400 self-center">Preview:</span>
+                        {[primaryType, secondaryType].filter(Boolean).map(t => (
+                          <span key={t} className={`text-[11px] uppercase font-bold px-2 py-0.5 rounded-full ${getTypeBadge(t)}`}>
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Image URL */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
@@ -298,6 +538,56 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+              onClick={() => setDeleteTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-100 p-2.5 rounded-full">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Confirm Delete</h3>
+                </div>
+                <p className="text-slate-600 text-sm mb-6">
+                  Are you sure you want to delete{' '}
+                  <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
+                  This action cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteTarget(null)}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
