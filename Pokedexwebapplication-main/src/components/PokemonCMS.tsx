@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon, ChevronDown, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -165,6 +165,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Error & success state
+  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
     name: '',
@@ -186,53 +191,22 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     loadTypes();
   }, []);
 
-  const loadTypes = async () => {
-    // Note: pokemonService does not currently have a getTypes method.
-    // availableTypes is initialized with FALLBACK_TYPES.
-  };
-
-  const showSuccess = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(null), 3000);
-  };
-
-  useEffect(() => {
-    if (error) {
-      const t = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [error]);
-
   const loadData = async () => {
     setLoading(true);
-    // For CMS, let's just fetch the first page or a mock list to manage
-    const data = await pokemonService.getList(0, 50);
-    setPokemonList(data);
-    setLoading(false);
-  };
-
-  const handleDelete = (p: Pokemon) => {
-    if (isOperating) return;
-    setDeleteTarget(p);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-
-    setDeletingId(deleteTarget.id);
-    setIsSaving(true);
     setError(null);
-
     try {
-      await pokemonService.deletePokemon(deleteTarget.id);
-      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
-      showSuccess(`"${deleteTarget.name}" deleted successfully!`);
-    } catch (err) {
-      setError("Failed to delete Pokemon. Please try again.");
+      const data = await pokemonService.getList(0, 50);
+      setPokemonList(data);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load Pokémon. Please try again.');
     } finally {
-      setIsSaving(false);
-      setDeletingId(null);
-      setDeleteTarget(null);
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm('Are you sure you want to delete this Pokemon?')) {
+      setPokemonList(prev => prev.filter(p => p.id !== id));
     }
   };
 
@@ -241,15 +215,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
-    setError(null);
   };
 
   const startAdd = () => {
     if (isOperating) return;
     setIsAdding(true);
     setIsEditing(null);
-    setError(null);
-    setSuccess(null);
     setFormData({
       name: '',
       types: [],
@@ -257,34 +228,24 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     });
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
-      setError("Please provide a name.");
-      return;
+
+    if (isAdding) {
+      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
+      const newPokemon: Pokemon = {
+        id: newId,
+        name: formData.name || 'Unknown',
+        types: formData.types || ['normal'],
+        image: formData.image || ''
+      };
+      setPokemonList([newPokemon, ...pokemonList]);
+    } else if (isEditing) {
+      setPokemonList(prev => prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p));
     }
 
-    setIsSaving(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      if (isAdding) {
-        const newPokemon = await pokemonService.createPokemon(formData as Omit<Pokemon, 'id'>);
-        setPokemonList([newPokemon, ...pokemonList]);
-        showSuccess(`"${newPokemon.name}" added successfully!`);
-      } else if (isEditing) {
-        const updated = await pokemonService.updatePokemon(isEditing, formData);
-        setPokemonList(prev => prev.map(p => p.id === isEditing ? updated : p));
-        showSuccess(`"${updated.name}" updated successfully!`);
-      }
-      setIsAdding(false);
-      setIsEditing(null);
-    } catch (err) {
-      setError(`Failed to save Pokemon: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsSaving(false);
-    }
+    setIsAdding(false);
+    setIsEditing(null);
   };
 
   const getTypeColor = (type: string) => {
@@ -357,13 +318,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* ── List View ── */}
+        {/* List View */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between items-center">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
               <span>Inventory ({pokemonList.length})</span>
             </div>
-
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
                 <div
@@ -391,7 +351,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(p)}
+                      onClick={() => handleDelete(p.id)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -403,7 +363,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
           </div>
         </div>
 
-        {/* ── Editor Panel ── */}
+        {/* Editor Panel */}
         <AnimatePresence mode="wait">
           {(isEditing || isAdding) && (
             <motion.div
@@ -426,7 +386,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
-                  {/* Name */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <input
@@ -447,7 +406,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     />
                   </div>
 
-                  {/* Image URL */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
@@ -479,17 +437,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       type="submit"
                       className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          Save
-                        </>
-                      )}
+                      <Save className="w-4 h-4" />
+                      Save
                     </button>
                   </div>
                 </form>
