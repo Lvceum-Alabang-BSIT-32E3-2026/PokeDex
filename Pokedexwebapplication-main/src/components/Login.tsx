@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface LoginProps {
     onLogin: () => void;
@@ -147,12 +146,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="mt-4 text-center">
                     <p className="text-sm text-slate-400">
                         Don't have an account?{' '}
-                        <Link
-                            to="/register"
+                        <a
+                            href="#register"
                             className="text-red-500 hover:text-red-600 hover:underline transition-colors"
                         >
                             Register
-                        </Link>
+                        </a>
                     </p>
                 </div>
 
