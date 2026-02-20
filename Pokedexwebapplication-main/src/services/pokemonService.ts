@@ -1,6 +1,7 @@
 import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
 
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export interface Pokemon {
   id: number;
@@ -101,6 +102,21 @@ export const pokemonService = {
     }
   },
 
+  async createPokemon(data: { name: string; types: string[]; image: string }): Promise<Pokemon> {
+    const response = await fetch('/api/pokemon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Request failed with status ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   async getEvolutionChain(pokemonId: number): Promise<EvolutionNode[]> {
     if (!USE_LIVE_API) {
       // Return specific mock chain if exists, or a default single node
@@ -149,9 +165,8 @@ export const pokemonService = {
       return;
     }
 
-    const apiBase = import.meta.env.VITE_API_URL || '';
     const token = localStorage.getItem('token');
-    const response = await fetch(`${apiBase}/api/pokemon/${id}`, {
+    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
       method: 'DELETE',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -171,9 +186,8 @@ export const pokemonService = {
       return { id, name: data.name || '', types: data.types || [], image: data.image || '' };
     }
 
-    const apiBase = import.meta.env.VITE_API_URL || '';
     const token = localStorage.getItem('token');
-    const response = await fetch(`${apiBase}/api/pokemon/${id}`, {
+    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
