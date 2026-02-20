@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -12,6 +12,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
@@ -26,15 +27,23 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   const loadData = async () => {
     setLoading(true);
-    // For CMS, let's just fetch the first page or a mock list to manage
     const data = await pokemonService.getList(0, 50);
     setPokemonList(data);
     setLoading(false);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this Pokemon?')) {
-      setPokemonList(prev => prev.filter(p => p.id !== id));
+  const handleDeleteClick = (p: Pokemon) => {
+    setDeleteTarget(p);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setDeleteTarget(null);
     }
   };
 
@@ -56,7 +65,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isAdding) {
       const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
       const newPokemon: Pokemon = {
@@ -67,7 +76,9 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       };
       setPokemonList([newPokemon, ...pokemonList]);
     } else if (isEditing) {
-      setPokemonList(prev => prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p));
+      setPokemonList(prev =>
+        prev.map(p => (p.id === isEditing ? ({ ...p, ...formData } as Pokemon) : p))
+      );
     }
 
     setIsAdding(false);
@@ -82,13 +93,60 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       electric: 'bg-yellow-100 text-yellow-800',
       psychic: 'bg-pink-100 text-pink-800',
       normal: 'bg-slate-200 text-slate-800',
-      // ... others
     };
     return colors[type] || 'bg-slate-100 text-slate-800';
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4"
+            >
+              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-800 text-center mb-2">
+                Delete Pokémon
+              </h2>
+              <p className="text-slate-500 text-center text-sm mb-6">
+                Are you sure you want to delete{' '}
+                <span className="font-semibold text-slate-800 capitalize">
+                  {deleteTarget.name}
+                </span>
+                ? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -97,7 +155,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
             </button>
             <h1 className="text-xl font-bold">CMS Dashboard</h1>
           </div>
-          <button 
+          <button
             onClick={startAdd}
             className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"
           >
@@ -116,8 +174,8 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
-                <div 
-                  key={p.id} 
+                <div
+                  key={p.id}
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                 >
                   <div className="flex items-center gap-4">
@@ -134,14 +192,14 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => startEdit(p)}
                       className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button 
-                      onClick={() => handleDelete(p.id)}
+                    <button
+                      onClick={() => handleDeleteClick(p)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -156,7 +214,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
         {/* Editor Panel */}
         <AnimatePresence mode="wait">
           {(isEditing || isAdding) && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -167,7 +225,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <h2 className="text-lg font-bold text-slate-800">
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
-                  <button 
+                  <button
                     onClick={() => { setIsEditing(null); setIsAdding(false); }}
                     className="p-1 hover:bg-slate-100 rounded-full"
                   >
@@ -178,20 +236,20 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                 <form onSubmit={handleSave} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Type (comma separated)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.types?.join(', ')}
-                      onChange={e => setFormData({...formData, types: e.target.value.split(',').map(s => s.trim())})}
+                      onChange={e => setFormData({ ...formData, types: e.target.value.split(',').map(s => s.trim()) })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
@@ -200,10 +258,10 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.image}
-                          onChange={e => setFormData({...formData, image: e.target.value})}
+                          onChange={e => setFormData({ ...formData, image: e.target.value })}
                           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                       </div>
@@ -216,14 +274,14 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => { setIsEditing(null); setIsAdding(false); }}
                       className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       type="submit"
                       className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
