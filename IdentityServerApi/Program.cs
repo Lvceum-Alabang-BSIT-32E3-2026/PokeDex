@@ -37,28 +37,28 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// 3. JWT Configuration — reads from appsettings.json > JwtSettings
+// 3. JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secret      = jwtSettings["Secret"]!;
-var issuer      = jwtSettings["Issuer"]!;
-var audience    = jwtSettings["Audience"]!;
+var secret = jwtSettings["Secret"]!;
+var issuer = jwtSettings["Issuer"]!;
+var audience = jwtSettings["Audience"]!;
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer           = true,
-        ValidateAudience         = true,
-        ValidateLifetime         = true,
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer              = issuer,
-        ValidAudience            = audience,
-        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
     };
 });
 
@@ -84,18 +84,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// 7. CORS Middleware
 app.UseCors("AllowFrontend");
 
-// IMPORTANT: Authentication must come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 8. Map Controllers
 app.MapControllers();
 
-// 9. Auto-Migration on Startup
+// 8. Auto-Migration and Seeding Logic
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -104,15 +100,40 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.Migrate();
 
-        // Seed Roles
+        // Managers required for seeding
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        string[] roleNames = { "Admin", "User" };
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
+        // Seed Roles
+        string[] roleNames = { "Admin", "User" };
         foreach (var roleName in roleNames)
         {
             if (!await roleManager.RoleExistsAsync(roleName))
             {
                 await roleManager.CreateAsync(new IdentityRole(roleName));
+            }
+        }
+
+        // Seed Default Admin User (Task 1.3.2)
+        var adminEmail = "admin@pokedex.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+        if (adminUser == null)
+        {
+            var newAdmin = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            // Using the password specified in the requirements
+            var createResult = await userManager.CreateAsync(newAdmin, "Admin123!");
+
+            if (createResult.Succeeded)
+            {
+                // Assign the "Admin" role to the new user
+                await userManager.AddToRoleAsync(newAdmin, "Admin");
             }
         }
     }
