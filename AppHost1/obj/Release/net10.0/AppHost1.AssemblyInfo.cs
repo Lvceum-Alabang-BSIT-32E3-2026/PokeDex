@@ -18,17 +18,17 @@ using System.Reflection;
     "ext\\")]
 [assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
     "ext\\bin\\")]
-[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\137-task-144-create-password-change-for" +
-    "m\\AppHost1")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\309-feature-2-pokemon-data-management-u" +
+    "ser-story-21-browse-pokemon-list-task-211-configure-api-base-url\\AppHost1")]
 [assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "AppHost1.csproj")]
 [assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
     "ashboard.exe")]
-[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\137-task-144-create-password-change-for" +
-    "m\\AppHost1\\obj\\")]
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\309-feature-2-pokemon-data-management-u" +
+    "ser-story-21-browse-pokemon-list-task-211-configure-api-base-url\\AppHost1\\obj\\")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9c36d0d8177b39dedcc44beaf4a95537ac897fc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
