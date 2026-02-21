@@ -18,6 +18,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -27,6 +28,7 @@ builder.Services.AddCors(options =>
 // 2. Identity Services
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
+    options.SignIn.RequireConfirmedAccount = true;
     options.Password.RequiredLength = 8;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
@@ -83,23 +85,17 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // 7. Middleware Pipeline
-//Console.WriteLine($"[DEBUG] Environment: {app.Environment.EnvironmentName}");
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI(options =>
-//    {
-//        options.SwaggerEndpoint("/swagger/v1/swagger.json", "IdentityServer API v1");
-//        options.RoutePrefix = "swagger"; // Available at /swagger
-//    }
-//
-//    );
-//}
-
+Console.WriteLine($"[DEBUG] Environment: {app.Environment.EnvironmentName}");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "IdentityServer API v1");
+        options.RoutePrefix = "swagger"; // Available at /swagger
+    }
+
+    );
 }
 
 app.UseHttpsRedirection();
@@ -110,6 +106,7 @@ app.UseCors("AllowFrontend");
 // IMPORTANT: Authentication must come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 // 8. Map Controllers
 app.MapControllers();
