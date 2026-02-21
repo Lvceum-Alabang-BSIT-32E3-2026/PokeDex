@@ -22,7 +22,6 @@ namespace ResourceApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPokemons()
         {
-            // Ininclude natin ang PokemonTypes para hindi empty ang list ng types
             var pokemons = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
                 .ToListAsync();
@@ -44,42 +43,87 @@ namespace ResourceApi.Controllers
         // POST: /api/pokemons
         // Task 2.4.2: Implement Create Pokemon Endpoint
         [HttpPost]
-[Authorize(Roles = "Admin")]
-public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
-{
-    // 1. Map DTO to Entity
-    var pokemon = new Pokemon
-    {
-        Name = createDto.Name,
-        ImageUrl = createDto.ImageUrl,
-        Generation = createDto.Generation,
-        IsLegendary = createDto.IsLegendary,
-        IsMythical = createDto.IsMythical,
-        // Balikan natin ang stats para hindi 0 ang lumabas
-        Height = 0, 
-        Weight = 0,
-        BaseExperience = 0
-    };
-
-    // 2. Handle Types (Mapping string names to PokemonType objects)
-    if (createDto.Types != null && createDto.Types.Any())
-    {
-        foreach (var typeName in createDto.Types)
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
         {
-            var existingType = await _context.PokemonTypes
-                .FirstOrDefaultAsync(t => t.Name == typeName);
-
-            if (existingType != null)
+            var pokemon = new Pokemon
             {
-                pokemon.PokemonTypes.Add(existingType);
+                Name = createDto.Name,
+                ImageUrl = createDto.ImageUrl,
+                Generation = createDto.Generation,
+                IsLegendary = createDto.IsLegendary,
+                IsMythical = createDto.IsMythical,
+                Height = 0,
+                Weight = 0,
+                BaseExperience = 0
+            };
+
+            if (createDto.Types != null && createDto.Types.Any())
+            {
+                foreach (var typeName in createDto.Types)
+                {
+                    var existingType = await _context.PokemonTypes
+                        .FirstOrDefaultAsync(t => t.Name == typeName);
+
+                    if (existingType != null)
+                    {
+                        pokemon.PokemonTypes.Add(existingType);
+                    }
+                }
             }
+
+            _context.Pokemons.Add(pokemon);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetPokemon), new { id = pokemon.Id }, pokemon);
         }
-    }
 
-    _context.Pokemons.Add(pokemon);
-    await _context.SaveChangesAsync();
+        // PUT: /api/pokemons/{id}
+        // Task 2.4.3: Implement Update Pokemon Endpoint
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
+        {
+            // 1. Hanapin ang existing pokemon kasama ang types
+            var pokemon = await _context.Pokemons
+                .Include(p => p.PokemonTypes)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-    return CreatedAtAction(nameof(GetPokemon), new { id = pokemon.Id }, pokemon);
-}
+            if (pokemon == null) return NotFound();
+
+            // 2. Update basic fields (Partial Update)
+            if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
+            if (!string.IsNullOrEmpty(updateDto.ImageUrl)) pokemon.ImageUrl = updateDto.ImageUrl;
+            if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
+            if (updateDto.IsLegendary.HasValue) pokemon.IsLegendary = updateDto.IsLegendary.Value;
+            if (updateDto.IsMythical.HasValue) pokemon.IsMythical = updateDto.IsMythical.Value;
+
+            // 3. Update Types relationship
+            if (updateDto.Types != null)
+            {
+                pokemon.PokemonTypes.Clear(); // Burahin ang lumang associations
+                foreach (var typeName in updateDto.Types)
+                {
+                    var existingType = await _context.PokemonTypes
+                        .FirstOrDefaultAsync(t => t.Name == typeName);
+                    if (existingType != null)
+                    {
+                        pokemon.PokemonTypes.Add(existingType);
+                    }
+                }
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Pokemons.Any(e => e.Id == id)) return NotFound();
+                else throw;
+            }
+
+            return NoContent(); // 204 Success
+        }
     }
 }
