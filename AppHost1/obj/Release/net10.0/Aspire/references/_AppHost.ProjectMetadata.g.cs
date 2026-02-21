@@ -17,5 +17,5 @@ public class AppHost1
     /// <summary>
     /// The path to the Aspire Host project.
     /// </summary>
-    public static string ProjectPath => """C:\Users\rcluc\OneDrive\Desktop\DEV-FRONT\136-task-143-create-profile-edit-form\AppHost1""";
+    public static string ProjectPath => """C:\Users\rcluc\OneDrive\Desktop\DEV-FRONT\137-task-144-create-password-change-form\AppHost1""";
 }

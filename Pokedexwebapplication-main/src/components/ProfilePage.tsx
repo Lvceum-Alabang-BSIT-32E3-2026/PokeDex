@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X, Key } from 'lucide-react';
 
 interface ProfilePageProps {
   userEmail: string;
@@ -19,13 +19,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
   const API_URL = import.meta.env.VITE_IDENTITY_API_URL || '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     if (!editName.trim()) {
       setError('Display Name is required');
       return;
@@ -46,10 +53,56 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
       setDisplayName(editName.trim());
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while updating profile');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while updating profile';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch(`${API_URL}/api/users/me/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Wrong current password or failed to change');
+      }
+
+      setPasswordSuccess('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while changing password';
+      setPasswordError(errorMessage);
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -164,6 +217,65 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
                     <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Email Address</p>
                     <p className="text-slate-800 font-medium truncate">{userEmail}</p>
                   </div>
+                </div>
+
+                {/* Password Change Section */}
+                <div className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Key className="w-5 h-5 text-slate-400 shrink-0" />
+                    <h3 className="text-sm font-semibold text-slate-800">Change Password</h3>
+                  </div>
+
+                  {passwordSuccess && (
+                    <div className="bg-green-50 border border-green-100 rounded-md px-4 py-2 mb-4">
+                      <p className="text-sm text-green-700 font-medium">{passwordSuccess}</p>
+                    </div>
+                  )}
+                  {passwordError && (
+                    <div className="bg-red-50 border border-red-100 rounded-md px-4 py-2 mb-4">
+                      <p className="text-sm text-red-700 font-medium">{passwordError}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePasswordChange} className="space-y-3">
+                    <div>
+                      <input
+                        type="password"
+                        placeholder="Current Password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={isChangingPassword}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="password"
+                        placeholder="New Password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={isChangingPassword}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="password"
+                        placeholder="Confirm New Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isChangingPassword}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isChangingPassword}
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center transition-colors disabled:opacity-50"
+                    >
+                      {isChangingPassword ? 'Changing Password...' : 'Update Password'}
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
