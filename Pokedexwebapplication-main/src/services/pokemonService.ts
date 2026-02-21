@@ -9,6 +9,7 @@ export interface Pokemon {
   types: string[];
   image: string;
   url?: string;
+  generation?: number;
 }
 
 export interface EvolutionNode {
@@ -102,7 +103,7 @@ export const pokemonService = {
     }
   },
 
-  async createPokemon(data: { name: string; types: string[]; image: string }): Promise<Pokemon> {
+  async createPokemon(data: { name: string; types: string[]; image: string; generation?: number }): Promise<Pokemon> {
     const response = await fetch('/api/pokemon', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

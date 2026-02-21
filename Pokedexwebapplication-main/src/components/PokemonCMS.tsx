@@ -173,7 +173,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [formData, setFormData] = useState<Partial<Pokemon>>({
     name: '',
     types: [],
-    image: ''
+    image: '',
+    generation: 1
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -252,7 +253,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setFormData({
       name: '',
       types: [],
-      image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
+      image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
+      generation: 1
     });
   };
 
@@ -265,7 +267,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         id: newId,
         name: formData.name || 'Unknown',
         types: formData.types || ['normal'],
-        image: formData.image || ''
+        image: formData.image || '',
+        generation: formData.generation || 1
       };
       setPokemonList([newPokemon, ...pokemonList]);
     } else if (isEditing) {
@@ -415,14 +418,28 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Generation</label>
+                      <select
+                        value={formData.generation || 1}
+                        onChange={e => setFormData({ ...formData, generation: Number(e.target.value) })}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                          <option key={num} value={num}>Generation {num}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
