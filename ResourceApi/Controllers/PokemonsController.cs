@@ -19,27 +19,34 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
-        // Task 2.4.5: Public access (No Authorize attribute)
+        // Task 2.1.8: Implement Get All Pokemon Endpoint #37
         [HttpGet]
-        public async Task<IActionResult> GetPokemons()
+        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons()
         {
+            // Acceptance Criteria: Returns list of all pokemon with types array
             var pokemons = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
                 .ToListAsync();
+
             return Ok(pokemons);
         }
 
         // GET: /api/pokemons/{id}
-        // Task 2.4.5: Public access (No Authorize attribute)
+        // Task 2.1.7: Implement Get Pokemon By ID Endpoint #36
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
+            // Acceptance Criteria: Returns 404 if not found, includes all properties and types
             var pokemon = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (pokemon == null) return NotFound();
-            return pokemon;
+            if (pokemon == null)
+            {
+                return NotFound(); // Task #36: Returns 404 for non-existent ID
+            }
+
+            return Ok(pokemon);
         }
 
         // POST: /api/pokemons
