@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36930.0 d17.14
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11512.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityServerApi", "IdentityServerApi.csproj", "{5CAD5278-D129-2C53-28C4-9977ACE13DD1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceApi", "..\ResourceApi\ResourceApi.csproj", "{8BCA0CFE-5B4A-32AE-69A2-CB1EA5B3B31A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHost1", "..\AppHost1\AppHost1.csproj", "{516A46C6-BC1F-484D-9532-3FE7C3C9DA2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{5CAD5278-D129-2C53-28C4-9977ACE13DD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CAD5278-D129-2C53-28C4-9977ACE13DD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CAD5278-D129-2C53-28C4-9977ACE13DD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BCA0CFE-5B4A-32AE-69A2-CB1EA5B3B31A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BCA0CFE-5B4A-32AE-69A2-CB1EA5B3B31A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BCA0CFE-5B4A-32AE-69A2-CB1EA5B3B31A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BCA0CFE-5B4A-32AE-69A2-CB1EA5B3B31A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{516A46C6-BC1F-484D-9532-3FE7C3C9DA2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{516A46C6-BC1F-484D-9532-3FE7C3C9DA2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{516A46C6-BC1F-484D-9532-3FE7C3C9DA2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{516A46C6-BC1F-484D-9532-3FE7C3C9DA2F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
