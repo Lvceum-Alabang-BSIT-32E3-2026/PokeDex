@@ -1,4 +1,5 @@
 using IdentityServerApi.DTOs;
+using IdentityServerApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,9 +10,9 @@ namespace IdentityServerApi.Controllers
 	[Route("api/[controller]")]
 	public class UsersController : ControllerBase
 	{
-		private readonly UserManager<IdentityUser> _userManager;
+		private readonly UserManager<ApplicationUser> _userManager;
 
-		public UsersController(UserManager<IdentityUser> userManager)
+		public UsersController(UserManager<ApplicationUser> userManager)
 		{
 			_userManager = userManager;
 		}
