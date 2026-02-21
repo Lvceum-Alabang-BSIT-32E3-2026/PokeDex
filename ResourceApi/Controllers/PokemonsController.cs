@@ -84,24 +84,21 @@ namespace ResourceApi.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
         {
-            // 1. Hanapin ang existing pokemon kasama ang types
             var pokemon = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null) return NotFound();
 
-            // 2. Update basic fields (Partial Update)
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
             if (!string.IsNullOrEmpty(updateDto.ImageUrl)) pokemon.ImageUrl = updateDto.ImageUrl;
             if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
             if (updateDto.IsLegendary.HasValue) pokemon.IsLegendary = updateDto.IsLegendary.Value;
             if (updateDto.IsMythical.HasValue) pokemon.IsMythical = updateDto.IsMythical.Value;
 
-            // 3. Update Types relationship
             if (updateDto.Types != null)
             {
-                pokemon.PokemonTypes.Clear(); // Burahin ang lumang associations
+                pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
                     var existingType = await _context.PokemonTypes
@@ -123,7 +120,30 @@ namespace ResourceApi.Controllers
                 else throw;
             }
 
-            return NoContent(); // 204 Success
+            return NoContent();
+        }
+
+        // DELETE: /api/pokemons/{id}
+        // Task 2.4.4: Implement Delete Pokemon Endpoint
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // Requirement: Admin role only
+        public async Task<IActionResult> DeletePokemon(int id)
+        {
+            // 1. Hanapin ang pokemon base sa ID
+            var pokemon = await _context.Pokemons.FindAsync(id);
+
+            // 2. Pag wala, return 404
+            if (pokemon == null)
+            {
+                return NotFound();
+            }
+
+            // 3. Burahin ang record
+            _context.Pokemons.Remove(pokemon);
+            await _context.SaveChangesAsync();
+
+            // 4. Return 204 No Content (Standard success response para sa Delete)
+            return NoContent();
         }
     }
 }
