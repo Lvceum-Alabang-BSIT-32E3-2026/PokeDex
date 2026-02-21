@@ -13,7 +13,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
         username: '',
         password: '',
         confirmPassword: '',
-        displayName: '' // Optional
+        displayName: '' 
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,7 +22,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true); // Loading spinner shows during submission
+        setLoading(true); 
 
         setTimeout(() => {
             console.log('Registered Trainer:', formData);

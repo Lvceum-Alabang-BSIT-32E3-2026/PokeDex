@@ -3,11 +3,11 @@ import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
-import RegisterPage from './components/RegisterPage'; // Siguraduhin na naka-import ito
+import RegisterPage from './components/RegisterPage'; 
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isRegistering, setIsRegistering] = useState(false); // New state para sa Register
+    const [isRegistering, setIsRegistering] = useState(false); 
     const [view, setView] = useState<'pokedex' | 'cms' | 'recommendations'>('pokedex');
 
     const handleLogin = () => {
@@ -40,7 +40,7 @@ export default function App() {
                 ) : (
                     <Login
                         onLogin={handleLogin}
-                        onRegisterClick={() => setIsRegistering(true)} // Dapat may prop ang Login para dito
+                        onRegisterClick={() => setIsRegistering(true)}
                     />
                 )
             )}
