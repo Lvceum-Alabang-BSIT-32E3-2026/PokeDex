@@ -199,6 +199,13 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     }
   }, [error]);
 
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => setSuccess(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [success]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -310,13 +317,13 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       } else if (isEditing !== null) {
         // UPDATE — calls PUT /api/pokemon/{id}
         const updated = await pokemonService.updatePokemon(isEditing, formData);
-        // Refresh list from source of truth
-        await loadData();
-        // Optimistically update the row in case loadData is slow
+
+        // Update the list immediately with the response from server
         setPokemonList(prev =>
-          prev.map(p => (p.id === isEditing ? { ...p, ...updated } : p))
+          prev.map(p => (p.id === isEditing ? updated : p))
         );
-        setSuccess(`"${formData.name}" was updated!`);
+
+        setSuccess(`"${updated.name}" was updated successfully.`);
       }
       resetForm();
     } catch (err: any) {
