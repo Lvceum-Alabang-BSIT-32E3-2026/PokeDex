@@ -306,15 +306,30 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           types: formData.types || ['normal'],
           image: formData.image || '',
         });
+
+        // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
         setPokemonList(prev => [created, ...prev]);
-        setSuccess(`"${created.name}" was added!`);
+        setSuccess(`"${created.name}" was added successfully!`);
+
+        // Clear the form data immediately (Criterion: Form cleared after success)
+        setFormData({ name: '', types: [], image: '' });
+
+        // Brief delay before closing the form so the user sees the "cleared" state and success message
+        setTimeout(() => {
+          setIsAdding(false);
+          setIsEditing(null);
+        }, 1000);
+
       } else if (isEditing) {
         setPokemonList(prev =>
           prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
         );
         setSuccess(`"${formData.name}" was updated!`);
+        setTimeout(() => {
+          setIsEditing(null);
+          setIsAdding(false);
+        }, 1000);
       }
-      resetForm();
     } catch (err: any) {
       setError(err.message || 'Failed to save Pokemon. Please try again.');
     } finally {
