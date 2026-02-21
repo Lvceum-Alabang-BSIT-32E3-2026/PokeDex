@@ -19,31 +19,21 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
-        // Task 2.4.5: Public access (No Authorize attribute)
+        // Task 2.1.6: Paginated List (#35)
         [HttpGet]
-        public async Task<IActionResult> GetPokemons()
+        public async Task<IActionResult> GetPokemons([FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            var pokemons = await _context.Pokemons
+            var query = _context.Pokemons
                 .Include(p => p.PokemonTypes)
-                .ToListAsync();
+                    .ThenInclude(pt => pt.Type) // Kailangan ito para makita ang actual Type names
+                .OrderBy(p => p.Id);
+
+            var pokemons = await query.Skip(offset).Take(limit).ToListAsync();
             return Ok(pokemons);
         }
 
-        // GET: /api/pokemons/{id}
-        // Task 2.4.5: Public access (No Authorize attribute)
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Pokemon>> GetPokemon(int id)
-        {
-            var pokemon = await _context.Pokemons
-                .Include(p => p.PokemonTypes)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (pokemon == null) return NotFound();
-            return pokemon;
-        }
-
         // POST: /api/pokemons
-        // Task 2.4.2 & 2.4.5: Admin only authorization
+        // Task 2.4.2: Admin only creation (#40)
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
@@ -60,16 +50,22 @@ namespace ResourceApi.Controllers
                 BaseExperience = 0
             };
 
+            // FIX: Mapping string types to Join Table entities
             if (createDto.Types != null && createDto.Types.Any())
             {
                 foreach (var typeName in createDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    // Hanapin ang actual Type entity gamit ang pangalan
+                    var typeEntity = await _context.Types
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
-                    if (existingType != null)
+                    if (typeEntity != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        pokemon.PokemonTypes.Add(new PokemonType
+                        {
+                            Pokemon = pokemon,
+                            Type = typeEntity
+                        });
                     }
                 }
             }
@@ -81,7 +77,7 @@ namespace ResourceApi.Controllers
         }
 
         // PUT: /api/pokemons/{id}
-        // Task 2.4.3 & 2.4.5: Admin only authorization
+        // Task 2.4.3: Admin only update
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
@@ -92,55 +88,52 @@ namespace ResourceApi.Controllers
 
             if (pokemon == null) return NotFound();
 
+            // Partial Updates
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
             if (!string.IsNullOrEmpty(updateDto.ImageUrl)) pokemon.ImageUrl = updateDto.ImageUrl;
             if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
-            if (updateDto.IsLegendary.HasValue) pokemon.IsLegendary = updateDto.IsLegendary.Value;
-            if (updateDto.IsMythical.HasValue) pokemon.IsMythical = updateDto.IsMythical.Value;
 
+            // FIX: Correct Join Table Update logic
             if (updateDto.Types != null)
             {
-                pokemon.PokemonTypes.Clear();
+                pokemon.PokemonTypes.Clear(); // Burahin ang luma
                 foreach (var typeName in updateDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    var typeEntity = await _context.Types
                         .FirstOrDefaultAsync(t => t.Name == typeName);
-                    if (existingType != null)
+
+                    if (typeEntity != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        pokemon.PokemonTypes.Add(new PokemonType { Type = typeEntity });
                     }
                 }
             }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Pokemons.Any(e => e.Id == id)) return NotFound();
-                else throw;
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // DELETE: /api/pokemons/{id}
-        // Task 2.4.4 & 2.4.5: Admin only authorization
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Pokemon>> GetPokemon(int id)
+        {
+            var pokemon = await _context.Pokemons
+                .Include(p => p.PokemonTypes)
+                    .ThenInclude(pt => pt.Type)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pokemon == null) return NotFound();
+            return Ok(pokemon);
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeletePokemon(int id)
         {
             var pokemon = await _context.Pokemons.FindAsync(id);
-
-            if (pokemon == null)
-            {
-                return NotFound();
-            }
+            if (pokemon == null) return NotFound();
 
             _context.Pokemons.Remove(pokemon);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }
