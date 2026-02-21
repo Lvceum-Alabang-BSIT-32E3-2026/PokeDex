@@ -19,13 +19,22 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
-        // Task 2.1.8: Implement Get All Pokemon Endpoint #37
+        // Task 2.1.6: Implement Get Pokemon List Endpoint #35
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons()
+        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons([FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            // Acceptance Criteria: Returns list of all pokemon with types array
-            var pokemons = await _context.Pokemons
+            // Technical Requirements:
+            // 1. Order by PokedexNumber (Id)
+            // 2. Include types in response
+            // 3. Pagination with offset (default 0) and limit (default 20)
+
+            var query = _context.Pokemons
                 .Include(p => p.PokemonTypes)
+                .OrderBy(p => p.Id); // PokedexNumber ordering
+
+            var pokemons = await query
+                .Skip(offset)
+                .Take(limit)
                 .ToListAsync();
 
             return Ok(pokemons);
@@ -36,21 +45,19 @@ namespace ResourceApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
-            // Acceptance Criteria: Returns 404 if not found, includes all properties and types
             var pokemon = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null)
             {
-                return NotFound(); // Task #36: Returns 404 for non-existent ID
+                return NotFound();
             }
 
             return Ok(pokemon);
         }
 
         // POST: /api/pokemons
-        // Task 2.4.2 & 2.4.5: Admin only authorization
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
@@ -88,7 +95,6 @@ namespace ResourceApi.Controllers
         }
 
         // PUT: /api/pokemons/{id}
-        // Task 2.4.3 & 2.4.5: Admin only authorization
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
@@ -133,7 +139,6 @@ namespace ResourceApi.Controllers
         }
 
         // DELETE: /api/pokemons/{id}
-        // Task 2.4.4 & 2.4.5: Admin only authorization
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeletePokemon(int id)
