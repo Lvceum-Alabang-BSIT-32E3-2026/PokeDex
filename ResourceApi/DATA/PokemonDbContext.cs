@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ResourceApi.Models; // Ito lang ang kailangan mo
+using ResourceApi.Models;
 
 namespace ResourceApi.Data;
 
@@ -10,11 +10,14 @@ public class PokemonDbContext : DbContext
 
     public DbSet<Pokemon> Pokemons { get; set; } = null!;
 
+    // Idagdag ito para ma-access ng Controller ang PokemonTypes table
+    public DbSet<PokemonType> PokemonTypes { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Task 2.3.3: Dito natin ilalagay ang accurate stats
+        // Task 2.3.3: Seed data for Pokemon
         modelBuilder.Entity<Pokemon>().HasData(
             new Pokemon
             {
@@ -38,7 +41,8 @@ public class PokemonDbContext : DbContext
                 Height = 0.6m,
                 Weight = 8.5m
             }
-            // Dagdagan mo pa ang iba dito...
         );
+
+        // Tip: Maari mo ring i-seed ang PokemonTypes dito kung kailangan
     }
 }
