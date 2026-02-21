@@ -3,37 +3,47 @@ import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
+import RegisterPage from './components/RegisterPage'; // Siguraduhin na naka-import ito
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [view, setView] = useState<'pokedex' | 'cms' | 'recommendations'>('pokedex');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isRegistering, setIsRegistering] = useState(false); // New state para sa Register
+    const [view, setView] = useState<'pokedex' | 'cms' | 'recommendations'>('pokedex');
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
+    const handleLogin = () => {
+        setIsAuthenticated(true);
+    };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setView('pokedex');
-  };
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        setView('pokedex');
+    };
 
-  return (
-    <div className="font-sans antialiased text-slate-900">
-      {isAuthenticated ? (
-        view === 'cms' ? (
-          <PokemonCMS onBack={() => setView('pokedex')} />
-        ) : view === 'recommendations' ? (
-          <Recommendations onBack={() => setView('pokedex')} />
-        ) : (
-          <Pokedex 
-            onLogout={handleLogout} 
-            onOpenCMS={() => setView('cms')}
-            onOpenRecommendations={() => setView('recommendations')}
-          />
-        )
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-    </div>
-  );
+    return (
+        <div className="font-sans antialiased text-slate-900">
+            {isAuthenticated ? (
+                view === 'cms' ? (
+                    <PokemonCMS onBack={() => setView('pokedex')} />
+                ) : view === 'recommendations' ? (
+                    <Recommendations onBack={() => setView('pokedex')} />
+                ) : (
+                    <Pokedex
+                        onLogout={handleLogout}
+                        onOpenCMS={() => setView('cms')}
+                        onOpenRecommendations={() => setView('recommendations')}
+                    />
+                )
+            ) : (
+                /* Logic para magpalit sa pagitan ng Login at Register */
+                isRegistering ? (
+                    <RegisterPage onBackToLogin={() => setIsRegistering(false)} />
+                ) : (
+                    <Login
+                        onLogin={handleLogin}
+                        onRegisterClick={() => setIsRegistering(true)} // Dapat may prop ang Login para dito
+                    />
+                )
+            )}
+        </div>
+    );
 }
