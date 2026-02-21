@@ -19,6 +19,7 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
+        // Task 2.4.5: Public access (No Authorize attribute)
         [HttpGet]
         public async Task<IActionResult> GetPokemons()
         {
@@ -29,6 +30,7 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons/{id}
+        // Task 2.4.5: Public access (No Authorize attribute)
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
@@ -41,7 +43,7 @@ namespace ResourceApi.Controllers
         }
 
         // POST: /api/pokemons
-        // Task 2.4.2: Implement Create Pokemon Endpoint
+        // Task 2.4.2 & 2.4.5: Admin only authorization
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
@@ -79,7 +81,7 @@ namespace ResourceApi.Controllers
         }
 
         // PUT: /api/pokemons/{id}
-        // Task 2.4.3: Implement Update Pokemon Endpoint
+        // Task 2.4.3 & 2.4.5: Admin only authorization
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
@@ -124,25 +126,21 @@ namespace ResourceApi.Controllers
         }
 
         // DELETE: /api/pokemons/{id}
-        // Task 2.4.4: Implement Delete Pokemon Endpoint
+        // Task 2.4.4 & 2.4.5: Admin only authorization
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")] // Requirement: Admin role only
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeletePokemon(int id)
         {
-            // 1. Hanapin ang pokemon base sa ID
             var pokemon = await _context.Pokemons.FindAsync(id);
 
-            // 2. Pag wala, return 404
             if (pokemon == null)
             {
                 return NotFound();
             }
 
-            // 3. Burahin ang record
             _context.Pokemons.Remove(pokemon);
             await _context.SaveChangesAsync();
 
-            // 4. Return 204 No Content (Standard success response para sa Delete)
             return NoContent();
         }
     }
