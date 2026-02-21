@@ -3,8 +3,8 @@ import { motion } from 'framer-motion'; // Inayos ang import para iwas error
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
-    onLogin: () => void;
-    onRegisterClick: () => void; // Idagdag para mawala ang error sa App.tsx
+    onLogin: (email: string) => void;
+    onRegisterClick?: () => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
@@ -21,7 +21,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
         setTimeout(() => {
             setLoading(false);
             if (email === 'ash@ketchum.com' && password === 'pikachu') {
-                onLogin();
+                onLogin(email);
             } else {
                 setError('Invalid credentials. Hint: ash@ketchum.com / pikachu');
             }

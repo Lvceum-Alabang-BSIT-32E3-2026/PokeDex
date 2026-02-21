@@ -3,9 +3,11 @@ import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
+import { ProfilePage } from './components/ProfilePage';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [currentPath, setCurrentPath] = useState(window.location.hash);
 
   useEffect(() => {
@@ -28,13 +30,15 @@ export default function App() {
     };
   }, [isAuthenticated, currentPath]);
 
-  const handleLogin = () => {
+  const handleLogin = (email: string) => {
     setIsAuthenticated(true);
+    setUserEmail(email);
     window.location.hash = '#/pokedex'; // Navigate to pokedex after login
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setUserEmail('');
     window.location.hash = '#/login'; // Navigate to login after logout
   };
 
@@ -58,15 +62,23 @@ export default function App() {
         content = <div>Collection Component (Not Implemented Yet)</div>; // Placeholder for collection
         break;
       case '#/profile':
-        content = <div>Profile Component (Not Implemented Yet)</div>; // Placeholder for profile
+        content = (
+          <ProfilePage
+            userEmail={userEmail}
+            onBack={() => window.location.hash = '#/pokedex'}
+            onLogout={handleLogout}
+          />
+        );
         break;
       case '#/pokedex':
       default: // Default to pokedex if hash is not recognized or empty
         content = (
-          <Pokedex 
-            onLogout={handleLogout} 
+          <Pokedex
+            onLogout={handleLogout}
+            userEmail={userEmail}
             onOpenCMS={() => window.location.hash = '#/cms'}
             onOpenRecommendations={() => window.location.hash = '#/recommendations'}
+            onOpenProfile={() => window.location.hash = '#/profile'}
           />
         );
         break;
