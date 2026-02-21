@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, ChevronDown } from 'lucide-react';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, ChevronDown, AlertCircle } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
@@ -16,6 +16,8 @@ interface PokedexProps {
 export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filters
@@ -73,19 +75,25 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       setPokemon([]);
       try {
         const data = await pokemonService.getList(offset, limit, selectedGen, selectedType);
         setPokemon(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching pokemon:', error);
+        if (error.name === 'TypeError' || error.message.toLowerCase().includes('network')) {
+          setError('Network error: Please check your connection and try again.');
+        } else {
+          setError('API Error: Failed to load Pokemon.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [offset, selectedGen, selectedType]);
+  }, [offset, selectedGen, selectedType, retryCount]);
 
   // Client-side filtering for Search
   const filteredPokemon = pokemon.filter(p =>
@@ -278,7 +286,18 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {loading && pokemon.length === 0 ? (
+        {error ? (
+          <div className="flex flex-col justify-center items-center h-64 space-y-4">
+            <AlertCircle className="w-12 h-12 text-red-500" />
+            <p className="text-slate-600 text-lg font-medium">{error}</p>
+            <button
+              onClick={() => setRetryCount(prev => prev + 1)}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading && pokemon.length === 0 ? (
           <div className="flex flex-col justify-center items-center h-64 space-y-4">
             <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
             <p className="text-slate-400 animate-pulse">Searching the wild...</p>
