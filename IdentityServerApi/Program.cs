@@ -75,23 +75,31 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Explicitly handle HTTPS redirection port if needed
-builder.Services.AddHttpsRedirection(options =>
-{
-    options.HttpsPort = 7043;
-});
+//builder.Services.AddHttpsRedirection(options =>
+//{
+//    options.HttpsPort = 7043;
+//});
 
 var app = builder.Build();
 
 // 7. Middleware Pipeline
-Console.WriteLine($"[DEBUG] Environment: {app.Environment.EnvironmentName}");
+//Console.WriteLine($"[DEBUG] Environment: {app.Environment.EnvironmentName}");
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI(options =>
+//    {
+//        options.SwaggerEndpoint("/swagger/v1/swagger.json", "IdentityServer API v1");
+//        options.RoutePrefix = "swagger"; // Available at /swagger
+//    }
+//
+//    );
+//}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "IdentityServer API v1");
-        options.RoutePrefix = "swagger"; // Available at /swagger
-    });
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
