@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, LogOut, User, Mail } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X } from 'lucide-react';
 
 interface ProfilePageProps {
   userEmail: string;
@@ -10,7 +10,54 @@ interface ProfilePageProps {
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onLogout }) => {
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
-  const displayName = userEmail.split('@')[0];
+  const defaultDisplayName = userEmail.split('@')[0];
+
+  const [displayName, setDisplayName] = useState(defaultDisplayName);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(displayName);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const API_URL = import.meta.env.VITE_IDENTITY_API_URL || '';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    
+    if (!editName.trim()) {
+      setError('Display Name is required');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: editName.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      setDisplayName(editName.trim());
+      setSuccess('Profile updated successfully!');
+      setIsEditing(false);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while updating profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditName(displayName);
+    setError('');
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -52,19 +99,71 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
 
           {/* Info card */}
           <div className="px-8 pb-8 -mt-8">
-            <div className="bg-white rounded-xl shadow-md border border-slate-100 divide-y divide-slate-100">
-              <div className="flex items-center gap-3 px-5 py-4">
-                <User className="w-5 h-5 text-slate-400 shrink-0" />
-                <div>
-                  <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Display Name</p>
-                  <p className="text-slate-800 font-semibold capitalize">{displayName}</p>
+            <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
+              {success && (
+                <div className="bg-green-50 border-b border-green-100 px-5 py-3">
+                  <p className="text-sm text-green-700 font-medium text-center">{success}</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 px-5 py-4">
-                <Mail className="w-5 h-5 text-slate-400 shrink-0" />
-                <div>
-                  <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Email Address</p>
-                  <p className="text-slate-800 font-semibold">{userEmail}</p>
+              )}
+              <div className="divide-y divide-slate-100">
+                <div className="flex items-start gap-4 px-5 py-5">
+                  <User className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Display Name</p>
+                    {isEditing ? (
+                      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                        <div>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            disabled={isLoading}
+                            placeholder="Enter display name"
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
+                          />
+                          {error && <p className="text-xs text-red-500 mt-1 font-medium">{error}</p>}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" /> Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancel}
+                            disabled={isLoading}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" /> Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex justify-between items-center group">
+                        <p className="text-slate-800 font-semibold text-lg capitalize truncate">{displayName}</p>
+                        <button
+                          onClick={() => {
+                            setIsEditing(true);
+                            setSuccess('');
+                          }}
+                          className="text-slate-400 hover:text-red-600 p-2 -mr-2 rounded-full hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                          title="Edit Display Name"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 px-5 py-5">
+                  <Mail className="w-5 h-5 text-slate-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Email Address</p>
+                    <p className="text-slate-800 font-medium truncate">{userEmail}</p>
+                  </div>
                 </div>
               </div>
             </div>
