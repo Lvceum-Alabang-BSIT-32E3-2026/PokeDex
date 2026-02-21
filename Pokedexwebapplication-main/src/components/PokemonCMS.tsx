@@ -507,7 +507,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-              onClick={() => setDeleteTarget(null)}
+              onClick={handleDeleteCancel}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -521,7 +521,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   <div className="bg-red-100 p-2.5 rounded-full">
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Confirm Delete</h3>
+                  <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
                 </div>
                 <p className="text-slate-600 text-sm mb-6">
                   Are you sure you want to delete{' '}
@@ -530,7 +530,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setDeleteTarget(null)}
+                    onClick={handleDeleteCancel}
                     className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
                   >
                     Cancel
