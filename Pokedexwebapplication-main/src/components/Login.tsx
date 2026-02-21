@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion'; // Inayos ang import para iwas error
+import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
     onLogin: () => void;
-    onRegisterClick: () => void; // Idagdag para mawala ang error sa App.tsx
+    onRegisterClick: () => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
