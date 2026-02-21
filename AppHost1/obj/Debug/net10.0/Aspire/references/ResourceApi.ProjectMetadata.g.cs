@@ -15,7 +15,7 @@ public class ResourceApi : global::Aspire.Hosting.IProjectMetadata
     /// <summary>
     /// The path to the ResourceApi project.
     /// </summary>
-    public string ProjectPath => """C:\Users\rcluc\OneDrive\Desktop\DEV-FRONT\136-task-143-create-profile-edit-form\ResourceApi\ResourceApi.csproj""";
+    public string ProjectPath => """C:\Users\rcluc\OneDrive\Desktop\DEV-FRONT\137-task-144-create-password-change-form\ResourceApi\ResourceApi.csproj""";
 
     /// <summary>
     /// Gets a value indicating whether building the project before running it should be suppressed.
