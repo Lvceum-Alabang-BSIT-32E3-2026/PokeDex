@@ -1,11 +1,10 @@
-﻿AuthController.cs
-
-using IdentityServerApi.DTOs;
+﻿using IdentityServerApi.DTOs;
 using IdentityServerApi.Models;
 using IdentityServerApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace IdentityServerApi.Controllers;
 
@@ -13,8 +12,8 @@ namespace IdentityServerApi.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager _userManager;
-    private readonly RoleManager _roleManager;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
     private readonly IJwtService _jwtService;
 
@@ -189,4 +188,3 @@ public class AuthController : ControllerBase
         };
     }
 }
-

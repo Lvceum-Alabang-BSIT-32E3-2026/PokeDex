@@ -1,10 +1,9 @@
-UsersController.cs
-
 using IdentityServerApi.DTOs;
 using IdentityServerApi.Models; // Siguraduhin na nandito ang ApplicationUser model
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace IdentityServerApi.Controllers
 {
@@ -12,7 +11,7 @@ namespace IdentityServerApi.Controllers
     [Route("api/users")]
     public class UsersController : ControllerBase
     {
-        private readonly UserManager _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public UsersController(UserManager<ApplicationUser> userManager)
         {
@@ -104,4 +103,3 @@ namespace IdentityServerApi.Controllers
         }
     }
 }
-
