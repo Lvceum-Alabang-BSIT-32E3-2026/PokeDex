@@ -176,10 +176,32 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     image: ''
   });
 
+  const [formErrors, setFormErrors] = useState<{ name?: string; types?: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+
+  // Validation
+  const validateForm = () => {
+    const errors: { name?: string; types?: string } = {};
+    if (!formData.name?.trim()) {
+      errors.name = 'Name is required';
+    }
+    if (!formData.types || formData.types.length === 0 || !formData.types[0]) {
+      errors.types = 'At least one type required';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  useEffect(() => {
+    if (isAdding || isEditing !== null) {
+      validateForm();
+    }
+  }, [formData, isAdding, isEditing]);
+
+  const isFormInvalid = !formData.name?.trim() || !formData.types || formData.types.length === 0 || !formData.types[0];
 
   const isOperating = loading || isSaving || deletingId !== null;
 
@@ -273,10 +295,13 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       types: [],
       image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
+    setFormErrors({});
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) return;
 
     if (isAdding) {
       const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
@@ -454,8 +479,18 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className={`w-full border rounded-lg px-3 py-2 outline-none transition-all ${
+                        formErrors.name 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-red-50' 
+                          : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                      placeholder="e.g. Pikachu"
                     />
+                    {formErrors.name && (
+                      <p className="mt-1 text-xs text-red-500 font-medium flex items-center gap-1">
+                        <X className="w-3 h-3" /> {formErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -488,6 +523,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       }}
                     />
                   </div>
+                  {formErrors.types && (
+                    <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                      <X className="w-3 h-3" /> {formErrors.types}
+                    </p>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
@@ -516,12 +556,22 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     >
                       Cancel
                     </button>
-                    <button
+                     <button
                       type="submit"
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                      disabled={isFormInvalid || isSaving}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
-                      <Save className="w-4 h-4" />
-                      Save
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
