@@ -1,6 +1,7 @@
 # .NET Build Code
 bin/
 obj/
+<<<<<<< HEAD
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -31,3 +32,5 @@ bld/
 # Node
 node_modules/
 npm-debug.log
+=======
+>>>>>>> origin/dev-frontend
