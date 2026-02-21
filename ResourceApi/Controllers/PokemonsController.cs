@@ -19,18 +19,14 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
-        // Task 2.1.6: Implement Get Pokemon List Endpoint #35
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons([FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            // Technical Requirements:
-            // 1. Order by PokedexNumber (Id)
-            // 2. Include types in response
-            // 3. Pagination with offset (default 0) and limit (default 20)
-
+            // Ginamitan ng ThenInclude para makuha ang Name at Color mula sa PokemonTypeEntity
             var query = _context.Pokemons
                 .Include(p => p.PokemonTypes)
-                .OrderBy(p => p.Id); // PokedexNumber ordering
+                    .ThenInclude(pt => pt.Type)
+                .OrderBy(p => p.Id);
 
             var pokemons = await query
                 .Skip(offset)
@@ -41,12 +37,12 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons/{id}
-        // Task 2.1.7: Implement Get Pokemon By ID Endpoint #36
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
             var pokemon = await _context.Pokemons
                 .Include(p => p.PokemonTypes)
+                    .ThenInclude(pt => pt.Type)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null)
@@ -78,12 +74,18 @@ namespace ResourceApi.Controllers
             {
                 foreach (var typeName in createDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    // FIXED: Sa _context.Types tayo maghahanap dahil ito ang may 'Name' property
+                    var existingTypeEntity = await _context.Types
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
-                    if (existingType != null)
+                    if (existingTypeEntity != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        // FIXED: Gagawa ng bagong PokemonType join record
+                        pokemon.PokemonTypes.Add(new PokemonType
+                        {
+                            Type = existingTypeEntity,
+                            IsPrimary = pokemon.PokemonTypes.Count == 0
+                        });
                     }
                 }
             }
@@ -116,11 +118,16 @@ namespace ResourceApi.Controllers
                 pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    // FIXED: Sa _context.Types tayo maghahanap
+                    var existingTypeEntity = await _context.Types
                         .FirstOrDefaultAsync(t => t.Name == typeName);
-                    if (existingType != null)
+
+                    if (existingTypeEntity != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        pokemon.PokemonTypes.Add(new PokemonType
+                        {
+                            Type = existingTypeEntity
+                        });
                     }
                 }
             }
