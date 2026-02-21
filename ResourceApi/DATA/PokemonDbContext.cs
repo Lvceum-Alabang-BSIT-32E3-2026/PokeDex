@@ -1,27 +1,44 @@
 using Microsoft.EntityFrameworkCore;
+using ResourceApi.Models; // Ito lang ang kailangan mo
 
-using ResourceApi.Models;
+namespace ResourceApi.Data;
 
-using ResourceApi.Models; // add this
-
-
-namespace ResourceApi.Data
+public class PokemonDbContext : DbContext
 {
-    public class PokemonDbContext : DbContext
+    public PokemonDbContext(DbContextOptions<PokemonDbContext> options)
+        : base(options) { }
+
+    public DbSet<Pokemon> Pokemons { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public PokemonDbContext(DbContextOptions<PokemonDbContext> options)
-            : base(options) { }
+        base.OnModelCreating(modelBuilder);
 
-        // Updated DbSet with new Pokemon entity
-        public DbSet<Pokemon> Pokemons { get; set; } = null!;
+        // Task 2.3.3: Dito natin ilalagay ang accurate stats
+        modelBuilder.Entity<Pokemon>().HasData(
+            new Pokemon
+            {
+                Id = 1,
+                PokedexNumber = 1,
+                Name = "Bulbasaur",
+                ImageUrl = "bulbasaur.png",
+                Generation = 1,
+                BaseExperience = 64,
+                Height = 0.7m,
+                Weight = 6.9m
+            },
+            new Pokemon
+            {
+                Id = 4,
+                PokedexNumber = 4,
+                Name = "Charmander",
+                ImageUrl = "charmander.png",
+                Generation = 1,
+                BaseExperience = 62,
+                Height = 0.6m,
+                Weight = 8.5m
+            }
+            // Dagdagan mo pa ang iba dito...
+        );
     }
-
-    public class Pokemon
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public int BaseExperience { get; set; }
-    }
-
 }
