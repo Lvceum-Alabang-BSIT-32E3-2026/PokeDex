@@ -1,13 +1,17 @@
-# Node modules
-node_modules/
-
-# VS Code
-.vscode/
-
-# .NET Build artifacts
+# .NET Build Code
 bin/
 obj/
-<<<<<<< HEAD
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
 
 # Visual Studio
 .vs/
@@ -18,26 +22,12 @@ obj/
 *.userprefs
 
 # Visual Studio Code
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-=======
-/.vs
->>>>>>> origin/main
+# Node
+node_modules/
+npm-debug.log
