@@ -43,6 +43,6 @@ public class PokemonDbContext : DbContext
             }
         );
 
-        // Tip: Maari mo ring i-seed ang PokemonTypes dito kung kailangan
+    
     }
 }
