@@ -19,6 +19,16 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setOffset(0);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Filters
   const [selectedGen, setSelectedGen] = useState<string>('all');
@@ -78,7 +88,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       setError(null);
       setPokemon([]);
       try {
-        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType);
+        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
         setPokemon(data);
       } catch (error: any) {
         console.error('Error fetching pokemon:', error);
@@ -93,12 +103,9 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
     };
 
     fetchData();
-  }, [offset, selectedGen, selectedType, retryCount]);
+  }, [offset, selectedGen, selectedType, retryCount, debouncedSearch]);
 
-  // Client-side filtering for Search
-  const filteredPokemon = pokemon.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Removed client-side filtering, using API search instead
 
   const generations = [
     { id: '1', name: 'Gen I (Kanto)' },
@@ -306,7 +313,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               <AnimatePresence>
-                {filteredPokemon.map((p) => (
+                {pokemon.map((p) => (
                   <PokemonCard
                     key={p.id}
                     {...p}
@@ -318,14 +325,14 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
               </AnimatePresence>
             </div>
 
-            {filteredPokemon.length === 0 && !loading && (
+            {pokemon.length === 0 && !loading && (
               <div className="text-center py-12">
                 <p className="text-slate-500 text-lg">No Pokemon found matching your criteria.</p>
               </div>
             )}
 
             {/* Pagination (Only show in 'All' mode) */}
-            {selectedGen === 'all' && selectedType === 'all' && searchTerm === '' && filteredPokemon.length > 0 && (
+            {selectedGen === 'all' && selectedType === 'all' && !debouncedSearch && pokemon.length > 0 && (
               <div className="mt-12 flex justify-center space-x-4">
                 <button
                   onClick={() => setOffset(Math.max(0, offset - limit))}
