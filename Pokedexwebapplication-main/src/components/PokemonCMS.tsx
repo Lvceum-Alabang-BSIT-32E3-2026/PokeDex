@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -181,18 +181,23 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
+  // Search & Pagination State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [offset, setOffset] = useState(0);
+  const limit = 20;
+
   const isOperating = loading || isSaving || deletingId !== null;
 
   useEffect(() => {
     loadData();
     loadTypes();
-  }, []);
+  }, [offset]);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await pokemonService.getList(0, 50);
+      const data = await pokemonService.getList(offset, limit);
       setPokemonList(data);
     } catch (err: any) {
       setError(err?.message || 'Failed to load Pokémon. Please try again.');
@@ -290,6 +295,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     return colors[type] || 'bg-slate-100 text-slate-800';
   };
 
+  // Client-side filtering for Search
+  const filteredPokemon = pokemonList.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Header ── */}
@@ -350,11 +360,38 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         {/* List View */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
-              <span>Inventory ({pokemonList.length})</span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <span>Inventory ({searchTerm ? filteredPokemon.length : pokemonList.length})</span>
+                {searchTerm && (
+                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                    Filtering active
+                  </span>
+                )}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
-              {pokemonList.map(p => (
+            <div className="divide-y divide-slate-100 max-h-[70vh] overflow-y-auto">
+              {filteredPokemon.map(p => (
                 <div
                   key={p.id}
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
@@ -389,6 +426,29 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {!searchTerm && (
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={offset === 0 || loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Page {Math.floor(offset / limit) + 1}
+                </div>
+                <button
+                  onClick={() => setOffset(offset + limit)}
+                  disabled={pokemonList.length < limit || loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
