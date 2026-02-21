@@ -29,12 +29,15 @@ const formatApiPokemon = (p: any): Pokemon => ({
 });
 
 export const pokemonService = {
-  async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all') {
+  async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all', search: string = '') {
     if (!USE_LIVE_API) {
       // Mock Implementation
       console.log('Using Mock Data for List');
       let data = [...MOCK_POKEMON];
 
+      if (search) {
+        data = data.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+      }
       if (typeFilter !== 'all') {
         data = data.filter(p => p.types.includes(typeFilter));
       }
@@ -52,8 +55,10 @@ export const pokemonService = {
       const params = new URLSearchParams();
       if (genFilter !== 'all') params.append('generation', genFilter);
       if (typeFilter !== 'all') params.append('type', typeFilter);
+      if (search) params.append('search', search);
+      
       // Only send offset/limit when no filters are active (pagination mode)
-      if (genFilter === 'all' && typeFilter === 'all') {
+      if (genFilter === 'all' && typeFilter === 'all' && !search) {
         params.append('offset', String(offset));
         params.append('limit', String(limit));
       }
