@@ -15,11 +15,19 @@ namespace ResourceApi.Controllers
 			_context = context;
 		}
 
-		// GET: /api/pokemons
+		// GET: /api/pokemons?generation=1&type=fire
 		[HttpGet]
-		public async Task<IActionResult> GetPokemons()
+		public async Task<IActionResult> GetPokemons([FromQuery] int? generation, [FromQuery] string? type)
 		{
-			var pokemons = await _context.Pokemons.ToListAsync();
+			var query = _context.Pokemons.AsQueryable();
+
+			if (generation.HasValue)
+				query = query.Where(p => p.Generation == generation.Value);
+
+			if (!string.IsNullOrEmpty(type))
+				query = query.Where(p => p.Type.ToLower() == type.ToLower());
+
+			var pokemons = await query.ToListAsync();
 			return Ok(pokemons);
 		}
 	}

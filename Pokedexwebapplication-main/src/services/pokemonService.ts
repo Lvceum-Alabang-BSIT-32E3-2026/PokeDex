@@ -47,8 +47,9 @@ export const pokemonService = {
       return data;
     }
 
-    // Live API Implementation
+    // Live API Implementation — calls our local ResourceApi
     try {
+<<<<<<< Updated upstream
       let results = [];
 
       if (genFilter !== 'all') {
@@ -96,6 +97,29 @@ export const pokemonService = {
       );
 
       return detailed;
+=======
+      const params = new URLSearchParams();
+      if (genFilter !== 'all') params.append('generation', genFilter);
+      if (typeFilter !== 'all') params.append('type', typeFilter);
+      // Only send offset/limit when no filters are active (pagination mode)
+      if (genFilter === 'all' && typeFilter === 'all') {
+        params.append('offset', String(offset));
+        params.append('limit', String(limit));
+      }
+
+      const res = await fetch(`/api/pokemons?${params.toString()}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data: any[] = await res.json();
+
+      // Map ResourceApi shape → frontend Pokemon interface
+      return data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        // ResourceApi stores a single comma-separated type string; split into array
+        types: p.type ? p.type.split(',').map((t: string) => t.trim().toLowerCase()) : [],
+        image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
+      }));
+>>>>>>> Stashed changes
     } catch (error) {
       console.error('API Error:', error);
       return [];
