@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb } from 'lucide-react';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, ChevronDown } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
@@ -9,9 +9,11 @@ interface PokedexProps {
   onLogout: () => void;
   onOpenCMS: () => void;
   onOpenRecommendations: () => void;
+  onOpenProfile: () => void;
+  userEmail: string;
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,12 +32,31 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
   // Modal
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
+  // Profile dropdown
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Derived user display
+  const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
+  const userDisplayName = userEmail ? userEmail.split('@')[0] : 'Trainer';
+
   // Load captured state
   useEffect(() => {
     const saved = localStorage.getItem('capturedPokemon');
     if (saved) {
       setCaptured(new Set(JSON.parse(saved)));
     }
+  }, []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const toggleCapture = (id: number) => {
@@ -90,11 +111,13 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
 
   const handleGenChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedGen(e.target.value);
+    setSelectedType('all');
     setOffset(0);
   };
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedType(e.target.value);
+    setSelectedGen('all');
     setOffset(0);
   };
 
@@ -143,13 +166,67 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
               >
                 <Settings className="w-6 h-6" />
               </button>
-              <button
-                onClick={onLogout}
-                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-6 h-6" />
-              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={() => setIsProfileMenuOpen(prev => !prev)}
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-red-700 transition-colors text-white"
+                  title="Profile"
+                >
+                  <div className="w-7 h-7 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black shrink-0">
+                    {userInitial}
+                  </div>
+                  <span className="hidden sm:block text-sm font-medium max-w-[96px] truncate">{userDisplayName}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50"
+                    >
+                      {/* User info */}
+                      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-black shrink-0">
+                            {userInitial}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Signed in as</p>
+                            <p className="text-sm font-semibold text-slate-800 truncate">{userEmail}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => { setIsProfileMenuOpen(false); onOpenProfile(); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <User className="w-4 h-4 text-slate-400" />
+                          My Profile
+                        </button>
+                      </div>
+
+                      <div className="border-t border-slate-100 py-1">
+                        <button
+                          onClick={() => { setIsProfileMenuOpen(false); onLogout(); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
