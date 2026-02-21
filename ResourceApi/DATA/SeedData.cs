@@ -1,46 +1,43 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using ResourceApi.Data;
 using ResourceApi.Models;
-using System;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace ResourceApi.Data;
-
-public static class SeedData
+namespace ResourceApi.DATA
 {
-    public static void Initialize(IServiceProvider serviceProvider)
+    public static class SeedData
     {
-        using (var context = new PokemonDbContext(
-            serviceProvider.GetRequiredService<DbContextOptions<PokemonDbContext>>()))
+        public static void SeedPokemonTypes(PokemonDbContext context)
         {
-            // Palitan ang .Pokemon ng .Pokemons (may 's')
-            if (context.Pokemons.Any())
+            // Iwas duplicates: Titigil ang code dito kung may laman na ang database
+            if (context.PokemonTypes.Any())
             {
-                return;   // DB has already been seeded
+                return;
             }
 
-            context.Pokemons.AddRange(
-                new Pokemon
-                {
-                    Name = "Bulbasaur",
-                    PokedexNumber = 1,
-                    ImageUrl = "bulbasaur.png",
-                    Generation = 1,
-                    Height = 0.7m,        // Task 2.3.3: Accurate height
-                    Weight = 6.9m,        // Task 2.3.3: Accurate weight
-                    BaseExperience = 64
-                },
-                new Pokemon
-                {
-                    Name = "Charmander",
-                    PokedexNumber = 4,
-                    ImageUrl = "charmander.png",
-                    Generation = 1,
-                    Height = 0.6m,
-                    Weight = 8.5m,
-                    BaseExperience = 62
-                }
-            );
+            var types = new List<PokemonType>
+            {
+                new PokemonType { Name = "Normal", Color = "#A8A77A" },
+                new PokemonType { Name = "Fire", Color = "#EE8130" },
+                new PokemonType { Name = "Water", Color = "#6390F0" },
+                new PokemonType { Name = "Electric", Color = "#F7D02C" },
+                new PokemonType { Name = "Grass", Color = "#7AC74C" },
+                new PokemonType { Name = "Ice", Color = "#96D9D6" },
+                new PokemonType { Name = "Fighting", Color = "#C22E28" },
+                new PokemonType { Name = "Poison", Color = "#A33EA1" },
+                new PokemonType { Name = "Ground", Color = "#E2BF65" },
+                new PokemonType { Name = "Flying", Color = "#A98FF3" },
+                new PokemonType { Name = "Psychic", Color = "#F95587" },
+                new PokemonType { Name = "Bug", Color = "#A6B91A" },
+                new PokemonType { Name = "Rock", Color = "#B6A136" },
+                new PokemonType { Name = "Ghost", Color = "#735797" },
+                new PokemonType { Name = "Dragon", Color = "#6F35FC" },
+                new PokemonType { Name = "Dark", Color = "#705746" },
+                new PokemonType { Name = "Steel", Color = "#B7B7CE" },
+                new PokemonType { Name = "Fairy", Color = "#D685AD" }
+            };
+
+            context.PokemonTypes.AddRange(types);
             context.SaveChanges();
         }
     }
