@@ -71,15 +71,65 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleCapture = (id: number) => {
-    const newCaptured = new Set(captured);
-    if (newCaptured.has(id)) {
-      newCaptured.delete(id);
-    } else {
-      newCaptured.add(id);
+  const captureService = {
+    capture: async (id: number) => {
+      const token = localStorage.getItem('token');
+      const API_BASE = (import.meta.env as any).VITE_API_URL || '';
+      const response = await fetch(`${API_BASE}/api/captures/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      if (!response.ok) throw new Error('Failed to capture');
+    },
+    release: async (id: number) => {
+      const token = localStorage.getItem('token');
+      const API_BASE = (import.meta.env as any).VITE_API_URL || '';
+      const response = await fetch(`${API_BASE}/api/captures/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      if (!response.ok) throw new Error('Failed to release');
     }
-    setCaptured(newCaptured);
-    localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+  };
+
+  const toggleCapture = async (id: number) => {
+    const isCaptured = captured.has(id);
+
+    // Optimistic UI update
+    setCaptured(prev => {
+      const next = new Set(prev);
+      if (isCaptured) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+
+    try {
+      if (isCaptured) {
+        await captureService.release(id);
+      } else {
+        await captureService.capture(id);
+      }
+    } catch (error) {
+      console.error('Failed to toggle capture:', error);
+      // Revert optimistic update on error
+      setCaptured(prev => {
+        const next = new Set(prev);
+        if (isCaptured) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
