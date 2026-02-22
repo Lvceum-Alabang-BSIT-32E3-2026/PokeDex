@@ -4,6 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
+import { CollectionPage } from './components/CollectionPage'; // 1. Added Import
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -12,6 +13,9 @@ export default function App() {
     });
     const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
     const [currentPath, setCurrentPath] = useState(window.location.hash || '#/login');
+
+    // State para sa captured Pokemon (Dito i-store ang mga nahuli mo para sa Task 3.2.5)
+    const [capturedIds, setCapturedIds] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         // 1. Function para i-sync ang state sa hash
@@ -79,17 +83,12 @@ export default function App() {
                 return <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
 
             case '#/collection':
+                // 2. Replaced the placeholder with the actual CollectionPage component
                 return (
-                    <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center bg-white">
-                        <h2 className="text-3xl font-bold text-slate-800">My Collection</h2>
-                        <p className="text-slate-500 mt-2">Your captured Pokemon will appear here soon!</p>
-                        <button
-                            onClick={() => window.location.hash = '#/pokedex'}
-                            className="mt-6 px-6 py-2 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-colors shadow-md"
-                        >
-                            Back to Pokedex
-                        </button>
-                    </div>
+                    <CollectionPage
+                        onBack={() => window.location.hash = '#/pokedex'}
+                        capturedIds={capturedIds}
+                    />
                 );
 
             case '#/profile':
@@ -110,7 +109,7 @@ export default function App() {
                         onOpenCMS={() => window.location.hash = '#/cms'}
                         onOpenRecommendations={() => window.location.hash = '#/recommendations'}
                         onOpenProfile={() => window.location.hash = '#/profile'}
-                        onOpenCollection={() => window.location.hash = '#/collection'} // <--- Dinagdag ito para sa Task 3.2.6
+                        onOpenCollection={() => window.location.hash = '#/collection'}
                     />
                 );
         }
