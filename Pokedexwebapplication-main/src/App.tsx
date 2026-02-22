@@ -4,7 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
-import RegisterPage from './components/RegisterPage'; // 1. IDINAGDAG NA IMPORT
+import RegisterPage from './components/RegisterPage'; 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AppContent = () => {
@@ -37,14 +37,11 @@ const AppContent = () => {
 
     if (!isAuthenticated) {
         if (currentPath === '#/register') {
-            // 2. PINALITAN ANG PLACEHOLDER NG TOTOONG COMPONENT
             content = <RegisterPage onBackToLogin={() => window.location.hash = '#/login'} />;
         } else {
-            // 3. IDINAGDAG ANG onRegisterClick PROP PARA GUMANA ANG LINK SA LOGIN
             content = <Login onLogin={() => { }} onRegisterClick={() => window.location.hash = '#/register'} />;
         }
     } else {
-        // ... (rest of the switch code stays the same)
         const userEmail = user?.email || '';
         switch (currentPath) {
             case '#/cms':
