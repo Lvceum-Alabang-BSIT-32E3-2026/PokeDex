@@ -18,17 +18,17 @@ using System.Reflection;
     "ext\\")]
 [assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
     "ext\\bin\\")]
-[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\Ap" +
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\Ap" +
     "pHost1")]
 [assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "AppHost1.csproj")]
 [assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
     "ashboard.exe")]
-[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\Ap" +
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\Ap" +
     "pHost1\\obj\\")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d7d6458069877b2fbf71cb331ab15579b7d368df")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13086125b54f57fe731ae83ebc240e003852e787")]
 [assembly: System.Reflection.AssemblyProductAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

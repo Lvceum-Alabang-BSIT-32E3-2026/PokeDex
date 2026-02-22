@@ -17,5 +17,5 @@ public class AppHost1
     /// <summary>
     /// The path to the Aspire Host project.
     /// </summary>
-    public static string ProjectPath => """C:\Users\Jhirz\source\repos\ELECTIVE PF\FRONT\341-task-249-add-form-validation\AppHost1""";
+    public static string ProjectPath => """C:\Users\Jhirz\source\repos\ELECTIVE PF\FRONT\161-task-2410-add-cms-pagination\AppHost1""";
 }

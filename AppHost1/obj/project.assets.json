@@ -3343,17 +3343,17 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\AppHost1\\AppHost1.csproj",
+      "projectUniqueName": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\AppHost1\\AppHost1.csproj",
       "projectName": "AppHost1",
-      "projectPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\AppHost1\\AppHost1.csproj",
+      "projectPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\AppHost1\\AppHost1.csproj",
       "packagesPath": "C:\\Users\\Jhirz\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\AppHost1\\obj\\",
+      "outputPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\AppHost1\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\NuGet.Config",
+        "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\161-task-2410-add-cms-pagination\\NuGet.Config",
         "C:\\Users\\Jhirz\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
