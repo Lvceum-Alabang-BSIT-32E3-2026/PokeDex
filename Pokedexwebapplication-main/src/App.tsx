@@ -4,6 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
+import RegisterPage from './components/RegisterPage'; // 1. IDINAGDAG NA IMPORT
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AppContent = () => {
@@ -14,7 +15,6 @@ const AppContent = () => {
         const handleHashChange = () => {
             setCurrentPath(window.location.hash);
         };
-
         window.addEventListener('hashchange', handleHashChange);
 
         if (!isAuthenticated && currentPath !== '#/login' && currentPath !== '#/register') {
@@ -29,7 +29,7 @@ const AppContent = () => {
     }, [isAuthenticated, currentPath]);
 
     const handleLogout = () => {
-        logout(); 
+        logout();
         window.location.hash = '#/login';
     };
 
@@ -37,13 +37,15 @@ const AppContent = () => {
 
     if (!isAuthenticated) {
         if (currentPath === '#/register') {
-            content = <div>Register Component (Not Implemented Yet)</div>;
+            // 2. PINALITAN ANG PLACEHOLDER NG TOTOONG COMPONENT
+            content = <RegisterPage onBackToLogin={() => window.location.hash = '#/login'} />;
         } else {
-            content = <Login onLogin={() => { }} />;
+            // 3. IDINAGDAG ANG onRegisterClick PROP PARA GUMANA ANG LINK SA LOGIN
+            content = <Login onLogin={() => { }} onRegisterClick={() => window.location.hash = '#/register'} />;
         }
     } else {
+        // ... (rest of the switch code stays the same)
         const userEmail = user?.email || '';
-
         switch (currentPath) {
             case '#/cms':
                 content = <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
@@ -51,29 +53,12 @@ const AppContent = () => {
             case '#/recommendations':
                 content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
                 break;
-            case '#/collection':
-                content = <div>Collection Component (Not Implemented Yet)</div>;
-                break;
             case '#/profile':
-                content = (
-                    <ProfilePage
-                        userEmail={userEmail}
-                        onBack={() => window.location.hash = '#/pokedex'}
-                        onLogout={handleLogout}
-                    />
-                );
+                content = <ProfilePage userEmail={userEmail} onBack={() => window.location.hash = '#/pokedex'} onLogout={handleLogout} />;
                 break;
             case '#/pokedex':
             default:
-                content = (
-                    <Pokedex
-                        onLogout={handleLogout}
-                        userEmail={userEmail}
-                        onOpenCMS={() => window.location.hash = '#/cms'}
-                        onOpenRecommendations={() => window.location.hash = '#/recommendations'}
-                        onOpenProfile={() => window.location.hash = '#/profile'}
-                    />
-                );
+                content = <Pokedex onLogout={handleLogout} userEmail={userEmail} onOpenCMS={() => window.location.hash = '#/cms'} onOpenRecommendations={() => window.location.hash = '#/recommendations'} onOpenProfile={() => window.location.hash = '#/profile'} />;
                 break;
         }
     }
