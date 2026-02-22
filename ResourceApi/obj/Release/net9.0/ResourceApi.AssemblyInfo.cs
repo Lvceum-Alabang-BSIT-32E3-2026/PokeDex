@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ResourceApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3d6843658ac86057797f289cb4f7c289d64b0826")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13086125b54f57fe731ae83ebc240e003852e787")]
 [assembly: System.Reflection.AssemblyProductAttribute("ResourceApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ResourceApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

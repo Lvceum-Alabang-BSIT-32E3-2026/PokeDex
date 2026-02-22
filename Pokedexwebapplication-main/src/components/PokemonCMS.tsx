@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -182,6 +182,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const pageOptions = [10, 20, 50];
+
   // Validation
   const validateForm = () => {
     const errors: { name?: string; types?: string } = {};
@@ -215,6 +220,21 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setTimeout(() => setSuccess(null), 3000);
   };
 
+  // Pagination Logic
+  const totalContents = pokemonList.length;
+  const totalPages = Math.ceil(totalContents / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedList = pokemonList.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to first page when data or page size changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0) {
+      setCurrentPage(1);
+    }
+  }, [pokemonList.length, itemsPerPage, totalPages, currentPage]);
+
   useEffect(() => {
     if (error) {
       const t = setTimeout(() => setError(null), 5000);
@@ -233,8 +253,9 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await pokemonService.getList(0, 50);
+      const data = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
       setPokemonList(data);
+      setCurrentPage(1); // Reset to first page on reload
     } catch (err: any) {
       setError(err?.message || 'Failed to load Pokémon. Please try again.');
     } finally {
@@ -412,7 +433,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
               <span>Inventory ({pokemonList.length})</span>
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
-              {pokemonList.map(p => (
+              {paginatedList.map(p => (
                 <div
                   key={p.id}
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
@@ -446,6 +467,76 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {pageOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <span>per page</span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                    title="First Page"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span className="text-blue-600">Page {currentPage}</span>
+                  <span className="text-slate-400">of</span>
+                  <span className="text-slate-700">{totalPages || 1}</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                    title="Next Page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                    title="Last Page"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-400 font-medium">
+                Showing {totalContents === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalContents)} of {totalContents} entries
+              </div>
             </div>
           </div>
         </div>

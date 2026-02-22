@@ -15,7 +15,7 @@ public class ResourceApi : global::Aspire.Hosting.IProjectMetadata
     /// <summary>
     /// The path to the ResourceApi project.
     /// </summary>
-    public string ProjectPath => """C:\Users\Jhirz\source\repos\ELECTIVE PF\FRONT\341-task-249-add-form-validation\ResourceApi\ResourceApi.csproj""";
+    public string ProjectPath => """C:\Users\Jhirz\source\repos\ELECTIVE PF\FRONT\161-task-2410-add-cms-pagination\ResourceApi\ResourceApi.csproj""";
 
     /// <summary>
     /// Gets a value indicating whether building the project before running it should be suppressed.
