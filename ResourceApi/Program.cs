@@ -8,6 +8,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// 1. CORS Configuration: Dito nire-register ang policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        // Siguraduhin na ang origin na ito ay tugma sa port ng iyong frontend
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddDbContext<PokemonDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
@@ -21,7 +33,6 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<PokemonDbContext>();
-        // Siguraduhin na ang DB ay created bago mag-seed
         context.Database.EnsureCreated();
         SeedData.Initialize(context);
     }
@@ -40,6 +51,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// 2. CORS Middleware: Dapat itong ilagay bago ang Authorization
+app.UseCors("AllowFrontend");
+
 app.UseAuthorization();
 app.MapControllers();
 
