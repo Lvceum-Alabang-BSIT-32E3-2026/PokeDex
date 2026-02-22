@@ -1,31 +1,39 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { authService } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext'; // 1. Idinagdag ang import ng useAuth
 
 interface LoginProps {
-    onLogin: (email: string) => void;
+    onLogin: () => void;
     onRegisterClick?: () => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
+    const { login } = useAuth(); // 2. Kunin ang login function mula sa context
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+        setLoading(true);
 
-        setTimeout(() => {
+        try {
+            const response = await authService.login({ email, password });
+
+            // 3. Imbes na manual localStorage, gamitin ang login(token) mula sa useAuth.
+            // Ito ang mag-u-update ng 'isAuthenticated' at 'user' state sa AuthContext.
+            login(response.token);
+
+            onLogin();
+        } catch (err: any) {
+            setError(err.message || 'Invalid email or password');
+        } finally {
             setLoading(false);
-            if (email === 'ash@ketchum.com' && password === 'pikachu') {
-                onLogin(email);
-            } else {
-                setError('Invalid credentials. Hint: ash@ketchum.com / pikachu');
-            }
-        }, 1000);
+        }
     };
 
     return (
@@ -90,27 +98,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                     </button>
                 </form>
 
-                <div className="mt-6 text-center space-y-4">
-                    <button
-                        type="button"
-                        onClick={() => { setEmail('ash@ketchum.com'); setPassword('pikachu'); }}
-                        className="text-xs text-slate-500 hover:text-red-400 transition-colors"
-                    >
-                        Auto-fill: ash@ketchum.com / pikachu
-                    </button>
-
-                    <div className="pt-4 border-t border-slate-700">
-                        <p className="text-sm text-slate-400">
-                            Don't have an account?{' '}
-                            <button
-                                type="button"
-                                onClick={onRegisterClick}
-                                className="text-red-500 hover:text-red-400 font-semibold transition-colors hover:underline"
-                            >
-                                Register
-                            </button>
-                        </p>
-                    </div>
+                <div className="mt-6 text-center pt-4 border-t border-slate-700">
+                    <p className="text-sm text-slate-400">
+                        Don't have an account?{' '}
+                        <button
+                            type="button"
+                            onClick={onRegisterClick}
+                            className="text-red-500 hover:text-red-400 font-semibold transition-colors hover:underline"
+                        >
+                            Register
+                        </button>
+                    </p>
                 </div>
             </motion.div>
         </div>
