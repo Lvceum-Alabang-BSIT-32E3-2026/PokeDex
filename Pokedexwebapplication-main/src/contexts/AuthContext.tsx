@@ -15,6 +15,19 @@ interface AuthContextType {
     logout: () => void;
 }
 
+const isTokenExpired = (token: string): boolean => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = JSON.parse(window.atob(base64));
+
+        const currentTime = Math.floor(Date.now() / 1000);
+        return decoded.exp < currentTime;
+    } catch (e) {
+        return true; 
+    }
+};
+
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -23,14 +36,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         if (token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const decodedToken = JSON.parse(window.atob(base64));
-                setUser(decodedToken);
-            } catch (e) {
-                console.error("Token decoding failed", e);
+            if (isTokenExpired(token)) {
                 logout();
+            } else {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const decodedToken = JSON.parse(window.atob(base64));
+                    setUser(decodedToken);
+                } catch (e) {
+                    logout();
+                }
             }
         }
     }, [token]);
