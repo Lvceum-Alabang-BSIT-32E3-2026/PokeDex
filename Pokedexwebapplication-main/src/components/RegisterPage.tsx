@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Lock, User, Info, Loader2, UserPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, Lock, User, Info, Loader2, UserPlus, CheckCircle2 } from 'lucide-react';
 
 interface RegisterProps {
     onBackToLogin: () => void;
@@ -8,6 +8,7 @@ interface RegisterProps {
 
 const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
     const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false); // Task 1.1.5 requirement
     const [formData, setFormData] = useState({
         email: '',
         username: '',
@@ -28,15 +29,15 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
         if (name === "email") {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!value) error = "Email is required";
-            else if (!emailRegex.test(value)) error = "Invalid email format"; 
+            else if (!emailRegex.test(value)) error = "Invalid email format";
         }
         if (name === "username") {
             if (!value) error = "Username is required";
-            else if (value.length < 3 || value.length > 50) error = "Must be 3-50 characters"; 
+            else if (value.length < 3 || value.length > 50) error = "Must be 3-50 characters";
         }
         if (name === "password") {
             if (!value) error = "Password is required";
-            else if (value.length < 8) error = "Minimum 8 characters required"; 
+            else if (value.length < 8) error = "Minimum 8 characters required";
         }
         if (name === "confirmPassword") {
             if (value !== formData.password) error = "Passwords must match";
@@ -75,12 +76,16 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
         }
 
         setLoading(true);
+
+        // Task 1.1.5: Simulate API Registration with Success Message and Redirect
         setTimeout(() => {
-            console.log('Registered Trainer:', formData);
             setLoading(false);
-            alert('Registration Successful! Please login.');
-            onBackToLogin();
-        }, 2000);
+            setShowSuccess(true);
+
+            setTimeout(() => {
+                onBackToLogin();
+            }, 2000);
+        }, 1500);
     };
 
     const isFormInvalid =
@@ -92,7 +97,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700"
+                className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700 relative overflow-hidden"
             >
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-red-600 rounded-full mx-auto flex items-center justify-center mb-4 shadow-lg ring-4 ring-slate-700 relative">
@@ -103,8 +108,24 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
                     <p className="text-slate-400">Create your trainer credentials</p>
                 </div>
 
+                <AnimatePresence>
+                    {showSuccess && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0 }}
+                            className="mb-6 bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg flex items-center gap-3 text-sm"
+                        >
+                            <CheckCircle2 className="w-5 h-5 shrink-0" />
+                            <div>
+                                <p className="font-bold">Registration Successful!</p>
+                                <p className="text-xs opacity-70">Redirecting to login page...</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Email Field */}
                     <div className="relative">
                         <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 ${errors.email ? 'text-red-500' : 'text-slate-500'}`} size={18} />
                         <input
@@ -120,7 +141,6 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
                         {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>}
                     </div>
 
-                    {/* Username Field */}
                     <div className="relative">
                         <User className={`absolute left-3 top-1/2 -translate-y-1/2 ${errors.username ? 'text-red-500' : 'text-slate-500'}`} size={18} />
                         <input
@@ -135,7 +155,6 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
                         {errors.username && <p className="text-red-500 text-xs mt-1 ml-1">{errors.username}</p>}
                     </div>
 
-                    {/* Password Fields */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="relative">
                             <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 ${errors.password ? 'text-red-500' : 'text-slate-500'}`} size={18} />
@@ -167,7 +186,6 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
                         <p className="text-red-500 text-xs mt-1 ml-1">{errors.password || errors.confirmPassword}</p>
                     )}
 
-                    {/* Display Name (Optional) */}
                     <div className="relative">
                         <Info className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                         <input
@@ -181,7 +199,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ onBackToLogin }) => {
 
                     <button
                         type="submit"
-                        disabled={loading || isFormInvalid}
+                        disabled={loading || showSuccess || isFormInvalid}
                         className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? (
