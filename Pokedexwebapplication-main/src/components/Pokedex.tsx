@@ -6,14 +6,14 @@ import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokedexProps {
+  userEmail: string;
   onLogout: () => void;
   onOpenCMS: () => void;
   onOpenRecommendations: () => void;
   onOpenProfile: () => void;
-  userEmail: string;
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ userEmail, onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,11 +127,20 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       <header className="bg-red-600 shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-slate-800 shadow-sm">
-                <div className="w-3 h-3 bg-slate-800 rounded-full"></div>
+            <div
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={onOpenProfile}
+              title="View Profile"
+            >
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-slate-800 shadow-sm overflow-hidden">
+                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                  <span className="text-slate-800 font-bold text-xs">{userEmail ? userEmail.substring(0, 2).toUpperCase() : 'TR'}</span>
+                </div>
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight hidden sm:block">Pokedex</h1>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-white leading-none">Pokedex</h1>
+                <p className="text-[10px] text-red-200 font-medium truncate max-w-[120px]">{userEmail}</p>
+              </div>
             </div>
 
             <div className="flex-1 max-w-xl mx-4">

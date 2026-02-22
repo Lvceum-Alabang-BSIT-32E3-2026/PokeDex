@@ -3,7 +3,7 @@ import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
-import { ProfilePage } from './components/ProfilePage';
+import { Profile } from './components/Profile';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,15 +24,14 @@ export default function App() {
       window.location.hash = '#/pokedex';
     }
 
-
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, [isAuthenticated, currentPath]);
 
   const handleLogin = (email: string) => {
-    setIsAuthenticated(true);
     setUserEmail(email);
+    setIsAuthenticated(true);
     window.location.hash = '#/pokedex'; // Navigate to pokedex after login
   };
 
@@ -60,13 +59,11 @@ export default function App() {
         break;
       case '#/collection':
         content = <div>Collection Component (Not Implemented Yet)</div>; // Placeholder for collection
-        break;
       case '#/profile':
         content = (
-          <ProfilePage
-            userEmail={userEmail}
+          <Profile
+            email={userEmail}
             onBack={() => window.location.hash = '#/pokedex'}
-            onLogout={handleLogout}
           />
         );
         break;
