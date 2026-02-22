@@ -14,6 +14,7 @@ interface PokedexProps {
 export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [capturesLoading, setCapturesLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filters
@@ -32,21 +33,76 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
 
   // Load captured state
   useEffect(() => {
-    const saved = localStorage.getItem('capturedPokemon');
-    if (saved) {
-      setCaptured(new Set(JSON.parse(saved)));
-    }
+    const fetchCaptures = async () => {
+      setCapturesLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${API_BASE}/api/captures`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCaptured(new Set(data));
+        } else {
+          // Fallback to local storage
+          const saved = localStorage.getItem('capturedPokemon');
+          if (saved) {
+            setCaptured(new Set(JSON.parse(saved)));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load captures', error);
+        const saved = localStorage.getItem('capturedPokemon');
+        if (saved) {
+          setCaptured(new Set(JSON.parse(saved)));
+        }
+      } finally {
+        setCapturesLoading(false);
+      }
+    };
+
+    fetchCaptures();
   }, []);
 
-  const toggleCapture = (id: number) => {
+  const toggleCapture = async (id: number) => {
+    const isCaptured = captured.has(id);
     const newCaptured = new Set(captured);
-    if (newCaptured.has(id)) {
+    if (isCaptured) {
       newCaptured.delete(id);
     } else {
       newCaptured.add(id);
     }
     setCaptured(newCaptured);
     localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_URL || '';
+      if (isCaptured) {
+        await fetch(`${API_BASE}/api/captures/${id}`, {
+          method: 'DELETE',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+      } else {
+        // Assume POST /api/captures takes an object with pokemonId
+        await fetch(`${API_BASE}/api/captures`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ pokemonId: id })
+        });
+      }
+    } catch (error) {
+      console.error('Failed to sync capture status', error);
+    }
   };
 
   useEffect(() => {
@@ -201,7 +257,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {loading && pokemon.length === 0 ? (
+        {(loading || capturesLoading) && pokemon.length === 0 ? (
           <div className="flex flex-col justify-center items-center h-64 space-y-4">
             <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
             <p className="text-slate-400 animate-pulse">Searching the wild...</p>
