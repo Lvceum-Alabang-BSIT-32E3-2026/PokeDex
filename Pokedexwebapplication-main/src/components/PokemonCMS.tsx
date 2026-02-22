@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokemonCMSProps {
@@ -159,19 +159,13 @@ const TypeSelect: React.FC<TypeSelectProps> = ({
 };
 
 // ─── Main CMS Component ─────────────────────────────────────────────────────
-export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
+export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
-  const [typesLoading, setTypesLoading] = useState(false);
 
-  // Deletion confirmation state
-  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
-
-  // Error / success banners
+  // Error & success state
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -181,6 +175,13 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
     types: [],
     image: ''
   });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
+  const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+
+  const isOperating = loading || isSaving || deletingId !== null;
 
   useEffect(() => {
     loadData();
@@ -208,100 +209,88 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await pokemonService.getList(0, 50);
       setPokemonList(data);
-    } catch {
-      setError('Failed to load Pokemon list.');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load Pokémon. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const loadTypes = async () => {
-    setTypesLoading(true);
     try {
-      const res = await fetch('https://pokeapi.co/api/v2/type?limit=100');
+      const res = await fetch('https://pokeapi.co/api/v2/type');
       const data = await res.json();
-      // Filter out "unknown" and "shadow" — not real battle types
-      const names: string[] = data.results
-        .map((t: { name: string }) => t.name)
-        .filter((n: string) => n !== 'unknown' && n !== 'shadow');
-      setAvailableTypes(names.length ? names : FALLBACK_TYPES);
-    } catch {
-      setAvailableTypes(FALLBACK_TYPES);
-    } finally {
-      setTypesLoading(false);
+      const types = data.results.map((t: any) => t.name);
+      setAvailableTypes(types);
+    } catch (err) {
+      console.error('Failed to load types:', err);
+      // fallback to FALLBACK_TYPES already in state
     }
   };
 
-  // Derived helpers for primary / secondary
-  const primaryType = formData.types?.[0] ?? '';
-  const secondaryType = formData.types?.[1] ?? '';
-
-  const setPrimaryType = (val: string) => {
-    const sec = secondaryType === val ? '' : secondaryType;
-    setFormData(prev => ({
-      ...prev,
-      types: val ? (sec ? [val, sec] : [val]) : (sec ? [sec] : [])
-    }));
+  const handleDeleteClick = (p: Pokemon) => {
+    setDeleteTarget(p);
   };
 
-  const setSecondaryType = (val: string) => {
-    setFormData(prev => ({
-      ...prev,
-      types: val ? [primaryType || val, ...(primaryType ? [val] : [])] : (primaryType ? [primaryType] : [])
-    }));
-  };
-
-  // ── Deletion ──
-  const handleDeleteClick = (p: Pokemon) => setDeleteTarget(p);
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
-    setSuccess(`"${deleteTarget.name}" was deleted.`);
+  const handleDeleteCancel = () => {
     setDeleteTarget(null);
   };
 
-  // ── Editing ──
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setIsSaving(true);
+    try {
+      await pokemonService.deletePokemon(deleteTarget.id);
+      setPokemonList(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setSuccess('Pokemon deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delete Pokemon.');
+    } finally {
+      setIsSaving(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const startEdit = (p: Pokemon) => {
+    if (isOperating) return;
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
-    setError(null);
   };
 
   const startAdd = () => {
+    if (isOperating) return;
     setIsAdding(true);
     setIsEditing(null);
-    setError(null);
-    setSuccess(null);
     setFormData({
       name: '',
       types: [],
       image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
-    setError(null);
   };
 
-  const resetForm = () => {
-    setIsAdding(false);
-    setIsEditing(null);
-    setFormData({ name: '', types: [], image: '' });
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    if (!formData.name?.trim()) {
-      setError('Pokemon name is required.');
-      return;
-    }
-    if (!primaryType) {
-      setError('Please select at least a primary type.');
-      return;
+    if (isAdding) {
+      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
+      const newPokemon: Pokemon = {
+        id: newId,
+        name: formData.name || 'Unknown',
+        types: formData.types || ['normal'],
+        image: formData.image || ''
+      };
+      setPokemonList([newPokemon, ...pokemonList]);
+    } else if (isEditing) {
+      setPokemonList(prev =>
+        prev.map(p => (p.id === isEditing ? ({ ...p, ...formData } as Pokemon) : p))
+      );
     }
 
     setIsSaving(true);
@@ -312,6 +301,8 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           types: formData.types || ['normal'],
           image: formData.image || '',
         });
+
+        // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
         setPokemonList(prev => [created, ...prev]);
         setSuccess(`"${created.name}" was added!`);
       } else if (isEditing !== null) {
@@ -325,7 +316,6 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
 
         setSuccess(`"${updated.name}" was updated successfully.`);
       }
-      resetForm();
     } catch (err: any) {
       setError(err.message || 'Failed to save Pokemon. Please try again.');
     } finally {
@@ -339,14 +329,19 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+            <button
+              onClick={onBack}
+              disabled={isOperating}
+              className="p-2 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold">CMS Dashboard</h1>
           </div>
           <button
             onClick={startAdd}
-            className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"
+            disabled={isOperating}
+            className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Add New Pokemon
@@ -385,12 +380,11 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* ── List View ── */}
+        {/* List View */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
               <span>Inventory ({pokemonList.length})</span>
-              {loading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {pokemonList.map(p => (
@@ -404,7 +398,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
                         {p.types.map(t => (
-                          <span key={t} className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full ${getTypeBadge(t)}`}>
+                          <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
                             {t}
                           </span>
                         ))}
@@ -431,9 +425,9 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* ── Editor Panel ── */}
+        {/* Editor Panel */}
         <AnimatePresence mode="wait">
-          {(isEditing !== null || isAdding) && (
+          {(isEditing || isAdding) && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -446,74 +440,55 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                     {isAdding ? 'Create New Entry' : 'Edit Details'}
                   </h2>
                   <button
-                    onClick={resetForm}
+                    onClick={() => { setIsEditing(null); setIsAdding(false); }}
                     className="p-1 hover:bg-slate-100 rounded-full"
                   >
                     <X className="w-5 h-5 text-slate-400" />
                   </button>
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-
                 <form onSubmit={handleSave} className="space-y-4">
-                  {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Name <span className="text-red-500">*</span>
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      required
                     />
                   </div>
 
-                  {/* ── Multi-Select Type Dropdowns ── */}
-                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      {typesLoading ? '⏳ Loading types from API…' : 'Types'}
-                    </p>
-
+                  <div className="grid grid-cols-2 gap-4">
                     <TypeSelect
                       label="Primary Type"
-                      value={primaryType}
+                      value={formData.types?.[0] || ''}
                       options={availableTypes}
-                      onChange={setPrimaryType}
                       required
-                      allowClear={false}
+                      onChange={val => {
+                        const newTypes = [...(formData.types || [])];
+                        newTypes[0] = val;
+                        if (!newTypes[1]) newTypes.length = 1;
+                        setFormData({ ...formData, types: newTypes });
+                      }}
                     />
-
                     <TypeSelect
                       label="Secondary Type"
-                      value={secondaryType}
+                      value={formData.types?.[1] || ''}
                       options={availableTypes}
-                      disabledOption={primaryType}
-                      onChange={setSecondaryType}
-                      required={false}
-                      allowClear={true}
+                      disabledOption={formData.types?.[0]}
+                      allowClear
+                      onChange={val => {
+                        const newTypes = [...(formData.types || [])];
+                        if (val) {
+                          newTypes[1] = val;
+                        } else {
+                          newTypes.length = 1;
+                        }
+                        setFormData({ ...formData, types: newTypes });
+                      }}
                     />
-
-                    {/* Live preview */}
-                    {(primaryType || secondaryType) && (
-                      <div className="flex gap-1.5 flex-wrap pt-1">
-                        <span className="text-xs text-slate-400 self-center">Preview:</span>
-                        {[primaryType, secondaryType].filter(Boolean).map(t => (
-                          <span key={t} className={`text-[11px] uppercase font-bold px-2 py-0.5 rounded-full ${getTypeBadge(t)}`}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Image URL */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
                     <div className="flex gap-2">
@@ -536,28 +511,17 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
                       type="button"
-                      onClick={resetForm}
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => { setIsEditing(null); setIsAdding(false); }}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                     >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          Save
-                        </>
-                      )}
+                      <Save className="w-4 h-4" />
+                      Save
                     </button>
                   </div>
                 </form>
@@ -576,7 +540,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-              onClick={() => setDeleteTarget(null)}
+              onClick={handleDeleteCancel}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -590,7 +554,7 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                   <div className="bg-red-100 p-2.5 rounded-full">
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Confirm Delete</h3>
+                  <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
                 </div>
                 <p className="text-slate-600 text-sm mb-6">
                   Are you sure you want to delete{' '}
@@ -599,16 +563,17 @@ export const PokemonCMS: React.FC<PokemonCMSProps> = ({ onBack }) => {
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setDeleteTarget(null)}
+                    onClick={handleDeleteCancel}
                     className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={confirmDelete}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+                    disabled={isSaving}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
-                    Delete
+                    {isSaving ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>

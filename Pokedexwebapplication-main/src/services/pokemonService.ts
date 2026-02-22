@@ -29,12 +29,15 @@ const formatApiPokemon = (p: any): Pokemon => ({
 });
 
 export const pokemonService = {
-  async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all') {
+  async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all', search: string = '') {
     if (!USE_LIVE_API) {
       // Mock Implementation
       console.log('Using Mock Data for List');
       let data = [...MOCK_POKEMON];
 
+      if (search) {
+        data = data.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+      }
       if (typeFilter !== 'all') {
         data = data.filter(p => p.types.includes(typeFilter));
       }
@@ -47,55 +50,31 @@ export const pokemonService = {
       return data;
     }
 
-    // Live API Implementation
+    // Live API Implementation — calls our local ResourceApi
     try {
-      let results = [];
-
-      if (genFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/generation/${genFilter}`);
-        const data = await res.json();
-        // Process species to get proper IDs for sorting/fetching
-        results = data.pokemon_species.map((s: any) => {
-          const id = parseInt(s.url.split('/').filter(Boolean).pop());
-          return {
-            name: s.name,
-            url: `https://pokeapi.co/api/v2/pokemon/${id}`,
-            id: id
-          };
-        }).sort((a: any, b: any) => a.id - b.id);
-
-        // Pagination for Gen view (client side slice for now)
-        // results = results.slice(offset, offset + limit);
-
-      } else if (typeFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/type/${typeFilter}`);
-        const data = await res.json();
-        results = data.pokemon.map((p: any) => p.pokemon);
-      } else {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
-        const data = await res.json();
-        results = data.results;
+      const params = new URLSearchParams();
+      if (genFilter !== 'all') params.append('generation', genFilter);
+      if (typeFilter !== 'all') params.append('type', typeFilter);
+      if (search) params.append('search', search);
+      
+      // Only send offset/limit when no filters are active (pagination mode)
+      if (genFilter === 'all' && typeFilter === 'all' && !search) {
+        params.append('offset', String(offset));
+        params.append('limit', String(limit));
       }
 
-      // If we have a huge list (Gen/Type filters), we slice it for the view here
-      // For standard pagination, 'results' is already chunked.
-      const viewResults = (genFilter !== 'all' || typeFilter !== 'all')
-        ? results.slice(0, 50)
-        : results;
+      const res = await fetch(`/api/pokemons?${params.toString()}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data: any[] = await res.json();
 
-      // Fetch details for each
-      const detailed = await Promise.all(
-        viewResults.map(async (p: any) => {
-          let url = p.url;
-          if (!url && p.pokemon) url = p.pokemon.url;
-
-          const res = await fetch(url);
-          const details = await res.json();
-          return formatApiPokemon(details);
-        })
-      );
-
-      return detailed;
+      // Map ResourceApi shape → frontend Pokemon interface
+      return data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        // ResourceApi stores a single comma-separated type string; split into array
+        types: p.type ? p.type.split(',').map((t: string) => t.trim().toLowerCase()) : [],
+        image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
+      }));
     } catch (error) {
       console.error('API Error:', error);
       return [];
@@ -155,6 +134,27 @@ export const pokemonService = {
     } catch (error) {
       console.error('Evo API Error:', error);
       return [];
+    }
+  },
+
+  async deletePokemon(id: number): Promise<void> {
+    if (!USE_LIVE_API) {
+      // Mock: just log
+      console.log('Mock: deletePokemon called for id', id);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete Pokémon.');
     }
   },
 

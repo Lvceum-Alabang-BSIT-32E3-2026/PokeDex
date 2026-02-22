@@ -1,52 +1,39 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-
+import { authService } from '../services/authService'; // Ginamit ang authService mula sa services folder
 
 interface LoginProps {
     onLogin: () => void;
+    onRegisterClick?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+        setLoading(true); // Requirement: Loading state shown during API call
 
-        // --- JWT AUTHENTICATION PLACEHOLDER ---
-        // In a real application, you would make a POST request here:
-        // 
-        // try {
-        //   const response = await fetch('https://api.example.com/auth/login', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email, password })
-        //   });
-        //   const data = await response.json();
-        //   if (data.token) {
-        //     localStorage.setItem('jwt', data.token);
-        //     onLogin();
-        //   }
-        // } catch (err) { ... }
-        // --------------------------------------
+        try {
+            // Requirement: Login calls authService.login()
+            const response = await authService.login({ email, password });
 
-        // Hardcoded logic for "Example Login"
-        setTimeout(() => {
+            // Requirement: Token stored in localStorage on success
+            localStorage.setItem('token', response.token);
+
+            // Requirement: onLogin callback triggered on success
+            onLogin();
+        } catch (err: any) {
+            // Requirement: Error message displayed on failure
+            setError(err.message || 'Invalid email or password');
+        } finally {
             setLoading(false);
-
-            if (email === 'ash@ketchum.com' && password === 'pikachu') {
-                // Success
-                onLogin();
-            } else {
-                // Error
-                setError('Invalid credentials. Hint: ash@ketchum.com / pikachu');
-            }
-        }, 1000);
+        }
     };
 
     return (
@@ -56,7 +43,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700"
             >
-                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-red-500 rounded-full mx-auto flex items-center justify-center mb-4 shadow-lg ring-4 ring-slate-700">
                         <div className="w-12 h-12 bg-white rounded-full border-4 border-slate-800 relative">
@@ -67,20 +53,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <p className="text-slate-400">Enter your credentials</p>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {error && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center text-sm"
-                        >
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center text-sm">
                             <AlertCircle className="w-4 h-4 mr-2" />
                             {error}
-                        </motion.div>
+                        </div>
                     )}
 
-                    {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
                         <div className="relative">
@@ -89,14 +69,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                placeholder="ash@ketchum.com"
                                 required
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
                             />
                         </div>
                     </div>
 
-                    {/* Password */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
                         <div className="relative">
@@ -105,57 +83,33 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
                                 required
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
                             />
                         </div>
                     </div>
 
-                    {/* Submit button */}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-red-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center disabled:opacity-50"
                     >
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            'Access Pokedex'
-                        )}
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Access Pokedex'}
                     </button>
                 </form>
 
-                {/* Auto-fill and API mode */}
-                <div className="mt-6 text-center space-y-2">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEmail('ash@ketchum.com');
-                            setPassword('pikachu');
-                        }}
-                        className="text-xs text-slate-500 hover:text-red-400 hover:underline cursor-pointer transition-colors"
-                    >
-                        Click here to auto-fill: ash@ketchum.com / pikachu
-                    </button>
-                    <div className="text-[10px] text-slate-600 font-mono bg-slate-900 p-2 rounded">
-                        API MODE: {import.meta.env.VITE_USE_LIVE_API === 'true' ? 'LIVE (PokeAPI)' : 'OFFLINE (Mock Data)'}
-                    </div>
-                </div>
-
-                {/* Registration link */}
-                <div className="mt-4 text-center">
+                <div className="mt-6 text-center pt-4 border-t border-slate-700">
                     <p className="text-sm text-slate-400">
                         Don't have an account?{' '}
-                        <a
-                            href="#/register"
-                            className="text-red-500 hover:text-red-600 hover:underline transition-colors"
+                        <button
+                            type="button"
+                            onClick={onRegisterClick}
+                            className="text-red-500 hover:text-red-400 font-semibold transition-colors hover:underline"
                         >
                             Register
-                        </a>
+                        </button>
                     </p>
                 </div>
-
             </motion.div>
         </div>
     );
