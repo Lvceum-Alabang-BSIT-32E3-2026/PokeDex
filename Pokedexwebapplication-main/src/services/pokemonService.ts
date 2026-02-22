@@ -1,4 +1,4 @@
-import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
+import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS, deleteMockPokemon } from './mockData';
 
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -9,6 +9,8 @@ export interface Pokemon {
     types: string[];
     image: string;
     url?: string;
+    height?: number; // Mula sa Task 2.3.3
+    weight?: number; // Mula sa Task 2.3.3
 }
 
 export interface EvolutionNode {
@@ -19,33 +21,14 @@ export interface EvolutionNode {
     image: string;
 }
 
-// Helper to clean up API responses
-const formatApiPokemon = (p: any): Pokemon => ({
-    name: p.name,
-    url: p.url,
-    id: p.id,
-    types: p.types.map((t: any) => t.type.name),
-    image: p.sprites.other['official-artwork'].front_default || p.sprites.front_default
-});
-
 export const pokemonService = {
     async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all', search: string = '') {
         if (!USE_LIVE_API) {
-            console.log('Using Mock Data for List');
             let data = [...MOCK_POKEMON];
-
-            if (search) {
-                data = data.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-            }
-            if (typeFilter !== 'all') {
-                data = data.filter(p => p.types.includes(typeFilter));
-            }
-
-            if (genFilter !== 'all') {
-                if (genFilter === '1') data = data.filter(p => p.id <= 151);
-            }
-
-            return data;
+            if (search) data = data.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+            if (typeFilter !== 'all') data = data.filter(p => p.types.includes(typeFilter));
+            if (genFilter === '1') data = data.filter(p => p.id <= 151);
+            return data.slice(offset, offset + limit);
         }
 
         try {
@@ -53,11 +36,8 @@ export const pokemonService = {
             if (genFilter !== 'all') params.append('generation', genFilter);
             if (typeFilter !== 'all') params.append('type', typeFilter);
             if (search) params.append('search', search);
-
-            if (genFilter === 'all' && typeFilter === 'all' && !search) {
-                params.append('offset', String(offset));
-                params.append('limit', String(limit));
-            }
+            params.append('offset', String(offset));
+            params.append('limit', String(limit));
 
             const res = await fetch(`/api/pokemons?${params.toString()}`);
             if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -86,15 +66,12 @@ export const pokemonService = {
             const errorText = await response.text();
             throw new Error(errorText || `Request failed with status ${response.status}`);
         }
-
         return response.json();
     },
 
     async getEvolutionChain(pokemonId: number): Promise<EvolutionNode[]> {
         if (!USE_LIVE_API) {
-            if (MOCK_EVOLUTION_CHAINS[pokemonId]) return MOCK_EVOLUTION_CHAINS[pokemonId];
-            if (MOCK_EVOLUTION_CHAINS[1]) return MOCK_EVOLUTION_CHAINS[1];
-            return [];
+            return MOCK_EVOLUTION_CHAINS[pokemonId] || MOCK_EVOLUTION_CHAINS[1] || [];
         }
 
         try {
@@ -133,6 +110,7 @@ export const pokemonService = {
     async deletePokemon(id: number): Promise<void> {
         if (!USE_LIVE_API) {
             console.log('Mock: deletePokemon called for id', id);
+            deleteMockPokemon(id); // Importante ito para sa persistent mock delete
             return;
         }
 
@@ -152,7 +130,6 @@ export const pokemonService = {
 
     async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
         if (!USE_LIVE_API) {
-            console.log('Mock: updatePokemon called for id', id, data);
             return { id, name: data.name || '', types: data.types || [], image: data.image || '' };
         }
 
@@ -170,21 +147,14 @@ export const pokemonService = {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || 'Failed to update Pokémon.');
         }
-
         return response.json();
     },
 
-    // Task 3.2.5 Implementation
     async getAllRaw(): Promise<Pokemon[]> {
-        if (!USE_LIVE_API) {
-            return MOCK_POKEMON;
-        }
-
+        if (!USE_LIVE_API) return MOCK_POKEMON;
         try {
             const res = await fetch(`/api/pokemons`);
-            if (!res.ok) throw new Error(`API error: ${res.status}`);
             const data: any[] = await res.json();
-
             return data.map((p) => ({
                 id: p.id,
                 name: p.name,
