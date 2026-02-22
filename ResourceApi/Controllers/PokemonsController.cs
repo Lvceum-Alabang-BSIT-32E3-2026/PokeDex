@@ -20,21 +20,33 @@ namespace ResourceApi.Controllers
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons(
-            [FromQuery] string? search = null,
+            [FromQuery] string? search = null, // Task 2.2.1
+            [FromQuery] string? type = null,   // Task 2.2.2
             [FromQuery] int offset = 0,
             [FromQuery] int limit = 20)
         {
+            // Initial query with Many-to-Many includes
             var query = _context.Pokemons
                 .Include(p => p.PokemonTypes)
                     .ThenInclude(pt => pt.Type)
                 .AsQueryable();
 
+            // Task 2.2.1: Search by Name (Case-insensitive, Partial Match)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string searchLower = search.ToLower();
                 query = query.Where(p => p.Name.ToLower().Contains(searchLower));
             }
 
+            // Task 2.2.2: Filter by Type Name (Case-insensitive)
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                string typeLower = type.ToLower();
+                // Filters Pokemon that have at least one type matching the query
+                query = query.Where(p => p.PokemonTypes.Any(pt => pt.Type.Name.ToLower() == typeLower));
+            }
+
+            // Order by PokedexNumber as per standard sorting
             query = query.OrderBy(p => p.PokedexNumber);
 
             var pokemons = await query
@@ -76,7 +88,7 @@ namespace ResourceApi.Controllers
             {
                 foreach (var typeName in createDto.Types)
                 {
-                    // FIX: Query the Master List (PokemonTypeEntities) to find the name
+                    // Search in the Master List (PokemonTypeEntities)
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
@@ -115,7 +127,7 @@ namespace ResourceApi.Controllers
                 pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
-                    // FIX: Query the Master List (PokemonTypeEntities) to find the name
+                    // Find correct Type from Master List
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
