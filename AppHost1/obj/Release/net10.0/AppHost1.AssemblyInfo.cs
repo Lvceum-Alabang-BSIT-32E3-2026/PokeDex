@@ -11,10 +11,24 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("5b9e97de-b44b-46a0-80bf-4561448978be")]
+[assembly: System.Reflection.AssemblyMetadata("dcpclipath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+    "dcp.exe")]
+[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+    "ext\\")]
+[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+    "ext\\bin\\")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\Ap" +
+    "pHost1")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "AppHost1.csproj")]
+[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
+    "ashboard.exe")]
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\FRONT\\341-task-249-add-form-validation\\Ap" +
+    "pHost1\\obj\\")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3d6843658ac86057797f289cb4f7c289d64b0826")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d7d6458069877b2fbf71cb331ab15579b7d368df")]
 [assembly: System.Reflection.AssemblyProductAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
