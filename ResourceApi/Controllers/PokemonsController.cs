@@ -85,6 +85,8 @@ namespace ResourceApi.Controllers
                 Generation = createDto.Generation,
                 IsLegendary = createDto.IsLegendary,
                 IsMythical = createDto.IsMythical,
+                Height = createDto.Height,
+                Weight = createDto.Weight,
                 PokemonTypes = new List<PokemonType>()
             };
 
@@ -125,6 +127,8 @@ namespace ResourceApi.Controllers
 
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
             if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
+            if (updateDto.Height.HasValue) pokemon.Height = updateDto.Height.Value;
+            if (updateDto.Weight.HasValue) pokemon.Weight = updateDto.Weight.Value;
 
             if (updateDto.Types != null)
             {

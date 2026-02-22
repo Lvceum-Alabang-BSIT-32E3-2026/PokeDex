@@ -10,4 +10,6 @@ public class UpdatePokemonDto
     public int? Generation { get; set; }
     public bool? IsLegendary { get; set; }
     public bool? IsMythical { get; set; }
+    public decimal? Height { get; set; }
+    public decimal? Weight { get; set; }
 }

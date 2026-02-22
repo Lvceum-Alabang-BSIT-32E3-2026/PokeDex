@@ -13,4 +13,6 @@ public class CreatePokemonDto
     public int Generation { get; set; } = 1;
     public bool IsLegendary { get; set; }
     public bool IsMythical { get; set; }
+    public decimal Height { get; set; }
+    public decimal Weight { get; set; }
 }
