@@ -3,10 +3,21 @@ using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// --- SERVICES CONFIGURATION ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Task 2.1.10: Enable CORS (Allow frontend access)
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:3000") // Frontend URL
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddDbContext<PokemonDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -14,14 +25,13 @@ builder.Services.AddDbContext<PokemonDbContext>(options =>
 
 var app = builder.Build();
 
-// --- SEEDING LOGIC START ---
+// --- SEEDING LOGIC ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<PokemonDbContext>();
-        // Siguraduhin na ang DB ay created bago mag-seed
         context.Database.EnsureCreated();
         SeedData.Initialize(context);
     }
@@ -31,8 +41,8 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Nagkaroon ng error sa pag-seed ng database.");
     }
 }
-// --- SEEDING LOGIC END ---
 
+// --- MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -40,7 +50,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Task 2.1.10: CORS must be placed after UseRouting (implicit) and before UseAuthorization
+app.UseCors();
+
+app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
