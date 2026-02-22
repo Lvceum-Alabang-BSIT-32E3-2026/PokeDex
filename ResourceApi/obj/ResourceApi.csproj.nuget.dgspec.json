@@ -1,25 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj": {}
+    "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj": {
+    "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj",
+        "projectUniqueName": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj",
         "projectName": "ResourceApi",
-        "projectPath": "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj",
-        "packagesPath": "C:\\Users\\rcluc\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\obj\\",
+        "projectPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\ResourceApi.csproj",
+        "packagesPath": "C:\\Users\\Jhirz\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\ResourceApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\IdentityServerApi\\NuGet.Config",
-          "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\NuGet.Config",
-          "C:\\Users\\rcluc\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\135-task-142-add-profile-link-to-header\\NuGet.Config",
+          "C:\\Users\\Jhirz\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -27,7 +26,6 @@
           "net9.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
