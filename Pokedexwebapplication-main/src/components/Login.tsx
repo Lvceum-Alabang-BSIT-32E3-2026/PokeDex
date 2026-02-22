@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion'; // Inayos ang import para iwas error
+import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
@@ -57,8 +57,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                         <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                            />
                         </div>
                     </div>
 
@@ -66,12 +71,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                         <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all" />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                            />
                         </div>
                     </div>
 
-                    <button type="submit" disabled={loading}
+                    <button
+                        type="submit"
+                        disabled={loading}
                         className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center disabled:opacity-50"
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Access Pokedex'}
@@ -79,14 +91,25 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                 </form>
 
                 <div className="mt-6 text-center space-y-4">
-                    <button onClick={() => { setEmail('ash@ketchum.com'); setPassword('pikachu'); }}
-                        className="text-xs text-slate-500 hover:text-red-400 transition-colors">
+                    <button
+                        type="button"
+                        onClick={() => { setEmail('ash@ketchum.com'); setPassword('pikachu'); }}
+                        className="text-xs text-slate-500 hover:text-red-400 transition-colors"
+                    >
                         Auto-fill: ash@ketchum.com / pikachu
                     </button>
-                    <div className="pt-2 border-t border-slate-700">
-                        <button onClick={onRegisterClick} className="text-sm text-red-500 hover:underline font-medium">
-                            Don't have an account? Register here
-                        </button>
+
+                    <div className="pt-4 border-t border-slate-700">
+                        <p className="text-sm text-slate-400">
+                            Don't have an account?{' '}
+                            <button
+                                type="button"
+                                onClick={onRegisterClick}
+                                className="text-red-500 hover:text-red-400 font-semibold transition-colors hover:underline"
+                            >
+                                Register
+                            </button>
+                        </p>
                     </div>
                 </div>
             </motion.div>
