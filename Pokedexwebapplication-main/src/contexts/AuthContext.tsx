@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { decodeToken, isTokenExpired } from '../utils/jwt';
 
 interface User {
     id: string;
     email: string;
-    role: string;
+    username: string;
+    displayName: string;
+    roles: string[]; 
 }
 
 interface AuthContextType {
@@ -14,19 +17,6 @@ interface AuthContextType {
     login: (token: string) => void;
     logout: () => void;
 }
-
-const isTokenExpired = (token: string): boolean => {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const decoded = JSON.parse(window.atob(base64));
-
-        const currentTime = Math.floor(Date.now() / 1000);
-        return decoded.exp < currentTime;
-    } catch (e) {
-        return true; 
-    }
-};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -39,12 +29,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (isTokenExpired(token)) {
                 logout();
             } else {
-                try {
-                    const base64Url = token.split('.')[1];
-                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                    const decodedToken = JSON.parse(window.atob(base64));
-                    setUser(decodedToken);
-                } catch (e) {
+                const userData = decodeToken(token);
+                if (userData) {
+                    setUser(userData as any);
+                } else {
                     logout();
                 }
             }
@@ -63,7 +51,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const isAuthenticated = !!token;
-    const isAdmin = user?.role === 'Admin';
+
+    const isAdmin = user?.roles?.includes('Admin') || false;
 
     return (
         <AuthContext.Provider value={{ user, token, isAuthenticated, isAdmin, login, logout }}>
