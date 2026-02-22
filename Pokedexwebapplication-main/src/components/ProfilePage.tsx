@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { userService, UserProfile } from '../services/userService';
+import { toast } from 'sonner';
 
 interface ProfilePageProps {
   userEmail: string;
@@ -9,55 +11,64 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onLogout }) => {
-  const initial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
-  const defaultDisplayName = userEmail.split('@')[0];
-
-  const [displayName, setDisplayName] = useState(defaultDisplayName);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(displayName);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [editName, setEditName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const API_URL = import.meta.env.VITE_IDENTITY_API_URL || '';
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await userService.getCurrentUser();
+        setUser(data);
+        setDisplayName(data.displayName || userEmail.split('@')[0]);
+        setEditName(data.displayName || userEmail.split('@')[0]);
+      } catch (err) {
+        toast.error('Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProfile();
+  }, [userEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-    
+
     if (!editName.trim()) {
-      setError('Display Name is required');
+      toast.error('Display Name is required');
       return;
     }
 
-    setIsLoading(true);
+    setIsSaving(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: editName.trim() }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
-
-      setDisplayName(editName.trim());
-      setSuccess('Profile updated successfully!');
+      const updated = await userService.updateProfile({ displayName: editName.trim() });
+      setDisplayName(updated.displayName);
+      toast.success('Profile updated successfully!');
       setIsEditing(false);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while updating profile');
+      toast.error(err.message || 'An error occurred while updating profile');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditName(displayName);
-    setError('');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : userEmail.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -100,11 +111,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
           {/* Info card */}
           <div className="px-8 pb-8 -mt-8">
             <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
-              {success && (
-                <div className="bg-green-50 border-b border-green-100 px-5 py-3">
-                  <p className="text-sm text-green-700 font-medium text-center">{success}</p>
-                </div>
-              )}
               <div className="divide-y divide-slate-100">
                 <div className="flex items-start gap-4 px-5 py-5">
                   <User className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
@@ -117,24 +123,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
                             type="text"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            disabled={isLoading}
+                            disabled={isSaving}
                             placeholder="Enter display name"
                             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-colors"
                           />
-                          {error && <p className="text-xs text-red-500 mt-1 font-medium">{error}</p>}
                         </div>
                         <div className="flex gap-2">
                           <button
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isSaving}
                             className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                           >
-                            <Check className="w-4 h-4" /> Save
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Save
                           </button>
                           <button
                             type="button"
                             onClick={handleCancel}
-                            disabled={isLoading}
+                            disabled={isSaving}
                             className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                           >
                             <X className="w-4 h-4" /> Cancel
@@ -147,7 +152,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
                         <button
                           onClick={() => {
                             setIsEditing(true);
-                            setSuccess('');
                           }}
                           className="text-slate-400 hover:text-red-600 p-2 -mr-2 rounded-full hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                           title="Edit Display Name"

@@ -166,7 +166,6 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
               >
                 <Settings className="w-6 h-6" />
               </button>
-
               {/* Profile Dropdown */}
               <div className="relative" ref={profileMenuRef}>
                 <button

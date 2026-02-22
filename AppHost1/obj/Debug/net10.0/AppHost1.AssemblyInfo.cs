@@ -12,23 +12,23 @@ using System;
 using System.Reflection;
 
 [assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("5b9e97de-b44b-46a0-80bf-4561448978be")]
-[assembly: System.Reflection.AssemblyMetadata("dcpclipath", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+[assembly: System.Reflection.AssemblyMetadata("dcpclipath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
     "dcp.exe")]
-[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
     "ext\\")]
-[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
+[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
     "ext\\bin\\")]
-[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\136-task-143-create-profile-edit-form\\A" +
-    "ppHost1")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\136-task-143-create-profile-edi" +
+    "t-form\\AppHost1")]
 [assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "AppHost1.csproj")]
-[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "C:\\Users\\rcluc\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
+[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", "C:\\Users\\Jhirz\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
     "ashboard.exe")]
-[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\rcluc\\OneDrive\\Desktop\\DEV-FRONT\\136-task-143-create-profile-edit-form\\A" +
-    "ppHost1\\obj\\")]
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Users\\Jhirz\\source\\repos\\ELECTIVE PF\\DEV-FRONT\\136-task-143-create-profile-edi" +
+    "t-form\\AppHost1\\obj\\")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3afc531fd5a3621abadda0c8494946d7ff361485")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51985b32c39f1917b3bd8317999ba78fc171c78c")]
 [assembly: System.Reflection.AssemblyProductAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AppHost1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -4,6 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
+import { Toaster } from 'sonner';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,7 +24,6 @@ export default function App() {
     } else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
       window.location.hash = '#/pokedex';
     }
-
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
@@ -58,9 +58,6 @@ export default function App() {
       case '#/recommendations':
         content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
         break;
-      case '#/collection':
-        content = <div>Collection Component (Not Implemented Yet)</div>; // Placeholder for collection
-        break;
       case '#/profile':
         content = (
           <ProfilePage
@@ -87,6 +84,7 @@ export default function App() {
 
   return (
     <div className="font-sans antialiased text-slate-900">
+      <Toaster position="top-center" richColors />
       {content}
     </div>
   );
