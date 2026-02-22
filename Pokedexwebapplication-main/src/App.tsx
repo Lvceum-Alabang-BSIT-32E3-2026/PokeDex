@@ -4,7 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
-import RegisterPage from './components/RegisterPage'; 
+import RegisterPage from './components/RegisterPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AppContent = () => {
@@ -39,7 +39,12 @@ const AppContent = () => {
         if (currentPath === '#/register') {
             content = <RegisterPage onBackToLogin={() => window.location.hash = '#/login'} />;
         } else {
-            content = <Login onLogin={() => { }} onRegisterClick={() => window.location.hash = '#/register'} />;
+            content = (
+                <Login
+                    onLogin={() => { window.location.hash = '#/pokedex'; }}
+                    onRegisterClick={() => { window.location.hash = '#/register'; }}
+                />
+            );
         }
     } else {
         const userEmail = user?.email || '';
