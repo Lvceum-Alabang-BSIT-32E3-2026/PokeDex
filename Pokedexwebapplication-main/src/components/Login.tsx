@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-import { authService } from '../services/authService'; // Ginamit ang authService mula sa services folder
+import { authService } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext'; // 1. Idinagdag ang import ng useAuth
 
 interface LoginProps {
     onLogin: () => void;
@@ -9,6 +10,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
+    const { login } = useAuth(); // 2. Kunin ang login function mula sa context
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -17,19 +19,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setLoading(true); // Requirement: Loading state shown during API call
+        setLoading(true);
 
         try {
-            // Requirement: Login calls authService.login()
             const response = await authService.login({ email, password });
 
-            // Requirement: Token stored in localStorage on success
-            localStorage.setItem('token', response.token);
+            // 3. Imbes na manual localStorage, gamitin ang login(token) mula sa useAuth.
+            // Ito ang mag-u-update ng 'isAuthenticated' at 'user' state sa AuthContext.
+            login(response.token);
 
-            // Requirement: onLogin callback triggered on success
             onLogin();
         } catch (err: any) {
-            // Requirement: Error message displayed on failure
             setError(err.message || 'Invalid email or password');
         } finally {
             setLoading(false);
