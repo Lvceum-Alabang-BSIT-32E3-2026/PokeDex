@@ -274,20 +274,43 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       );
     }
 
-    setIsAdding(false);
-    setIsEditing(null);
-  };
+    setIsSaving(true);
+    try {
+      if (isAdding) {
+        const created = await pokemonService.createPokemon({
+          name: formData.name.trim(),
+          types: formData.types || ['normal'],
+          image: formData.image || '',
+        });
 
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      fire: 'bg-orange-100 text-orange-800',
-      water: 'bg-blue-100 text-blue-800',
-      grass: 'bg-green-100 text-green-800',
-      electric: 'bg-yellow-100 text-yellow-800',
-      psychic: 'bg-pink-100 text-pink-800',
-      normal: 'bg-slate-200 text-slate-800',
-    };
-    return colors[type] || 'bg-slate-100 text-slate-800';
+        // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
+        setPokemonList(prev => [created, ...prev]);
+        setSuccess(`"${created.name}" was added successfully!`);
+
+        // Clear the form data immediately (Criterion: Form cleared after success)
+        setFormData({ name: '', types: [], image: '' });
+
+        // Brief delay before closing the form so the user sees the "cleared" state and success message
+        setTimeout(() => {
+          setIsAdding(false);
+          setIsEditing(null);
+        }, 1000);
+
+      } else if (isEditing) {
+        setPokemonList(prev =>
+          prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
+        );
+        setSuccess(`"${formData.name}" was updated!`);
+        setTimeout(() => {
+          setIsEditing(null);
+          setIsAdding(false);
+        }, 1000);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save Pokemon. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
