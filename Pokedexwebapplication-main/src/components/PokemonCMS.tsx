@@ -188,6 +188,25 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     loadTypes();
   }, []);
 
+  const showSuccess = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => setSuccess(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [success]);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -285,26 +304,17 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
         // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
         setPokemonList(prev => [created, ...prev]);
-        setSuccess(`"${created.name}" was added successfully!`);
+        setSuccess(`"${created.name}" was added!`);
+      } else if (isEditing !== null) {
+        // UPDATE — calls PUT /api/pokemon/{id}
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
 
-        // Clear the form data immediately (Criterion: Form cleared after success)
-        setFormData({ name: '', types: [], image: '' });
-
-        // Brief delay before closing the form so the user sees the "cleared" state and success message
-        setTimeout(() => {
-          setIsAdding(false);
-          setIsEditing(null);
-        }, 1000);
-
-      } else if (isEditing) {
+        // Update the list immediately with the response from server
         setPokemonList(prev =>
-          prev.map(p => p.id === isEditing ? { ...p, ...formData } as Pokemon : p)
+          prev.map(p => (p.id === isEditing ? updated : p))
         );
-        setSuccess(`"${formData.name}" was updated!`);
-        setTimeout(() => {
-          setIsEditing(null);
-          setIsAdding(false);
-        }, 1000);
+
+        setSuccess(`"${updated.name}" was updated successfully.`);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to save Pokemon. Please try again.');
