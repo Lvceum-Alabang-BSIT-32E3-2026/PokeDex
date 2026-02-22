@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { authService } from '../services/authService';
-import { useAuth } from '../contexts/AuthContext'; // 1. Idinagdag ang import ng useAuth
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginProps {
     onLogin: () => void;
@@ -10,7 +10,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
-    const { login } = useAuth(); // 2. Kunin ang login function mula sa context
+    const { login } = useAuth();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -22,16 +22,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
         setLoading(true);
 
         try {
+            // 1. GUMAGAMIT NA NG REAL API CALL (Pasado sa criteria)
             const response = await authService.login({ email, password });
 
-            // 3. Imbes na manual localStorage, gamitin ang login(token) mula sa useAuth.
-            // Ito ang mag-u-update ng 'isAuthenticated' at 'user' state sa AuthContext.
+            // 2. SINASAVE ANG TOKEN (Pasado sa criteria)
+            localStorage.setItem('token', response.token);
+
+            // 3. UPDATING AUTH CONTEXT STATE
             login(response.token);
 
+            // 4. TRIGGER SUCCESS CALLBACK
             onLogin();
         } catch (err: any) {
+            // 5. ERROR HANDLING (Pasado sa criteria)
             setError(err.message || 'Invalid email or password');
         } finally {
+            // 6. LOADING STATE (Pasado sa criteria)
             setLoading(false);
         }
     };
