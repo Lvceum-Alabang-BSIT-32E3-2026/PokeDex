@@ -23,11 +23,9 @@ export default function App() {
         window.addEventListener('hashchange', handleHashChange);
 
         // 3. Guards: Proteksyon para sa Private Routes
-        // Kung hindi login at wala pang auth, itulak sa login page
         if (!isAuthenticated && !['#/login', '#/register'].includes(currentPath)) {
             window.location.hash = '#/login';
         }
-        // Kung login na pero nasa auth pages, itulak sa pokedex
         else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
             window.location.hash = '#/pokedex';
         }
@@ -54,7 +52,7 @@ export default function App() {
 
     // Routing Logic
     const renderContent = () => {
-        // Public Routes (Kahit sino pwedeng makakita)
+        // Public Routes
         if (!isAuthenticated) {
             if (currentPath === '#/register') {
                 return (
@@ -72,7 +70,7 @@ export default function App() {
             return <Login onLogin={handleLogin} />;
         }
 
-        // Private Routes (Kailangan naka-login)
+        // Private Routes
         switch (currentPath) {
             case '#/cms':
                 return <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
@@ -82,10 +80,15 @@ export default function App() {
 
             case '#/collection':
                 return (
-                    <div className="p-8 text-center">
-                        <h2 className="text-2xl font-bold">My Collection</h2>
-                        <p>Coming soon!</p>
-                        <button onClick={() => window.location.hash = '#/pokedex'} className="mt-4 text-blue-600 underline">Back</button>
+                    <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center bg-white">
+                        <h2 className="text-3xl font-bold text-slate-800">My Collection</h2>
+                        <p className="text-slate-500 mt-2">Your captured Pokemon will appear here soon!</p>
+                        <button
+                            onClick={() => window.location.hash = '#/pokedex'}
+                            className="mt-6 px-6 py-2 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-colors shadow-md"
+                        >
+                            Back to Pokedex
+                        </button>
                     </div>
                 );
 
@@ -107,6 +110,7 @@ export default function App() {
                         onOpenCMS={() => window.location.hash = '#/cms'}
                         onOpenRecommendations={() => window.location.hash = '#/recommendations'}
                         onOpenProfile={() => window.location.hash = '#/profile'}
+                        onOpenCollection={() => window.location.hash = '#/collection'} // <--- Dinagdag ito para sa Task 3.2.6
                     />
                 );
         }
