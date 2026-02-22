@@ -1,14 +1,13 @@
-using System.Collections.Generic;
-
+// ResourceApi/Models/PokemonType.cs
 namespace ResourceApi.Models;
 
 public class PokemonType
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public int PokemonId { get; set; }
+    public Pokemon Pokemon { get; set; } = null!;
 
-    // DAGDAG MO ITONG LINE NA ITO:
-    public string Color { get; set; } = string.Empty;
+    public int TypeId { get; set; }
+    public PokemonTypeEntity Type { get; set; } = null!;
 
-    public ICollection<Pokemon> Pokemons { get; set; } = new List<Pokemon>();
+    public bool IsPrimary { get; set; } // Requirement #32
 }

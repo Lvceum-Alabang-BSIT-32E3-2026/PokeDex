@@ -24,6 +24,11 @@ public class Pokemon
     public int Speed { get; set; }
 
     // Navigation property
+
     // Siguraduhin na ang 'PokemonType' class ay nage-exist sa iyong project
+
+    // Make sure the class 'PokemonType' is defined elsewhere in your project!
+    // Sa loob ng Pokemon class
+
     public ICollection<PokemonType> PokemonTypes { get; set; } = new List<PokemonType>();
 }
