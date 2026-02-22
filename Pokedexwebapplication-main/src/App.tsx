@@ -6,88 +6,115 @@ import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [currentPath, setCurrentPath] = useState(window.location.hash);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        // Para hindi bumabalik sa Login page kapag nag-refresh (Persistence)
+        return localStorage.getItem('isAuth') === 'true';
+    });
+    const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
+    const [currentPath, setCurrentPath] = useState(window.location.hash || '#/login');
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      setCurrentPath(window.location.hash);
+    useEffect(() => {
+        // 1. Function para i-sync ang state sa hash
+        const handleHashChange = () => {
+            setCurrentPath(window.location.hash);
+        };
+
+        // 2. Makinig sa browser forward/back buttons at URL changes
+        window.addEventListener('hashchange', handleHashChange);
+
+        // 3. Guards: Proteksyon para sa Private Routes
+        // Kung hindi login at wala pang auth, itulak sa login page
+        if (!isAuthenticated && !['#/login', '#/register'].includes(currentPath)) {
+            window.location.hash = '#/login';
+        }
+        // Kung login na pero nasa auth pages, itulak sa pokedex
+        else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
+            window.location.hash = '#/pokedex';
+        }
+
+        return () => {
+            window.removeEventListener('hashchange', handleHashChange);
+        };
+    }, [isAuthenticated, currentPath]);
+
+    const handleLogin = (email: string) => {
+        setIsAuthenticated(true);
+        setUserEmail(email);
+        localStorage.setItem('isAuth', 'true');
+        localStorage.setItem('userEmail', email);
+        window.location.hash = '#/pokedex';
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-
-    // Initial check for authentication and redirection
-    if (!isAuthenticated && currentPath !== '#/login' && currentPath !== '#/register') {
-      window.location.hash = '#/login';
-    } else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
-      window.location.hash = '#/pokedex';
-    }
-
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        setUserEmail('');
+        localStorage.clear(); // Linisin ang auth data
+        window.location.hash = '#/login';
     };
-  }, [isAuthenticated, currentPath]);
 
-  const handleLogin = (email: string) => {
-    setIsAuthenticated(true);
-    setUserEmail(email);
-    window.location.hash = '#/pokedex'; // Navigate to pokedex after login
-  };
+    // Routing Logic
+    const renderContent = () => {
+        // Public Routes (Kahit sino pwedeng makakita)
+        if (!isAuthenticated) {
+            if (currentPath === '#/register') {
+                return (
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-slate-200">
+                            <h2 className="text-2xl font-bold mb-4">Create Trainer Account</h2>
+                            <p className="text-slate-500 mb-6">Registration is currently under maintenance.</p>
+                            <button onClick={() => window.location.hash = '#/login'} className="text-red-600 font-bold underline">
+                                Back to Login
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            return <Login onLogin={handleLogin} />;
+        }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserEmail('');
-    window.location.hash = '#/login'; // Navigate to login after logout
-  };
+        // Private Routes (Kailangan naka-login)
+        switch (currentPath) {
+            case '#/cms':
+                return <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
 
-  let content;
+            case '#/recommendations':
+                return <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
 
-  if (!isAuthenticated) {
-    if (currentPath === '#/register') {
-      content = <div>Register Component (Not Implemented Yet)</div>; // Placeholder for register
-    } else {
-      content = <Login onLogin={handleLogin} />;
-    }
-  } else {
-    switch (currentPath) {
-      case '#/cms':
-        content = <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
-        break;
-      case '#/recommendations':
-        content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
-        break;
-      case '#/collection':
-        content = <div>Collection Component (Not Implemented Yet)</div>; // Placeholder for collection
-        break;
-      case '#/profile':
-        content = (
-          <ProfilePage
-            userEmail={userEmail}
-            onBack={() => window.location.hash = '#/pokedex'}
-            onLogout={handleLogout}
-          />
-        );
-        break;
-      case '#/pokedex':
-      default: // Default to pokedex if hash is not recognized or empty
-        content = (
-          <Pokedex
-            onLogout={handleLogout}
-            userEmail={userEmail}
-            onOpenCMS={() => window.location.hash = '#/cms'}
-            onOpenRecommendations={() => window.location.hash = '#/recommendations'}
-            onOpenProfile={() => window.location.hash = '#/profile'}
-          />
-        );
-        break;
-    }
-  }
+            case '#/collection':
+                return (
+                    <div className="p-8 text-center">
+                        <h2 className="text-2xl font-bold">My Collection</h2>
+                        <p>Coming soon!</p>
+                        <button onClick={() => window.location.hash = '#/pokedex'} className="mt-4 text-blue-600 underline">Back</button>
+                    </div>
+                );
 
-  return (
-    <div className="font-sans antialiased text-slate-900">
-      {content}
-    </div>
-  );
+            case '#/profile':
+                return (
+                    <ProfilePage
+                        userEmail={userEmail}
+                        onBack={() => window.location.hash = '#/pokedex'}
+                        onLogout={handleLogout}
+                    />
+                );
+
+            case '#/pokedex':
+            default:
+                return (
+                    <Pokedex
+                        onLogout={handleLogout}
+                        userEmail={userEmail}
+                        onOpenCMS={() => window.location.hash = '#/cms'}
+                        onOpenRecommendations={() => window.location.hash = '#/recommendations'}
+                        onOpenProfile={() => window.location.hash = '#/profile'}
+                    />
+                );
+        }
+    };
+
+    return (
+        <div className="font-sans antialiased text-slate-900 bg-slate-50 min-h-screen">
+            {renderContent()}
+        </div>
+    );
 }
