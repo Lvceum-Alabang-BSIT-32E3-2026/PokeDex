@@ -10,12 +10,21 @@ public class PokemonDbContext : DbContext
 
     public DbSet<Pokemon> Pokemons { get; set; } = null!;
 
-    // Idagdag ito para ma-access ng Controller ang PokemonTypes table
-    public DbSet<PokemonType> PokemonTypes { get; set; } = null!;
+    // In-update natin ito mula PokemonType -> PokemonTypeEntity 
+    // para mag-match sa hininging Technical Requirements sa Task 2.1.3
+    public DbSet<PokemonTypeEntity> PokemonTypes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Task 2.1.3: Seeding initial data para sa Pokemon Types
+        // Maganda itong gawin para pagka-migration mo, may laman na agad ang table.
+        modelBuilder.Entity<PokemonTypeEntity>().HasData(
+            new PokemonTypeEntity { Id = 1, Name = "Fire", Color = "#F08030" },
+            new PokemonTypeEntity { Id = 2, Name = "Water", Color = "#6890F0" },
+            new PokemonTypeEntity { Id = 3, Name = "Grass", Color = "#78C850" }
+        );
 
         // Task 2.3.3: Seed data for Pokemon
         modelBuilder.Entity<Pokemon>().HasData(
@@ -42,7 +51,5 @@ public class PokemonDbContext : DbContext
                 Weight = 8.5m
             }
         );
-
-    
     }
 }

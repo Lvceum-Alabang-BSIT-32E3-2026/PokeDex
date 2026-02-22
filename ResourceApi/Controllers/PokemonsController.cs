@@ -19,18 +19,13 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons
-        // Task 2.1.6: Implement Get Pokemon List Endpoint #35
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons([FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            // Technical Requirements:
-            // 1. Order by PokedexNumber (Id)
-            // 2. Include types in response
-            // 3. Pagination with offset (default 0) and limit (default 20)
-
+            // FIX: Pinalitan ang .PokemonTypes ng .Types
             var query = _context.Pokemons
-                .Include(p => p.PokemonTypes)
-                .OrderBy(p => p.Id); // PokedexNumber ordering
+                .Include(p => p.Types)
+                .OrderBy(p => p.PokedexNumber); // Mas accurate kung PokedexNumber ang gagamitin
 
             var pokemons = await query
                 .Skip(offset)
@@ -41,12 +36,12 @@ namespace ResourceApi.Controllers
         }
 
         // GET: /api/pokemons/{id}
-        // Task 2.1.7: Implement Get Pokemon By ID Endpoint #36
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
+            // FIX: Pinalitan ang .PokemonTypes ng .Types
             var pokemon = await _context.Pokemons
-                .Include(p => p.PokemonTypes)
+                .Include(p => p.Types)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null)
@@ -83,7 +78,8 @@ namespace ResourceApi.Controllers
 
                     if (existingType != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        // FIX: Pinalitan ang .PokemonTypes ng .Types
+                        pokemon.Types.Add(existingType);
                     }
                 }
             }
@@ -99,8 +95,9 @@ namespace ResourceApi.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
         {
+            // FIX: Pinalitan ang .PokemonTypes ng .Types
             var pokemon = await _context.Pokemons
-                .Include(p => p.PokemonTypes)
+                .Include(p => p.Types)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null) return NotFound();
@@ -113,14 +110,15 @@ namespace ResourceApi.Controllers
 
             if (updateDto.Types != null)
             {
-                pokemon.PokemonTypes.Clear();
+                // FIX: Pinalitan ang .PokemonTypes ng .Types
+                pokemon.Types.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
                     var existingType = await _context.PokemonTypes
                         .FirstOrDefaultAsync(t => t.Name == typeName);
                     if (existingType != null)
                     {
-                        pokemon.PokemonTypes.Add(existingType);
+                        pokemon.Types.Add(existingType);
                     }
                 }
             }
