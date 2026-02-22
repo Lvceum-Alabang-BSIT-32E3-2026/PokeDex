@@ -1,4 +1,4 @@
-import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
+import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS, deleteMockPokemon } from './mockData';
 
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -139,10 +139,12 @@ export const pokemonService = {
 
   async deletePokemon(id: number): Promise<void> {
     if (!USE_LIVE_API) {
-      // Mock: just log
+      // Mock: update the mock data array persistently for the session
       console.log('Mock: deletePokemon called for id', id);
+      deleteMockPokemon(id);
       return;
     }
+
 
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {

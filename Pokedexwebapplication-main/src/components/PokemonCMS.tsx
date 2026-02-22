@@ -188,6 +188,25 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     loadTypes();
   }, []);
 
+  const showSuccess = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  useEffect(() => {
+    if (error) {
+      const t = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => setSuccess(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [success]);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -274,20 +293,34 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       );
     }
 
-    setIsAdding(false);
-    setIsEditing(null);
-  };
+    setIsSaving(true);
+    try {
+      if (isAdding) {
+        const created = await pokemonService.createPokemon({
+          name: formData.name.trim(),
+          types: formData.types || ['normal'],
+          image: formData.image || '',
+        });
 
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      fire: 'bg-orange-100 text-orange-800',
-      water: 'bg-blue-100 text-blue-800',
-      grass: 'bg-green-100 text-green-800',
-      electric: 'bg-yellow-100 text-yellow-800',
-      psychic: 'bg-pink-100 text-pink-800',
-      normal: 'bg-slate-200 text-slate-800',
-    };
-    return colors[type] || 'bg-slate-100 text-slate-800';
+        // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
+        setPokemonList(prev => [created, ...prev]);
+        setSuccess(`"${created.name}" was added!`);
+      } else if (isEditing !== null) {
+        // UPDATE — calls PUT /api/pokemon/{id}
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
+
+        // Update the list immediately with the response from server
+        setPokemonList(prev =>
+          prev.map(p => (p.id === isEditing ? updated : p))
+        );
+
+        setSuccess(`"${updated.name}" was updated successfully.`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save Pokemon. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -507,7 +540,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-              onClick={() => setDeleteTarget(null)}
+              onClick={handleDeleteCancel}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -521,7 +554,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   <div className="bg-red-100 p-2.5 rounded-full">
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Confirm Delete</h3>
+                  <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
                 </div>
                 <p className="text-slate-600 text-sm mb-6">
                   Are you sure you want to delete{' '}
@@ -530,7 +563,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setDeleteTarget(null)}
+                    onClick={handleDeleteCancel}
                     className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
                   >
                     Cancel
