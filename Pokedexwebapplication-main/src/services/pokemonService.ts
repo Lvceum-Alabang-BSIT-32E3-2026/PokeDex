@@ -1,4 +1,4 @@
-import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
+import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS, deleteMockPokemon } from './mockData';
 
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -19,15 +19,6 @@ export interface EvolutionNode {
     image: string;
 }
 
-// Helper to clean up API responses
-const formatApiPokemon = (p: any): Pokemon => ({
-    name: p.name,
-    url: p.url,
-    id: p.id,
-    types: p.types.map((t: any) => t.type.name),
-    image: p.sprites.other['official-artwork'].front_default || p.sprites.front_default
-});
-
 export const pokemonService = {
     async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all', search: string = '') {
         if (!USE_LIVE_API) {
@@ -43,9 +34,10 @@ export const pokemonService = {
 
             if (genFilter !== 'all') {
                 if (genFilter === '1') data = data.filter(p => p.id <= 151);
+                // Maaari pang dagdagan dito ang ibang logic para sa ibang generations
             }
 
-            return data;
+            return data.slice(offset, offset + limit);
         }
 
         try {
@@ -59,7 +51,7 @@ export const pokemonService = {
                 params.append('limit', String(limit));
             }
 
-            const res = await fetch(`/api/pokemons?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/api/pokemons?${params.toString()}`);
             if (!res.ok) throw new Error(`API error: ${res.status}`);
             const data: any[] = await res.json();
 
@@ -76,9 +68,13 @@ export const pokemonService = {
     },
 
     async createPokemon(data: { name: string; types: string[]; image: string }): Promise<Pokemon> {
-        const response = await fetch('/api/pokemon', {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE}/api/pokemon`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify(data),
         });
 
@@ -133,6 +129,7 @@ export const pokemonService = {
     async deletePokemon(id: number): Promise<void> {
         if (!USE_LIVE_API) {
             console.log('Mock: deletePokemon called for id', id);
+            deleteMockPokemon(id);
             return;
         }
 
@@ -174,14 +171,14 @@ export const pokemonService = {
         return response.json();
     },
 
-    // Task 3.2.5 Implementation
+    // Task 3.2.5 Implementation: Helper para makuha lahat ng pokemon (walang pagination)
     async getAllRaw(): Promise<Pokemon[]> {
         if (!USE_LIVE_API) {
             return MOCK_POKEMON;
         }
 
         try {
-            const res = await fetch(`/api/pokemons`);
+            const res = await fetch(`${API_BASE}/api/pokemons`);
             if (!res.ok) throw new Error(`API error: ${res.status}`);
             const data: any[] = await res.json();
 

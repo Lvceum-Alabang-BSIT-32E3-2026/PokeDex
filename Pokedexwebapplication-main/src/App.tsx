@@ -4,32 +4,31 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
-import { CollectionPage } from './components/CollectionPage'; // 1. Added Import
+import { CollectionPage } from './components/CollectionPage'; 
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-export default function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        // Para hindi bumabalik sa Login page kapag nag-refresh (Persistence)
-        return localStorage.getItem('isAuth') === 'true';
-    });
-    const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
+const AppContent = () => {
+    // Galing sa AuthContext (dev-frontend branch)
+    const { isAuthenticated, user, logout } = useAuth();
     const [currentPath, setCurrentPath] = useState(window.location.hash || '#/login');
 
-    // State para sa captured Pokemon (Dito i-store ang mga nahuli mo para sa Task 3.2.5)
+    // State para sa captured Pokemon (Task 2.3.4 / 3.2.5)
+    // Dito naka-store ang IDs ng mga Pokemon na "nahuli" ng user
     const [capturedIds, setCapturedIds] = useState<Set<number>>(new Set());
 
     useEffect(() => {
-        // 1. Function para i-sync ang state sa hash
         const handleHashChange = () => {
             setCurrentPath(window.location.hash);
         };
 
-        // 2. Makinig sa browser forward/back buttons at URL changes
         window.addEventListener('hashchange', handleHashChange);
 
-        // 3. Guards: Proteksyon para sa Private Routes
-        if (!isAuthenticated && !['#/login', '#/register'].includes(currentPath)) {
+        // Navigation Guards
+        // 1. Kung hindi logged in, laging itapon sa login (maliban kung nasa register)
+        if (!isAuthenticated && currentPath !== '#/login' && currentPath !== '#/register') {
             window.location.hash = '#/login';
-        }
+        } 
+        // 2. Kung logged in na, bawal na bumalik sa login/register
         else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
             window.location.hash = '#/pokedex';
         }
@@ -39,70 +38,68 @@ export default function App() {
         };
     }, [isAuthenticated, currentPath]);
 
-    const handleLogin = (email: string) => {
-        setIsAuthenticated(true);
-        setUserEmail(email);
-        localStorage.setItem('isAuth', 'true');
-        localStorage.setItem('userEmail', email);
-        window.location.hash = '#/pokedex';
-    };
-
     const handleLogout = () => {
-        setIsAuthenticated(false);
-        setUserEmail('');
-        localStorage.clear(); // Linisin ang auth data
+        logout(); 
         window.location.hash = '#/login';
     };
 
-    // Routing Logic
-    const renderContent = () => {
-        // Public Routes
-        if (!isAuthenticated) {
-            if (currentPath === '#/register') {
-                return (
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-slate-200">
-                            <h2 className="text-2xl font-bold mb-4">Create Trainer Account</h2>
-                            <p className="text-slate-500 mb-6">Registration is currently under maintenance.</p>
-                            <button onClick={() => window.location.hash = '#/login'} className="text-red-600 font-bold underline">
-                                Back to Login
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-            return <Login onLogin={handleLogin} />;
-        }
+    let content;
 
-        // Private Routes
+    // --- Routing & Rendering Logic ---
+    if (!isAuthenticated) {
+        if (currentPath === '#/register') {
+            content = (
+                <div className="flex items-center justify-center min-h-screen bg-slate-50">
+                    <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-slate-200">
+                        <h2 className="text-2xl font-bold mb-4">Create Trainer Account</h2>
+                        <p className="text-slate-500 mb-6">Registration is currently under maintenance.</p>
+                        <button 
+                            onClick={() => window.location.hash = '#/login'} 
+                            className="text-red-600 font-bold underline hover:text-red-700 transition-colors"
+                        >
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            );
+        } else {
+            content = <Login onLogin={() => {}} />;
+        }
+    } else {
+        const userEmail = user?.email || '';
+
         switch (currentPath) {
             case '#/cms':
-                return <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
-
+                content = <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
+                break;
+            
             case '#/recommendations':
-                return <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
-
+                content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
+                break;
+            
             case '#/collection':
-                // 2. Replaced the placeholder with the actual CollectionPage component
-                return (
+                // I-render ang tunay na CollectionPage component para sa Task 2.3.4
+                content = (
                     <CollectionPage
                         onBack={() => window.location.hash = '#/pokedex'}
                         capturedIds={capturedIds}
                     />
                 );
-
+                break;
+            
             case '#/profile':
-                return (
+                content = (
                     <ProfilePage
                         userEmail={userEmail}
                         onBack={() => window.location.hash = '#/pokedex'}
                         onLogout={handleLogout}
                     />
                 );
-
+                break;
+            
             case '#/pokedex':
             default:
-                return (
+                content = (
                     <Pokedex
                         onLogout={handleLogout}
                         userEmail={userEmail}
@@ -112,12 +109,21 @@ export default function App() {
                         onOpenCollection={() => window.location.hash = '#/collection'}
                     />
                 );
+                break;
         }
-    };
+    }
 
     return (
         <div className="font-sans antialiased text-slate-900 bg-slate-50 min-h-screen">
-            {renderContent()}
+            {content}
         </div>
+    );
+};
+
+export default function App() {
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
     );
 }
