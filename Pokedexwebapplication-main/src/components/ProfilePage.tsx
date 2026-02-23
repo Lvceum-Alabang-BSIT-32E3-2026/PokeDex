@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authService';
 import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X, Key } from 'lucide-react';
 
@@ -86,16 +87,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
 
     setIsChangingPassword(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/me/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Wrong current password or failed to change');
-      }
+      await authService.changePassword({ currentPassword, newPassword });
 
       setPasswordSuccess('Password changed successfully!');
       setCurrentPassword('');
