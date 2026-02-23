@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
+import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, User, Mail, Edit2, Check, X, Key } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -9,6 +10,7 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onLogout }) => {
+  const { updateUser } = useAuth();
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
   const defaultDisplayName = userEmail.split('@')[0];
 
@@ -51,6 +53,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onBack, onL
       }
 
       setDisplayName(editName.trim());
+      updateUser({ displayName: editName.trim() });
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {

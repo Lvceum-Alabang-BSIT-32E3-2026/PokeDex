@@ -59,7 +59,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                     <p className="text-slate-400">Enter your credentials</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
                     {error && (
                         <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center text-sm">
                             <AlertCircle className="w-4 h-4 mr-2" />
@@ -76,6 +76,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                autoComplete="email"
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
                             />
                         </div>
@@ -90,6 +91,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                autoComplete="new-password"
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 text-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
                             />
                         </div>
@@ -102,6 +104,25 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Access Pokedex'}
                     </button>
+
+                    <div className="pt-4 flex flex-col items-center space-y-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail('ash@ketchum.com');
+                                setPassword('pikachu');
+                            }}
+                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                        >
+                            Click here to auto-fill: ash@ketchum.com / pikachu
+                        </button>
+
+                        <div className="bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50">
+                            <p className="text-[10px] font-mono text-slate-500 tracking-wider">
+                                API MODE: <span className="text-blue-400">OFFLINE (Mock Data)</span>
+                            </p>
+                        </div>
+                    </div>
                 </form>
 
                 <div className="mt-6 text-center pt-4 border-t border-slate-700">

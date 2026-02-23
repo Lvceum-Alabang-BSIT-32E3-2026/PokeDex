@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
@@ -343,7 +343,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     try {
       if (isAdding) {
         const created = await pokemonService.createPokemon({
-          name: formData.name.trim(),
+          name: formData.name?.trim() || '',
           types: formData.types || ['normal'],
           image: formData.image || '',
         });
@@ -570,11 +570,10 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className={`w-full border rounded-lg px-3 py-2 outline-none transition-all ${
-                        formErrors.name 
-                          ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-red-50' 
-                          : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      }`}
+                      className={`w-full border rounded-lg px-3 py-2 outline-none transition-all ${formErrors.name
+                        ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-red-50'
+                        : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                       placeholder="e.g. Pikachu"
                     />
                     {formErrors.name && (
@@ -647,7 +646,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     >
                       Cancel
                     </button>
-                     <button
+                    <button
                       type="submit"
                       disabled={isFormInvalid || isSaving}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
