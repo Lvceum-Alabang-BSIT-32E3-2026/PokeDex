@@ -6,7 +6,7 @@ interface User {
     email: string;
     username: string;
     displayName: string;
-    roles: string[]; 
+    roles: string[];
 }
 
 interface AuthContextType {
@@ -16,6 +16,7 @@ interface AuthContextType {
     isAdmin: boolean;
     login: (token: string) => void;
     logout: () => void;
+    updateUser: (updates: Partial<User>) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -50,12 +51,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
     };
 
+    const updateUser = (updates: Partial<User>) => {
+        setUser(prev => prev ? { ...prev, ...updates } : null);
+    };
+
     const isAuthenticated = !!token;
 
     const isAdmin = user?.roles?.includes('Admin') || false;
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, isAdmin, login, logout }}>
+        <AuthContext.Provider value={{ user, token, isAuthenticated, isAdmin, login, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

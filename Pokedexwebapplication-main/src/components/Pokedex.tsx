@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, ChevronDown, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, User, ChevronDown, AlertCircle } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokedexProps {
   onLogout: () => void;
-  onOpenCMS: () => void;
-  onOpenRecommendations: () => void;
   onOpenProfile: () => void;
-  userEmail: string;
+  user: any; // Using any for simplicity as User type is defined in AuthContext
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +47,9 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Derived user display
-  const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
-  const userDisplayName = userEmail ? userEmail.split('@')[0] : 'Trainer';
+  const userInitial = user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
+  const userDisplayName = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Trainer';
+  const userEmail = user?.email || 'trainer@pokedex.com';
 
   // Load captured state
   useEffect(() => {
@@ -163,37 +162,19 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="hidden md:flex items-center gap-2 mr-4 bg-red-700 px-3 py-1 rounded-full text-red-100 text-sm font-bold">
-                <span>Captured:</span>
-                <span className="bg-white text-red-600 px-2 rounded-full">{captured.size}</span>
-              </div>
-              <button
-                onClick={onOpenRecommendations}
-                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
-                title="Recommendations"
-              >
-                <Lightbulb className="w-6 h-6" />
-              </button>
-              <button
-                onClick={onOpenCMS}
-                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
-                title="Manage Pokemon (CMS)"
-              >
-                <Settings className="w-6 h-6" />
-              </button>
 
               {/* Profile Dropdown */}
               <div className="relative" ref={profileMenuRef}>
                 <button
                   onClick={() => setIsProfileMenuOpen(prev => !prev)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-red-700 transition-colors text-white"
+                  className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all text-white ${isProfileMenuOpen ? 'bg-red-700 ring-2 ring-white/20' : 'hover:bg-red-700'}`}
                   title="Profile"
                 >
-                  <div className="w-7 h-7 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black shrink-0 shadow-sm border border-red-100">
                     {userInitial}
                   </div>
-                  <span className="hidden sm:block text-sm font-medium max-w-[96px] truncate">{userDisplayName}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                  <span className="hidden sm:block text-sm font-bold max-w-[96px] truncate tracking-tight">{userDisplayName}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
@@ -222,20 +203,20 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
                       <div className="py-1">
                         <button
                           onClick={() => { setIsProfileMenuOpen(false); onOpenProfile(); }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
                         >
-                          <User className="w-4 h-4 text-slate-400" />
-                          My Profile
+                          <User className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                          <span className="font-medium">My Profile</span>
                         </button>
                       </div>
 
                       <div className="border-t border-slate-100 py-1">
                         <button
                           onClick={() => { setIsProfileMenuOpen(false); onLogout(); }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all group"
                         >
-                          <LogOut className="w-4 h-4" />
-                          Logout
+                          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="font-bold">Logout</span>
                         </button>
                       </div>
                     </motion.div>

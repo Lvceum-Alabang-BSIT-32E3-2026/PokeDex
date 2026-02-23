@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Login } from './components/Login';
 import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
@@ -60,7 +60,7 @@ const AppContent = () => {
                 break;
             case '#/pokedex':
             default:
-                content = <Pokedex onLogout={handleLogout} userEmail={userEmail} onOpenCMS={() => window.location.hash = '#/cms'} onOpenRecommendations={() => window.location.hash = '#/recommendations'} onOpenProfile={() => window.location.hash = '#/profile'} />;
+                content = <Pokedex onLogout={handleLogout} user={user} onOpenProfile={() => window.location.hash = '#/profile'} />;
                 break;
         }
     }
