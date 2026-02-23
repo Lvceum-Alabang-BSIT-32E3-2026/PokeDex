@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, User, ChevronDown, AlertCircle } from 'lucide-react';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, User, ChevronDown, AlertCircle, Lightbulb, Settings } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
@@ -8,25 +8,18 @@ import { pokemonService, Pokemon } from '../services/pokemonService';
 interface PokedexProps {
   onLogout: () => void;
   onOpenProfile: () => void;
-  user: any; // Using any for simplicity as User type is defined in AuthContext
+  onOpenCMS?: () => void;
+  onOpenRecommendations?: () => void;
+  user: any;
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpenCMS, onOpenRecommendations, user }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setOffset(0);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   // Filters
   const [selectedGen, setSelectedGen] = useState<string>('all');
@@ -50,6 +43,15 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user 
   const userInitial = user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
   const userDisplayName = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Trainer';
   const userEmail = user?.email || 'trainer@pokedex.com';
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setOffset(0);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Load captured state
   useEffect(() => {
@@ -103,8 +105,6 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user 
 
     fetchData();
   }, [offset, selectedGen, selectedType, retryCount, debouncedSearch]);
-
-  // Removed client-side filtering, using API search instead
 
   const generations = [
     { id: '1', name: 'Gen I (Kanto)' },
@@ -162,6 +162,30 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user 
             </div>
 
             <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 mr-2 bg-red-700 px-3 py-1 rounded-full text-red-100 text-xs font-bold ring-1 ring-white/10">
+                <span>Captured:</span>
+                <span className="bg-white text-red-600 px-1.5 py-0.5 rounded-full min-w-[20px] flex items-center justify-center">{captured.size}</span>
+              </div>
+
+              {onOpenRecommendations && (
+                <button
+                  onClick={onOpenRecommendations}
+                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
+                  title="Recommendations"
+                >
+                  <Lightbulb className="w-5 h-5" />
+                </button>
+              )}
+
+              {onOpenCMS && (
+                <button
+                  onClick={onOpenCMS}
+                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
+                  title="Manage Pokemon (CMS)"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              )}
 
               {/* Profile Dropdown */}
               <div className="relative" ref={profileMenuRef}>
@@ -208,6 +232,26 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user 
                           <User className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
                           <span className="font-medium">My Profile</span>
                         </button>
+
+                        {onOpenRecommendations && (
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); onOpenRecommendations(); }}
+                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
+                          >
+                            <Lightbulb className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                            <span className="font-medium">Recommendations</span>
+                          </button>
+                        )}
+
+                        {onOpenCMS && (
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); onOpenCMS(); }}
+                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
+                          >
+                            <Settings className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                            <span className="font-medium">Manage Pokemon</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="border-t border-slate-100 py-1">
@@ -273,7 +317,6 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, user 
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
         {error ? (
           <div className="flex flex-col justify-center items-center h-64 space-y-4">
             <AlertCircle className="w-12 h-12 text-red-500" />
