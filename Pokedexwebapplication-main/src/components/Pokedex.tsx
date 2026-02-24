@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User, AlertCircle } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService } from '../services/pokemonService';
@@ -17,6 +17,8 @@ interface PokedexProps {
 export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filters
@@ -59,6 +61,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const genNum = selectedGen !== 'all' ? parseInt(selectedGen) : undefined;
         const typeStr = selectedType !== 'all' ? selectedType : undefined;
@@ -66,8 +69,10 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
 
         const response = await pokemonService.getList(offset, limit, genNum, typeStr, searchStr);
         setPokemon(response.items);
-      } catch (error) {
-        console.error('Error fetching pokemon:', error);
+      } catch (err: any) {
+        console.error('Error fetching pokemon:', err);
+        setError(err.message || 'Failed to load Pokemon list. Please try again.');
+        setPokemon([]);
       } finally {
         setLoading(false);
       }
@@ -78,7 +83,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
     }, 300);
 
     return () => clearTimeout(debounceId);
-  }, [offset, selectedGen, selectedType, searchTerm]);
+  }, [offset, selectedGen, selectedType, searchTerm, retryCount]);
 
   const generations = [
     { id: '1', name: 'Gen I (Kanto)' },
@@ -220,7 +225,19 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {loading && pokemon.length === 0 ? (
+        {error ? (
+          <div className="flex flex-col justify-center items-center h-64 space-y-4">
+            <AlertCircle className="w-16 h-16 text-red-500" />
+            <h2 className="text-xl font-bold text-slate-800">Oops! Something went wrong.</h2>
+            <p className="text-slate-600 max-w-md text-center">{error}</p>
+            <button
+              onClick={() => setRetryCount(c => c + 1)}
+              className="mt-4 px-6 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading && pokemon.length === 0 ? (
           <div className="flex flex-col justify-center items-center h-64 space-y-4">
             <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
             <p className="text-slate-400 animate-pulse">Searching the wild...</p>
