@@ -1,5 +1,9 @@
 // Comprehensive mock data for offline mode
 
+export const deleteMockPokemon = (id: number) => {
+  MOCK_POKEMON = MOCK_POKEMON.filter(p => p.id !== id);
+};
+
 export interface PokemonMock {
   id: number;
   name: string;
@@ -9,7 +13,7 @@ export interface PokemonMock {
   description?: string;
 }
 
-export const MOCK_POKEMON: PokemonMock[] = [
+export let MOCK_POKEMON: PokemonMock[] = [
   {
     id: 1,
     name: "bulbasaur",
