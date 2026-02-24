@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+<<<<<<< task/232-pokemon-stats
 import { motion, AnimatePresence } from 'motion/react';
 import {
     Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings,
     Lightbulb, User, ChevronDown, AlertCircle, Library
 } from 'lucide-react';
+=======
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, User, ChevronDown, AlertCircle, Lightbulb, Settings } from 'lucide-react';
+>>>>>>> dev-frontend
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokedexProps {
+<<<<<<< task/232-pokemon-stats
     onLogout: () => void;
     onOpenCMS: () => void;
     onOpenRecommendations: () => void;
@@ -89,6 +95,97 @@ export const Pokedex: React.FC<PokedexProps> = ({
         const newCaptured = new Set(captured);
         if (newCaptured.has(id)) {
             newCaptured.delete(id);
+=======
+  onLogout: () => void;
+  onOpenProfile: () => void;
+  onOpenCMS?: () => void;
+  onOpenRecommendations?: () => void;
+  user: any;
+}
+
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpenCMS, onOpenRecommendations, user }) => {
+  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Filters
+  const [selectedGen, setSelectedGen] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+
+  // Pagination for "All" mode
+  const [offset, setOffset] = useState(0);
+  const limit = 24;
+
+  // Capture State
+  const [captured, setCaptured] = useState<Set<number>>(new Set());
+
+  // Modal
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
+
+  // Profile dropdown
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Derived user display
+  const userInitial = user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
+  const userDisplayName = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Trainer';
+  const userEmail = user?.email || 'trainer@pokedex.com';
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setOffset(0);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load captured state
+  useEffect(() => {
+    const saved = localStorage.getItem('capturedPokemon');
+    if (saved) {
+      setCaptured(new Set(JSON.parse(saved)));
+    }
+  }, []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleCapture = (id: number) => {
+    const newCaptured = new Set(captured);
+    if (newCaptured.has(id)) {
+      newCaptured.delete(id);
+    } else {
+      newCaptured.add(id);
+    }
+    setCaptured(newCaptured);
+    localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      setPokemon([]);
+      try {
+        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
+        setPokemon(data);
+      } catch (error: any) {
+        console.error('Error fetching pokemon:', error);
+        if (error.name === 'TypeError' || error.message.toLowerCase().includes('network')) {
+          setError('Network error: Please check your connection and try again.');
+>>>>>>> dev-frontend
         } else {
             newCaptured.add(id);
         }
@@ -96,6 +193,7 @@ export const Pokedex: React.FC<PokedexProps> = ({
         localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
     };
 
+<<<<<<< task/232-pokemon-stats
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -141,6 +239,52 @@ export const Pokedex: React.FC<PokedexProps> = ({
         setSelectedType('all');
         setOffset(0);
     };
+=======
+    fetchData();
+  }, [offset, selectedGen, selectedType, retryCount, debouncedSearch]);
+
+  const generations = [
+    { id: '1', name: 'Gen I (Kanto)' },
+    { id: '2', name: 'Gen II (Johto)' },
+    { id: '3', name: 'Gen III (Hoenn)' },
+    { id: '4', name: 'Gen IV (Sinnoh)' },
+    { id: '5', name: 'Gen V (Unova)' },
+    { id: '6', name: 'Gen VI (Kalos)' },
+    { id: '7', name: 'Gen VII (Alola)' },
+    { id: '8', name: 'Gen VIII (Galar)' },
+    { id: '9', name: 'Gen IX (Paldea)' },
+  ];
+
+  const types = [
+    'fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground',
+    'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'steel', 'fairy'
+  ];
+
+  const handleGenChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedGen(e.target.value);
+    setSelectedType('all');
+    setOffset(0);
+  };
+
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedType(e.target.value);
+    setSelectedGen('all');
+    setOffset(0);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-red-600 shadow-lg sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-slate-800 shadow-sm">
+                <div className="w-3 h-3 bg-slate-800 rounded-full"></div>
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-tight hidden sm:block">Pokedex</h1>
+            </div>
+>>>>>>> dev-frontend
 
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedType(e.target.value);
@@ -148,6 +292,7 @@ export const Pokedex: React.FC<PokedexProps> = ({
         setOffset(0);
     };
 
+<<<<<<< task/232-pokemon-stats
     return (
         <div className="min-h-screen bg-slate-50">
             {/* Header */}
@@ -287,11 +432,65 @@ export const Pokedex: React.FC<PokedexProps> = ({
             <div className="bg-white border-b border-slate-200 sticky top-16 z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
                     <div className="flex flex-wrap items-center gap-4">
+=======
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 mr-2 bg-red-700 px-3 py-1 rounded-full text-red-100 text-xs font-bold ring-1 ring-white/10">
+                <span>Captured:</span>
+                <span className="bg-white text-red-600 px-1.5 py-0.5 rounded-full min-w-[20px] flex items-center justify-center">{captured.size}</span>
+              </div>
+
+              {onOpenRecommendations && (
+                <button
+                  onClick={onOpenRecommendations}
+                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
+                  title="Recommendations"
+                >
+                  <Lightbulb className="w-5 h-5" />
+                </button>
+              )}
+
+              {onOpenCMS && (
+                <button
+                  onClick={onOpenCMS}
+                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
+                  title="Manage Pokemon (CMS)"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Profile Dropdown */}
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={() => setIsProfileMenuOpen(prev => !prev)}
+                  className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all text-white ${isProfileMenuOpen ? 'bg-red-700 ring-2 ring-white/20' : 'hover:bg-red-700'}`}
+                  title="Profile"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black shrink-0 shadow-sm border border-red-100">
+                    {userInitial}
+                  </div>
+                  <span className="hidden sm:block text-sm font-bold max-w-[96px] truncate tracking-tight">{userDisplayName}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50"
+                    >
+                      {/* User info */}
+                      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+>>>>>>> dev-frontend
                         <div className="flex items-center gap-2">
                             <Filter className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-medium text-slate-600">Filters:</span>
                         </div>
 
+<<<<<<< task/232-pokemon-stats
                         <select
                             value={selectedGen}
                             onChange={handleGenChange}
@@ -325,6 +524,38 @@ export const Pokedex: React.FC<PokedexProps> = ({
                     </div>
                 </div>
             </div>
+=======
+                      {/* Actions */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => { setIsProfileMenuOpen(false); onOpenProfile(); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
+                        >
+                          <User className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                          <span className="font-medium">My Profile</span>
+                        </button>
+
+                        {onOpenRecommendations && (
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); onOpenRecommendations(); }}
+                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
+                          >
+                            <Lightbulb className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                            <span className="font-medium">Recommendations</span>
+                          </button>
+                        )}
+
+                        {onOpenCMS && (
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); onOpenCMS(); }}
+                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
+                          >
+                            <Settings className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                            <span className="font-medium">Manage Pokemon</span>
+                          </button>
+                        )}
+                      </div>
+>>>>>>> dev-frontend
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -333,10 +564,18 @@ export const Pokedex: React.FC<PokedexProps> = ({
                         <AlertCircle className="w-12 h-12 text-red-500" />
                         <p className="text-slate-600 text-lg font-medium">{error}</p>
                         <button
+<<<<<<< task/232-pokemon-stats
                             onClick={() => setRetryCount(prev => prev + 1)}
                             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
                         >
                             Retry
+=======
+                          onClick={() => { setIsProfileMenuOpen(false); onLogout(); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all group"
+                        >
+                          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="font-bold">Logout</span>
+>>>>>>> dev-frontend
                         </button>
                     </div>
                 ) : loading && pokemon.length === 0 ? (
@@ -401,5 +640,87 @@ export const Pokedex: React.FC<PokedexProps> = ({
                 )}
             </AnimatePresence>
         </div>
+<<<<<<< task/232-pokemon-stats
     );
 };
+=======
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error ? (
+          <div className="flex flex-col justify-center items-center h-64 space-y-4">
+            <AlertCircle className="w-12 h-12 text-red-500" />
+            <p className="text-slate-600 text-lg font-medium">{error}</p>
+            <button
+              onClick={() => setRetryCount(prev => prev + 1)}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading && pokemon.length === 0 ? (
+          <div className="flex flex-col justify-center items-center h-64 space-y-4">
+            <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+            <p className="text-slate-400 animate-pulse">Searching the wild...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              <AnimatePresence>
+                {pokemon.map((p) => (
+                  <PokemonCard
+                    key={p.id}
+                    {...p}
+                    isCaptured={captured.has(p.id)}
+                    onToggleCapture={toggleCapture}
+                    onClick={() => setSelectedPokemon(p)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {pokemon.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <p className="text-slate-500 text-lg">No Pokemon found matching your criteria.</p>
+              </div>
+            )}
+
+            {/* Pagination (Only show in 'All' mode) */}
+            {selectedGen === 'all' && selectedType === 'all' && !debouncedSearch && pokemon.length > 0 && (
+              <div className="mt-12 flex justify-center space-x-4">
+                <button
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={offset === 0}
+                  className="flex items-center px-6 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Previous
+                </button>
+                <button
+                  onClick={() => setOffset(offset + limit)}
+                  className="flex items-center px-6 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 shadow-sm font-medium"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      <AnimatePresence>
+        {selectedPokemon && (
+          <PokemonDetail
+            pokemon={selectedPokemon}
+            onClose={() => setSelectedPokemon(null)}
+            isCaptured={captured.has(selectedPokemon.id)}
+            onToggleCapture={toggleCapture}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+>>>>>>> dev-frontend

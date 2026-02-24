@@ -1,73 +1,80 @@
-import type { RegisterDto, LoginDto, TokenResponse } from '../types/auth';
+const API_URL = '/api';
+const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 
-const API_URL = import.meta.env.VITE_IDENTITY_API_URL;
-
-if (!API_URL) {
-    throw new Error('VITE_IDENTITY_API_URL is not defined in your environment variables.');
-}
+// Task: Simulate real JWT for mock mode (encodes nameid, email, unique_name, displayName, role, exp)
+const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwiZW1haWwiOiJhc2hAa2V0Y2h1bS5jb20iLCJ1bmlxdWVfbmFtZSI6ImFzaCIsImRpc3BsYXlOYW1lIjoiQXNoIEtldGNodW0iLCJyb2xlIjpbIlVzZXIiXSwiZXhwIjoyNTI0NjA4MDAwfQ==.fake_signature";
 
 export const authService = {
-    // Register a new user
-    async register(data: RegisterDto): Promise<{ message: string }> {
-        try {
-            const response = await fetch(`${API_URL}/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                let errorMessage = 'Failed to register.';
-                try {
-                    const errorData = await response.json();
-                    if (errorData?.message) errorMessage = errorData.message;
-                } catch {
-                    // fallback if response is not JSON
-                }
-                throw new Error(errorMessage);
+    async login(credentials: any) {
+        if (!USE_LIVE_API) {
+            console.log('Mock: login called with', credentials);
+            if (credentials.email === 'ash@ketchum.com' && credentials.password === 'pikachu') {
+                return {
+                    token: mockToken,
+                    user: { id: '1', email: 'ash@ketchum.com', username: 'ash', displayName: 'Ash Ketchum', roles: ['User'] }
+                };
             }
-
-            const result = await response.json();
-            return { message: result.message || 'Registration successful.' };
-        } catch (error: any) {
-            if (error.name === 'TypeError') {
-                throw new Error('Network error: Please check your connection.');
-            }
-            throw new Error(error.message || 'An unknown error occurred during registration.');
+            throw new Error('Invalid email or password');
         }
+
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(credentials)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Login failed' }));
+            throw new Error(error.message || 'Login failed');
+        }
+
+        return response.json(); // { token: string, user: { ... } }
     },
 
-    // Login a user
-    async login(data: LoginDto): Promise<TokenResponse> {
-        try {
-            // Technical Requirement endpoint: /api/auth/login
-            const response = await fetch(`${API_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-
-            // Handle HTTP errors
-            if (!response.ok) {
-                let errorMessage = 'Invalid email or password';
-                try {
-                    const errorData = await response.json();
-                    if (errorData?.message) errorMessage = errorData.message;
-                } catch {
-                    // fallback if response is not JSON
-                }
-                throw new Error(errorMessage);
-            }
-
-            // Return TokenResponse on success
-            const result: TokenResponse = await response.json();
-            return result;
-        } catch (error: any) {
-            // Network error handling
-            if (error.name === 'TypeError') {
-                throw new Error('Network error: Please check your connection.');
-            }
-            throw new Error(error.message || 'An unknown error occurred during login.');
+    async register(userData: any) {
+        if (!USE_LIVE_API) {
+            console.log('Mock: register called with', userData);
+            return {
+                token: mockToken,
+                user: { id: '2', email: userData.email, username: userData.username, roles: ['User'] }
+            };
         }
+
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Registration failed' }));
+            throw new Error(error.message || 'Registration failed');
+        }
+
+        return response.json();
     },
+
+    async changePassword(data: { currentPassword: string; newPassword: string }) {
+        if (!USE_LIVE_API) {
+            console.log('Mock: changePassword called with', data);
+            // Simulate common validation or failure
+            if (data.currentPassword === 'pikachu') {
+                return { message: 'Password changed successfully' };
+            }
+            throw new Error('Wrong current password');
+        }
+
+        const response = await fetch(`${API_URL}/users/me/change-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to change password' }));
+            throw new Error(error.message || 'Failed to change password');
+        }
+
+        return response.json();
+    }
 };
