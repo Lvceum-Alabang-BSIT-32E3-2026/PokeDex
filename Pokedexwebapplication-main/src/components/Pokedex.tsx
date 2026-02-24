@@ -1,25 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, LogOut, ChevronRight, ChevronLeft, Filter, User, ChevronDown, AlertCircle, Lightbulb, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService, Pokemon } from '../services/pokemonService';
 
 interface PokedexProps {
   onLogout: () => void;
-  onOpenProfile: () => void;
-  onOpenCMS?: () => void;
-  onOpenRecommendations?: () => void;
-  user: any;
+  onOpenCMS: () => void;
+  onOpenRecommendations: () => void;
+  onOpenProfile?: () => void;
+  userEmail?: string;
 }
 
-export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpenCMS, onOpenRecommendations, user }) => {
+export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRecommendations, onOpenProfile, userEmail }) => {
   const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Filters
   const [selectedGen, setSelectedGen] = useState<string>('all');
@@ -35,41 +32,12 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
   // Modal
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
-  // Profile dropdown
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
-
-  // Derived user display
-  const userInitial = user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
-  const userDisplayName = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Trainer';
-  const userEmail = user?.email || 'trainer@pokedex.com';
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setOffset(0);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
   // Load captured state
   useEffect(() => {
     const saved = localStorage.getItem('capturedPokemon');
     if (saved) {
       setCaptured(new Set(JSON.parse(saved)));
     }
-  }, []);
-
-  // Close profile dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const toggleCapture = (id: number) => {
@@ -86,25 +54,24 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError(null);
       setPokemon([]);
       try {
-        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
+        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType);
         setPokemon(data);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error fetching pokemon:', error);
-        if (error.name === 'TypeError' || error.message.toLowerCase().includes('network')) {
-          setError('Network error: Please check your connection and try again.');
-        } else {
-          setError('API Error: Failed to load Pokemon.');
-        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [offset, selectedGen, selectedType, retryCount, debouncedSearch]);
+  }, [offset, selectedGen, selectedType]);
+
+  // Client-side filtering for Search
+  const filteredPokemon = pokemon.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const generations = [
     { id: '1', name: 'Gen I (Kanto)' },
@@ -162,111 +129,39 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="hidden md:flex items-center gap-2 mr-2 bg-red-700 px-3 py-1 rounded-full text-red-100 text-xs font-bold ring-1 ring-white/10">
+              <div className="hidden md:flex items-center gap-2 mr-4 bg-red-700 px-3 py-1 rounded-full text-red-100 text-sm font-bold">
                 <span>Captured:</span>
-                <span className="bg-white text-red-600 px-1.5 py-0.5 rounded-full min-w-[20px] flex items-center justify-center">{captured.size}</span>
+                <span className="bg-white text-red-600 px-2 rounded-full">{captured.size}</span>
               </div>
-
-              {onOpenRecommendations && (
-                <button
-                  onClick={onOpenRecommendations}
-                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
-                  title="Recommendations"
-                >
-                  <Lightbulb className="w-5 h-5" />
-                </button>
-              )}
-
-              {onOpenCMS && (
-                <button
-                  onClick={onOpenCMS}
-                  className="p-2 text-white hover:bg-red-700 rounded-full transition-colors hidden md:block"
-                  title="Manage Pokemon (CMS)"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* Profile Dropdown */}
-              <div className="relative" ref={profileMenuRef}>
-                <button
-                  onClick={() => setIsProfileMenuOpen(prev => !prev)}
-                  className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all text-white ${isProfileMenuOpen ? 'bg-red-700 ring-2 ring-white/20' : 'hover:bg-red-700'}`}
-                  title="Profile"
-                >
-                  <div className="w-8 h-8 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black shrink-0 shadow-sm border border-red-100">
-                    {userInitial}
-                  </div>
-                  <span className="hidden sm:block text-sm font-bold max-w-[96px] truncate tracking-tight">{userDisplayName}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                <AnimatePresence>
-                  {isProfileMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50"
-                    >
-                      {/* User info */}
-                      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-                        <div className="flex items-center gap-2">
-                          <div className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-black shrink-0">
-                            {userInitial}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Signed in as</p>
-                            <p className="text-sm font-semibold text-slate-800 truncate">{userEmail}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="py-1">
-                        <button
-                          onClick={() => { setIsProfileMenuOpen(false); onOpenProfile(); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
-                        >
-                          <User className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
-                          <span className="font-medium">My Profile</span>
-                        </button>
-
-                        {onOpenRecommendations && (
-                          <button
-                            onClick={() => { setIsProfileMenuOpen(false); onOpenRecommendations(); }}
-                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
-                          >
-                            <Lightbulb className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
-                            <span className="font-medium">Recommendations</span>
-                          </button>
-                        )}
-
-                        {onOpenCMS && (
-                          <button
-                            onClick={() => { setIsProfileMenuOpen(false); onOpenCMS(); }}
-                            className="w-full md:hidden flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-all group"
-                          >
-                            <Settings className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
-                            <span className="font-medium">Manage Pokemon</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="border-t border-slate-100 py-1">
-                        <button
-                          onClick={() => { setIsProfileMenuOpen(false); onLogout(); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all group"
-                        >
-                          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="font-bold">Logout</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <button
+                onClick={onOpenRecommendations}
+                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                title="Recommendations"
+              >
+                <Lightbulb className="w-6 h-6" />
+              </button>
+              <button
+                onClick={onOpenCMS}
+                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                title="Manage Pokemon (CMS)"
+              >
+                <Settings className="w-6 h-6" />
+              </button>
+              <button
+                onClick={onOpenProfile}
+                className="flex items-center gap-2 px-3 py-1.5 text-white hover:bg-red-700 rounded-full transition-colors"
+                title="Profile"
+              >
+                <User className="w-5 h-5" />
+                <span className="text-sm font-medium hidden md:block">{userEmail || 'Profile'}</span>
+              </button>
+              <button
+                onClick={onLogout}
+                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>
@@ -317,18 +212,8 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error ? (
-          <div className="flex flex-col justify-center items-center h-64 space-y-4">
-            <AlertCircle className="w-12 h-12 text-red-500" />
-            <p className="text-slate-600 text-lg font-medium">{error}</p>
-            <button
-              onClick={() => setRetryCount(prev => prev + 1)}
-              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
-            >
-              Retry
-            </button>
-          </div>
-        ) : loading && pokemon.length === 0 ? (
+
+        {loading && pokemon.length === 0 ? (
           <div className="flex flex-col justify-center items-center h-64 space-y-4">
             <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
             <p className="text-slate-400 animate-pulse">Searching the wild...</p>
@@ -337,7 +222,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               <AnimatePresence>
-                {pokemon.map((p) => (
+                {filteredPokemon.map((p) => (
                   <PokemonCard
                     key={p.id}
                     {...p}
@@ -349,14 +234,14 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenProfile, onOpe
               </AnimatePresence>
             </div>
 
-            {pokemon.length === 0 && !loading && (
+            {filteredPokemon.length === 0 && !loading && (
               <div className="text-center py-12">
                 <p className="text-slate-500 text-lg">No Pokemon found matching your criteria.</p>
               </div>
             )}
 
             {/* Pagination (Only show in 'All' mode) */}
-            {selectedGen === 'all' && selectedType === 'all' && !debouncedSearch && pokemon.length > 0 && (
+            {selectedGen === 'all' && selectedType === 'all' && searchTerm === '' && filteredPokemon.length > 0 && (
               <div className="mt-12 flex justify-center space-x-4">
                 <button
                   onClick={() => setOffset(Math.max(0, offset - limit))}
