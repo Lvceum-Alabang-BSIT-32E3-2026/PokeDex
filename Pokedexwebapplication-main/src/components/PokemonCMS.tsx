@@ -165,6 +165,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Error & success state
   const [error, setError] = useState<string | null>(null);
@@ -303,6 +305,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
+    setValidationErrors({});
+    setError(null);
   };
 
   const startAdd = () => {
@@ -452,6 +456,22 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                         ))}
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEdit(p)}
+                        disabled={loading}
+                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        disabled={loading}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -467,8 +487,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
 
             {/* Pagination Controls */}
@@ -637,8 +657,22 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
                         <img src={formData.imageUrl} className="h-24 object-contain" alt="Preview" />
                       </div>
-                    )}
-                  </div>
+                      {validationErrors.image && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.image}</p>
+                      )}
+                      {formData.image && (!validationErrors.image) && (
+                        <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
+                          <img
+                            src={formData.image}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
+                            }}
+                            className="h-24 object-contain"
+                            alt="Preview"
+                          />
+                        </div>
+                      )}
+                    </div>
 
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
