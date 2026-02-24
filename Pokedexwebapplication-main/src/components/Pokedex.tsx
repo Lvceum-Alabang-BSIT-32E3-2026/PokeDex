@@ -51,13 +51,20 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
     localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
   };
 
+  // Use the API search result directly
+  const filteredPokemon = pokemon;
+
+  // Fetch logic with debounce and updated parameter passing
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setPokemon([]);
       try {
-        const data = await pokemonService.getList(offset, limit, selectedGen, selectedType);
-        setPokemon(data);
+        const genNum = selectedGen !== 'all' ? parseInt(selectedGen) : undefined;
+        const typeStr = selectedType !== 'all' ? selectedType : undefined;
+        const searchStr = searchTerm.trim() !== '' ? searchTerm.trim() : undefined;
+
+        const response = await pokemonService.getList(offset, limit, genNum, typeStr, searchStr);
+        setPokemon(response.data);
       } catch (error) {
         console.error('Error fetching pokemon:', error);
       } finally {
@@ -65,13 +72,12 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
       }
     };
 
-    fetchData();
-  }, [offset, selectedGen, selectedType]);
+    const debounceId = setTimeout(() => {
+      fetchData();
+    }, 300);
 
-  // Client-side filtering for Search
-  const filteredPokemon = pokemon.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    return () => clearTimeout(debounceId);
+  }, [offset, selectedGen, selectedType, searchTerm]);
 
   const generations = [
     { id: '1', name: 'Gen I (Kanto)' },
