@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Heart, Weight, Ruler } from 'lucide-react';
-import { Pokemon } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
 
 interface PokemonDetailProps {
     pokemon: Pokemon;
@@ -40,7 +40,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
                     </div>
                     <motion.img
                         layoutId={`pokemon-img-${pokemon.id}`}
-                        src={pokemon.image}
+                        src={pokemon.imageUrl}
                         alt={pokemon.name}
                         className="w-56 h-56 object-contain drop-shadow-2xl z-10"
                     />

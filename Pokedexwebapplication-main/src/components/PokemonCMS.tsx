@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { pokemonService, Pokemon } from '../services/pokemonService';
+import { pokemonService } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
 
 interface PokemonCMSProps {
   onBack: () => void;
@@ -173,12 +174,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [formData, setFormData] = useState<Partial<Pokemon>>({
     name: '',
     types: [],
-    image: ''
+    imageUrl: ''
   });
 
   const [formErrors, setFormErrors] = useState<{ name?: string; types?: string }>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
@@ -215,10 +216,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     loadTypes();
   }, []);
 
-  const showSuccess = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(null), 3000);
-  };
+  // Function removed as unused
 
   // Pagination Logic
   const totalContents = pokemonList.length;
@@ -254,7 +252,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setError(null);
     try {
       const response = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
-      setPokemonList(response.data);
+      setPokemonList(response.items);
       setCurrentPage(1); // Reset to first page on reload
     } catch (err: any) {
       setError(err?.message || 'Failed to load Pokémon. Please try again.');
@@ -314,7 +312,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setFormData({
       name: '',
       types: [],
-      image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
+      imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
     setFormErrors({});
   };
@@ -328,9 +326,13 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
       const newPokemon: Pokemon = {
         id: newId,
+        pokedexNumber: newId,
         name: formData.name || 'Unknown',
         types: formData.types || ['normal'],
-        image: formData.image || ''
+        imageUrl: formData.imageUrl || '',
+        generation: 1,
+        isLegendary: false,
+        isMythical: false
       };
       setPokemonList([newPokemon, ...pokemonList]);
     } else if (isEditing) {
@@ -345,7 +347,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         const created = await pokemonService.createPokemon({
           name: formData.name?.trim() || '',
           types: formData.types || ['normal'],
-          image: formData.image || '',
+          imageUrl: formData.imageUrl || '',
         });
 
         // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
@@ -439,7 +441,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                 >
                   <div className="flex items-center gap-4">
-                    <img src={p.image} alt={p.name} className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1" />
+                    <img src={p.imageUrl} alt={p.name} className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1" />
                     <div>
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
@@ -625,15 +627,15 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <div className="flex-1">
                         <input
                           type="text"
-                          value={formData.image}
-                          onChange={e => setFormData({ ...formData, image: e.target.value })}
+                          value={formData.imageUrl}
+                          onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
                           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                       </div>
                     </div>
-                    {formData.image && (
+                    {formData.imageUrl && (
                       <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
-                        <img src={formData.image} className="h-24 object-contain" alt="Preview" />
+                        <img src={formData.imageUrl} className="h-24 object-contain" alt="Preview" />
                       </div>
                     )}
                   </div>

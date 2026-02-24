@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings, Lightbulb, User } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
-import { pokemonService, Pokemon } from '../services/pokemonService';
+import { pokemonService } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
 
 interface PokedexProps {
   onLogout: () => void;
@@ -64,7 +65,7 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
         const searchStr = searchTerm.trim() !== '' ? searchTerm.trim() : undefined;
 
         const response = await pokemonService.getList(offset, limit, genNum, typeStr, searchStr);
-        setPokemon(response.data);
+        setPokemon(response.items);
       } catch (error) {
         console.error('Error fetching pokemon:', error);
       } finally {

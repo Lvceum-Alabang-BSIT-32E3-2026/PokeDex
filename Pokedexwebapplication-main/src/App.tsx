@@ -63,7 +63,7 @@ const AppContent = () => {
         content = (
           <Pokedex
             onLogout={handleLogout}
-            user={user}
+            userEmail={user?.email}
             onOpenProfile={() => window.location.hash = '#/profile'}
             onOpenCMS={() => window.location.hash = '#/cms'}
             onOpenRecommendations={() => window.location.hash = '#/recommendations'}

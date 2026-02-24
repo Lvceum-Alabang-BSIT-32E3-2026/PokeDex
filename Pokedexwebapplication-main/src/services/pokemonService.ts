@@ -3,20 +3,7 @@ import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
 const API_URL = import.meta.env.VITE_API_URL;
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 
-export interface Pokemon {
-  id: number;
-  name: string;
-  types: string[];
-  image: string;
-  url?: string;
-  height?: number;
-  weight?: number;
-}
-
-export interface PokemonListResponse {
-  data: Pokemon[];
-  totalCount: number;
-}
+import { Pokemon, PokemonListResponse } from '../types/pokemon';
 
 export interface EvolutionNode {
   species_name: string;
@@ -66,8 +53,10 @@ export const pokemonService = {
       }
 
       return {
-        data: data.slice(offset, offset + limit),
-        totalCount: data.length
+        items: data.slice(offset, offset + limit) as unknown as Pokemon[], // Cast to match type since PokemonMock has slightly different type
+        totalCount: data.length,
+        page: Math.floor(offset / limit) + 1,
+        pageSize: limit
       };
     }
 
