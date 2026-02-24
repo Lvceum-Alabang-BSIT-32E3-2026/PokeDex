@@ -1,73 +1,57 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { decodeToken, isTokenExpired } from '../utils/jwt';
-
-interface User {
-    id: string;
-    email: string;
-    username: string;
-    displayName: string;
-    roles: string[];
-}
+﻿// src/contexts/AuthContext.tsx
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
-    user: User | null;
-    token: string | null;
     isAuthenticated: boolean;
-    isAdmin: boolean;
     login: (token: string) => void;
-    logout: () => void;
-    updateUser: (updates: Partial<User>) => void;
+    logout: (reason?: string) => void;
+    message: string | null;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-    const [user, setUser] = useState<User | null>(null);
+interface AuthProviderProps {
+    children: ReactNode;
+}
 
-    useEffect(() => {
-        if (token) {
-            if (isTokenExpired(token)) {
-                logout();
-            } else {
-                const userData = decodeToken(token);
-                if (userData) {
-                    setUser(userData as any);
-                } else {
-                    logout();
-                }
-            }
-        }
-    }, [token]);
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+    const [message, setMessage] = useState<string | null>(null);
+    const navigate = useNavigate();
 
-    const login = (newToken: string) => {
-        localStorage.setItem('token', newToken);
-        setToken(newToken);
-    };
-
-    const logout = () => {
+    const logout = (reason?: string) => {
         localStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
+        setIsAuthenticated(false);
+        if (reason) setMessage(reason);
+        navigate('/login');
     };
 
-    const updateUser = (updates: Partial<User>) => {
-        setUser(prev => prev ? { ...prev, ...updates } : null);
+    const login = (token: string) => {
+        localStorage.setItem('token', token);
+        setIsAuthenticated(true);
+        setMessage(null);
     };
 
-    const isAuthenticated = !!token;
+    // Listen for global logout events (from apiFetch)
+    useEffect(() => {
+        const handleLogout = (event: CustomEvent) => {
+            logout(event.detail?.reason || 'Logged out');
+        };
 
-    const isAdmin = user?.roles?.includes('Admin') || false;
+        window.addEventListener('logout', handleLogout as EventListener);
+        return () => window.removeEventListener('logout', handleLogout as EventListener);
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, isAdmin, login, logout, updateUser }}>
+        <AuthContext.Provider value={{ isAuthenticated, login, logout, message }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
-    if (!context) throw new Error("useAuth must be used within an AuthProvider");
+    if (!context) throw new Error('useAuth must be used within AuthProvider');
     return context;
 };
