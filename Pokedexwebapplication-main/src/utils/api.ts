@@ -1,36 +1,35 @@
 ﻿// src/utils/api.ts
-
 export async function apiFetch(
     url: string,
     options: RequestInit = {}
-): Promise<Response> {
-
-    // Get token from localStorage
+): Promise<any> {
     const token = localStorage.getItem('token');
 
-    // Build headers
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-
-        // Automatically add Authorization header if token exists
-        ...(token && { Authorization: `Bearer ${token}` }),
-
-        // Allow custom headers to override defaults
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
     };
 
-    // Execute request
-    const response = await fetch(url, {
-        ...options,
-        headers,
-    });
+    const response = await fetch(url, { ...options, headers });
 
-    // Handle 401 Unauthorized → trigger logout
+    // Automatically handle 401 Unauthorized
     if (response.status === 401) {
+        // Remove token from localStorage
         localStorage.removeItem('token');
-        window.dispatchEvent(new Event('auth:logout'));
+
+        // Dispatch global logout event
+        window.dispatchEvent(
+            new CustomEvent('logout', { detail: { reason: 'Session expired' } })
+        );
     }
 
-    // Return full Response object
+    // Parse JSON if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        return { ...data, status: response.status };
+    }
+
     return response;
 }
