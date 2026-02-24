@@ -134,7 +134,10 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
                   type="text"
                   placeholder="Search by name..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setOffset(0);
+                  }}
                   className="w-full bg-white/10 border border-white/20 rounded-full py-2 pl-10 pr-4 text-white placeholder-red-200 focus:outline-none focus:bg-white focus:text-slate-900 focus:placeholder-slate-400 transition-all"
                 />
               </div>
