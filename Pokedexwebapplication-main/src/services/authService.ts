@@ -5,30 +5,53 @@ const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwiZW1haWwiOiJhc2hAa2V0Y2h1bS5jb20iLCJ1bmlxdWVfbmFtZSI6ImFzaCIsImRpc3BsYXlOYW1lIjoiQXNoIEtldGNodW0iLCJyb2xlIjpbIlVzZXIiXSwiZXhwIjoyNTI0NjA4MDAwfQ==.fake_signature";
 
 export const authService = {
-    async login(credentials: any) {
+    async login(credentials: { email: string; password: string }) {
         if (!USE_LIVE_API) {
             console.log('Mock: login called with', credentials);
-            if (credentials.email === 'ash@ketchum.com' && credentials.password === 'pikachu') {
+
+            if (
+                credentials.email === 'ash@ketchum.com' &&
+                credentials.password === 'pikachu'
+            ) {
                 return {
                     token: mockToken,
-                    user: { id: '1', email: 'ash@ketchum.com', username: 'ash', displayName: 'Ash Ketchum', roles: ['User'] }
+                    user: {
+                        id: '1',
+                        email: 'ash@ketchum.com',
+                        username: 'ash',
+                        displayName: 'Ash Ketchum',
+                        roles: ['User']
+                    }
                 };
             }
+
             throw new Error('Invalid email or password');
         }
 
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(credentials)
-        });
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
 
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: 'Login failed' }));
+            if (!response.ok) {
+                const error = await response
+                    .json()
+                    .catch(() => ({ message: 'Invalid email or password' }));
+
+                throw new Error(error.message || 'Invalid email or password');
+            }
+
+            return await response.json();
+        } catch (error: any) {
+            // Handles network/server crash/offline
+            if (error.name === 'TypeError') {
+                throw new Error('Network error. Please check your connection.');
+            }
+
             throw new Error(error.message || 'Login failed');
         }
-
-        return response.json(); // { token: string, user: { ... } }
     },
 
     async register(userData: any) {
