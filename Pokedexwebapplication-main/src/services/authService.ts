@@ -52,5 +52,29 @@ export const authService = {
         }
 
         return response.json();
+    },
+
+    async changePassword(data: { currentPassword: string; newPassword: string }) {
+        if (!USE_LIVE_API) {
+            console.log('Mock: changePassword called with', data);
+            // Simulate common validation or failure
+            if (data.currentPassword === 'pikachu') {
+                return { message: 'Password changed successfully' };
+            }
+            throw new Error('Wrong current password');
+        }
+
+        const response = await fetch(`${API_URL}/users/me/change-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to change password' }));
+            throw new Error(error.message || 'Failed to change password');
+        }
+
+        return response.json();
     }
 };
