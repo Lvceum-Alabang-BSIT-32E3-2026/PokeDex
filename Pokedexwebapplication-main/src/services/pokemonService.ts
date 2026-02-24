@@ -1,7 +1,7 @@
-import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS, deleteMockPokemon } from './mockData';
+import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
 
+const API_URL = import.meta.env.VITE_API_URL;
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export interface Pokemon {
   id: number;
@@ -9,6 +9,13 @@ export interface Pokemon {
   types: string[];
   image: string;
   url?: string;
+  height?: number;
+  weight?: number;
+}
+
+export interface PokemonListResponse {
+  data: Pokemon[];
+  totalCount: number;
 }
 
 export interface EvolutionNode {
@@ -19,169 +26,120 @@ export interface EvolutionNode {
   image: string;
 }
 
-// Helper to clean up API responses
-const formatApiPokemon = (p: any): Pokemon => ({
-  name: p.name,
-  url: p.url,
-  id: p.id,
-  types: p.types.map((t: any) => t.type.name),
-  image: p.sprites.other['official-artwork'].front_default || p.sprites.front_default
-});
+// Helper to add Authorization header
+const apiFetch = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('token');
+  const headers = {
+    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+  const response = await fetch(url, { ...options, headers });
+  if (!response.ok) {
+    throw new Error(`API fetch failed: ${response.statusText}`);
+  }
+  return response;
+};
 
 export const pokemonService = {
-  async getList(offset: number = 0, limit: number = 20, genFilter: string = 'all', typeFilter: string = 'all', search: string = '') {
+  async getList(
+    offset: number = 0,
+    limit: number = 20,
+    generation?: number,
+    type?: string,
+    search?: string
+  ): Promise<PokemonListResponse> {
     if (!USE_LIVE_API) {
       // Mock Implementation
       console.log('Using Mock Data for List');
       let data = [...MOCK_POKEMON];
 
+      if (type && type !== 'all') {
+        data = data.filter(p => p.types.includes(type));
+      }
+
+      if (generation) {
+        if (generation === 1) data = data.filter(p => p.id <= 151);
+      }
+
       if (search) {
         data = data.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
       }
-      if (typeFilter !== 'all') {
-        data = data.filter(p => p.types.includes(typeFilter));
-      }
 
-      // Mock generation filter (simplified: Gen 1 is id 1-151)
-      if (genFilter !== 'all') {
-        if (genFilter === '1') data = data.filter(p => p.id <= 151);
-      }
-
-      return data;
+      return {
+        data: data.slice(offset, offset + limit),
+        totalCount: data.length
+      };
     }
 
-    // Live API Implementation — calls our local ResourceApi
-    try {
-      const params = new URLSearchParams();
-      if (genFilter !== 'all') params.append('generation', genFilter);
-      if (typeFilter !== 'all') params.append('type', typeFilter);
-      if (search) params.append('search', search);
-      
-      // Only send offset/limit when no filters are active (pagination mode)
-      if (genFilter === 'all' && typeFilter === 'all' && !search) {
-        params.append('offset', String(offset));
-        params.append('limit', String(limit));
-      }
-
-      const res = await fetch(`/api/pokemons?${params.toString()}`);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data: any[] = await res.json();
-
-      // Map ResourceApi shape → frontend Pokemon interface
-      return data.map((p) => ({
-        id: p.id,
-        name: p.name,
-        // ResourceApi stores a single comma-separated type string; split into array
-        types: p.type ? p.type.split(',').map((t: string) => t.trim().toLowerCase()) : [],
-        image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
-      }));
-    } catch (error) {
-      console.error('API Error:', error);
-      return [];
-    }
-  },
-
-  async createPokemon(data: { name: string; types: string[]; image: string }): Promise<Pokemon> {
-    const response = await fetch('/api/pokemon', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+    const params = new URLSearchParams({
+      offset: String(offset),
+      limit: String(limit),
+      ...(generation && { generation: String(generation) }),
+      ...((type && type !== 'all') && { type }),
+      ...(search && { search })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Request failed with status ${response.status}`);
-    }
+    const response = await apiFetch(`${API_URL}/api/pokemon?${params}`);
+    return response.json();
+  },
 
+  async getById(id: number): Promise<Pokemon> {
+    if (!USE_LIVE_API) {
+      const p = MOCK_POKEMON.find(p => p.id === id);
+      if (!p) throw new Error('Not found');
+      return p;
+    }
+    const response = await apiFetch(`${API_URL}/api/pokemon/${id}`);
     return response.json();
   },
 
   async getEvolutionChain(pokemonId: number): Promise<EvolutionNode[]> {
     if (!USE_LIVE_API) {
-      // Return specific mock chain if exists, or a default single node
       if (MOCK_EVOLUTION_CHAINS[pokemonId]) return MOCK_EVOLUTION_CHAINS[pokemonId];
-      if (MOCK_EVOLUTION_CHAINS[1]) return MOCK_EVOLUTION_CHAINS[1]; // Fallback for demo
+      if (MOCK_EVOLUTION_CHAINS[1]) return MOCK_EVOLUTION_CHAINS[1];
       return [];
     }
-
     try {
-      const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
-      const speciesData = await speciesRes.json();
-      const evoRes = await fetch(speciesData.evolution_chain.url);
-      const evoData = await evoRes.json();
-
-      const chain: EvolutionNode[] = [];
-      let current = evoData.chain;
-
-      const getImage = (speciesUrl: string) => {
-        const id = speciesUrl.split('/').filter(Boolean).pop();
-        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-      };
-
-      do {
-        const details = current.evolution_details[0];
-        chain.push({
-          species_name: current.species.name,
-          min_level: details?.min_level || 0,
-          trigger_name: details?.trigger?.name,
-          item: details?.item?.name,
-          image: getImage(current.species.url)
-        });
-        current = current.evolves_to[0];
-      } while (current && current.hasOwnProperty('evolves_to'));
-
-      return chain;
+      const response = await apiFetch(`${API_URL}/api/pokemon/${pokemonId}/evolutions`);
+      return response.json();
     } catch (error) {
       console.error('Evo API Error:', error);
       return [];
     }
   },
 
-  async deletePokemon(id: number): Promise<void> {
+  async createPokemon(data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
-      // Mock: update the mock data array persistently for the session
-      console.log('Mock: deletePokemon called for id', id);
-      deleteMockPokemon(id);
-      return;
+      const newPokemon = { ...data, id: Date.now() } as Pokemon;
+      MOCK_POKEMON.push(newPokemon);
+      return newPokemon;
     }
-
-
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
-      method: 'DELETE',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+    const response = await apiFetch(`${API_URL}/api/pokemon`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to delete Pokémon.');
-    }
+    return response.json();
   },
 
   async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
-      // Mock: return the merged object immediately
-      console.log('Mock: updatePokemon called for id', id, data);
-      return { id, name: data.name || '', types: data.types || [], image: data.image || '' };
+      return { ...data, id } as Pokemon;
     }
-
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE}/api/pokemon/${id}`, {
+    const response = await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to update Pokémon.');
-    }
-
     return response.json();
+  },
+
+  async deletePokemon(id: number): Promise<void> {
+    if (!USE_LIVE_API) {
+      return;
+    }
+    await apiFetch(`${API_URL}/api/pokemon/${id}`, {
+      method: 'DELETE'
+    });
   }
 };

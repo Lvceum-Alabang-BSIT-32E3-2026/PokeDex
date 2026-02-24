@@ -253,8 +253,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
-      setPokemonList(data);
+      const response = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
+      setPokemonList(response.data);
       setCurrentPage(1); // Reset to first page on reload
     } catch (err: any) {
       setError(err?.message || 'Failed to load Pokémon. Please try again.');
