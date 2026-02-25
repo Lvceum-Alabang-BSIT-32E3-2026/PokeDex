@@ -9,7 +9,8 @@ import {
     Settings,
     Lightbulb,
     User,
-    AlertCircle
+    AlertCircle,
+    BookOpen
 } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
@@ -22,6 +23,7 @@ interface PokedexProps {
     onOpenCMS: () => void;
     onOpenRecommendations: () => void;
     onOpenProfile?: () => void;
+    onOpenCollection?: () => void;
     userEmail?: string;
 }
 
@@ -30,6 +32,7 @@ export const Pokedex: React.FC<PokedexProps> = ({
     onOpenCMS,
     onOpenRecommendations,
     onOpenProfile,
+    onOpenCollection,
     userEmail
 }) => {
 
@@ -151,6 +154,14 @@ export const Pokedex: React.FC<PokedexProps> = ({
                                 title="Recommendations"
                             >
                                 <Lightbulb className="w-6 h-6" />
+                            </button>
+
+                            <button
+                                onClick={onOpenCollection}
+                                className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
+                                title="My Collection"
+                            >
+                                <BookOpen className="w-6 h-6" />
                             </button>
 
                             {/* ✅ ADMIN-ONLY CMS BUTTON */}

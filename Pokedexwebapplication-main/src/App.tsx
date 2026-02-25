@@ -4,6 +4,7 @@ import { Pokedex } from './components/Pokedex';
 import { PokemonCMS } from './components/PokemonCMS';
 import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
+import { CollectionPage } from './components/CollectionPage';
 import RegisterPage from './components/RegisterPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -55,6 +56,9 @@ const AppContent = () => {
       case '#/recommendations':
         content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
         break;
+      case '#/collection':
+        content = <CollectionPage onBack={() => window.location.hash = '#/pokedex'} />;
+        break;
       case '#/profile':
         content = <ProfilePage userEmail={userEmail} onBack={() => window.location.hash = '#/pokedex'} onLogout={handleLogout} />;
         break;
@@ -67,6 +71,7 @@ const AppContent = () => {
             onOpenProfile={() => window.location.hash = '#/profile'}
             onOpenCMS={() => window.location.hash = '#/cms'}
             onOpenRecommendations={() => window.location.hash = '#/recommendations'}
+            onOpenCollection={() => window.location.hash = '#/collection'}
           />
         );
         break;
