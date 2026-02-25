@@ -1,9 +1,10 @@
 ﻿// ResourceApi/Controllers/CapturesController.cs
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ResourceApi.Data; // Your DbContext namespace
-using ResourceApi.Models; // Your Pokemon & Capture models
+using ResourceApi.Data;   // DbContext namespace
+using ResourceApi.Models; // Pokemon & Capture models
 
 namespace ResourceApi.Controllers
 {
@@ -49,6 +50,28 @@ namespace ResourceApi.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(CapturePokemon), new { pokemonId = pokemonId }, capture);
+        }
+
+        // DELETE: /api/captures/{pokemonId}
+        [HttpDelete("{pokemonId}")]
+        public async Task<IActionResult> ReleasePokemon(int pokemonId)
+        {
+            // Find the capture record by PokemonId
+            var capture = await _context.Captures
+                                        .FirstOrDefaultAsync(c => c.PokemonId == pokemonId);
+
+            if (capture == null)
+            {
+                // If not captured, return 404
+                return NotFound(new { message = "Pokemon not captured." });
+            }
+
+            // Remove capture record
+            _context.Captures.Remove(capture);
+            await _context.SaveChangesAsync();
+
+            // Return 204 No Content
+            return NoContent();
         }
     }
 }
