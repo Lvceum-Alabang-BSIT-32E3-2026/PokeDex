@@ -1,6 +1,8 @@
+// ResourceApi/Controllers/CapturesController.cs
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,40 +27,43 @@ namespace ResourceApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserCaptures()
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            // Get authenticated user's ID from JWT
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
                 return Unauthorized();
 
-            var capturedPokemonIds = await _context.Captures
+            var captures = await _context.Captures
+                .Include(c => c.Pokemon)
                 .Where(c => c.UserId == userId)
-                .Select(c => c.PokemonId)
                 .ToListAsync();
 
-            return Ok(capturedPokemonIds);
+            return Ok(captures);
         }
 
         // POST: /api/captures/{pokemonId}
         [HttpPost("{pokemonId}")]
         public async Task<IActionResult> CapturePokemon(int pokemonId)
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
                 return Unauthorized();
 
+            // Check if Pokemon exists
             var pokemon = await _context.Pokemons.FindAsync(pokemonId);
             if (pokemon == null)
                 return NotFound(new { message = "Pokemon not found." });
 
+            // Check if this user already captured this Pokemon
             var alreadyCaptured = await _context.Captures
                 .AnyAsync(c => c.PokemonId == pokemonId && c.UserId == userId);
 
             if (alreadyCaptured)
-                return Conflict(new { message = "Pokemon already captured." });
+                return Conflict(new { message = "Pokemon already captured by this user." });
 
             var capture = new Capture
             {
-                PokemonId = pokemonId,
                 UserId = userId,
+                PokemonId = pokemonId,
                 CapturedAt = DateTime.UtcNow
             };
 
@@ -72,15 +77,16 @@ namespace ResourceApi.Controllers
         [HttpDelete("{pokemonId}")]
         public async Task<IActionResult> ReleasePokemon(int pokemonId)
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
                 return Unauthorized();
 
+            // Find the capture record for this user
             var capture = await _context.Captures
                 .FirstOrDefaultAsync(c => c.PokemonId == pokemonId && c.UserId == userId);
 
             if (capture == null)
-                return NotFound(new { message = "Pokemon not captured." });
+                return NotFound(new { message = "Pokemon not captured by this user." });
 
             _context.Captures.Remove(capture);
             await _context.SaveChangesAsync();
