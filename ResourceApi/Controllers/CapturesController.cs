@@ -1,14 +1,16 @@
-﻿// ResourceApi/Controllers/CapturesController.cs
-using System;
+﻿using System;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ResourceApi.Data; // Your DbContext namespace
-using ResourceApi.Models; // Your Pokemon & Capture models
+using ResourceApi.Data;
+using ResourceApi.Models;
 
 namespace ResourceApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // ✅ Require authentication
     public class CapturesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -22,33 +24,35 @@ namespace ResourceApi.Controllers
         [HttpPost("{pokemonId}")]
         public async Task<IActionResult> CapturePokemon(int pokemonId)
         {
-            // Check if Pokemon exists
+            // 1️⃣ Extract UserId from JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            // 2️⃣ Check if Pokemon exists
             var pokemon = await _context.Pokemons.FindAsync(pokemonId);
             if (pokemon == null)
-            {
                 return NotFound(new { message = "Pokemon not found." });
-            }
 
-            // Check if Pokemon is already captured
+            // 3️⃣ Check if current user already captured this Pokemon
             var alreadyCaptured = await _context.Captures
-                .AnyAsync(c => c.PokemonId == pokemonId);
-
+                .AnyAsync(c => c.PokemonId == pokemonId && c.UserId == userId);
             if (alreadyCaptured)
-            {
                 return Conflict(new { message = "Pokemon already captured." });
-            }
 
-            // Create capture record
+            // 4️⃣ Create Capture record with UserId
             var capture = new Capture
             {
                 PokemonId = pokemonId,
+                UserId = userId,
                 CapturedAt = DateTime.UtcNow
             };
 
             _context.Captures.Add(capture);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(CapturePokemon), new { pokemonId = pokemonId }, capture);
+            // 5️⃣ Return 201 Created
+            return StatusCode(201, capture);
         }
     }
 }
