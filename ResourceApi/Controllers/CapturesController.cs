@@ -1,17 +1,13 @@
-﻿using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceApi.Data;
-using ResourceApi.Models;
 
 namespace ResourceApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize] // All endpoints require authentication
     public class CapturesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -21,23 +17,24 @@ namespace ResourceApi.Controllers
             _context = context;
         }
 
-        // ✅ GET: api/captures
+        // GET: /api/captures
         [HttpGet]
-        public async Task<IActionResult> GetCaptures()
+        public async Task<IActionResult> GetUserCaptures()
         {
-            // Get current user ID from JWT
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (string.IsNullOrEmpty(userId))
+            // Get current user's ID from JWT
+            var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (userId == null)
+            {
                 return Unauthorized();
+            }
 
-            // Get only this user's captured Pokemon IDs
-            var pokemonIds = await _context.Captures
+            // Query captured Pokemon IDs for this user
+            var capturedPokemonIds = await _context.Captures
                 .Where(c => c.UserId == userId)
                 .Select(c => c.PokemonId)
                 .ToListAsync();
 
-            return Ok(pokemonIds);
+            return Ok(capturedPokemonIds); // Returns an array of ints
         }
     }
 }
