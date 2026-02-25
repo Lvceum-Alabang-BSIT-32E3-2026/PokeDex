@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { pokemonService } from '../services/pokemonService';
+import { ArrowLeft, Plus, X, Save, Edit2, Trash2 } from 'lucide-react';
 import { Pokemon } from '../types/pokemon';
+import { pokemonService } from '../services/pokemonService';
+import { useParams, Link } from "react-router-dom";
 
-interface PokemonCMSProps {
-  onBack: () => void;
+function PokemonCMS() {
+    const { id } = useParams<{ id: string }>();
+
+    return (
+        <div>
+            <h1>Pokemon Details - {id}</h1>
+            {/* Your Pokemon detail UI */}
+            <Link to="/">← Back to Pokedex</Link>
+        </div>
+    );
 }
+
+export default PokemonCMS;
 
 // All 18 Pokemon types (fallback if API fails)
 const FALLBACK_TYPES = [
