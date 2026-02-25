@@ -7,22 +7,12 @@ interface ProtectedRouteProps {
     children: ReactNode;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-    const { isAuthenticated } = useAuth();
-    const location = useLocation();
+export default function ProtectedRoute({ children }) {
+  const token = localStorage.getItem("token");
 
-    // Optional: could handle side effects on auth state change
-    useEffect(() => {
-        if (!isAuthenticated) {
-            console.log('User not authenticated, redirecting to login...');
-        }
-    }, [isAuthenticated]);
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
-    // Redirect unauthenticated users to /login
-    if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-
-    // Render protected content if authenticated
-    return <>{children}</>;
+  return children;
 }

@@ -25,9 +25,9 @@ export default function Login() {
       });
 
       if (response.status === 200 && response.token) {
-        login(response.token);        // Save token in context & localStorage
-        navigate('/dashboard');       // Redirect after login
-      } else if (response.status === 401) {
+  login(response.token);
+  navigate('/pokedex');
+} else if (response.status === 401) {
         setError('Invalid email or password');
       } else {
         setError('Login failed. Please try again.');

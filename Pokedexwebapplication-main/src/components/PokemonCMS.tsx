@@ -5,18 +5,6 @@ import { Pokemon } from '../types/pokemon';
 import { pokemonService } from '../services/pokemonService';
 import { useParams, Link } from "react-router-dom";
 
-function PokemonCMS() {
-    const { id } = useParams<{ id: string }>();
-
-    return (
-        <div>
-            <h1>Pokemon Details - {id}</h1>
-            {/* Your Pokemon detail UI */}
-            <Link to="/">← Back to Pokedex</Link>
-        </div>
-    );
-}
-
 export default PokemonCMS;
 
 // All 18 Pokemon types (fallback if API fails)
@@ -171,7 +159,10 @@ const TypeSelect: React.FC<TypeSelectProps> = ({
 };
 
 // ─── Main CMS Component ─────────────────────────────────────────────────────
-export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
+import { useNavigate } from 'react-router-dom';
+
+export const PokemonCMS: React.FC = () => {
+  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -386,7 +377,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={onBack}
+              onClick={() => navigate('/pokedex')}
               disabled={isOperating}
               className="p-2 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

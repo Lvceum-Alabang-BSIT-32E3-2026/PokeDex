@@ -8,24 +8,14 @@ interface AdminRouteProps {
     children: ReactNode;
 }
 
-export function AdminRoute({ children }: AdminRouteProps) {
-    const { isAuthenticated, user } = useAuth();
+import { Navigate } from "react-router-dom";
 
-    // 1️⃣ Redirect non-authenticated users to login
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
+export default function AdminRoute({ children }) {
+  const role = localStorage.getItem("role");
 
-    // 2️⃣ Check if user is admin
-    const isAdmin = Array.isArray(user?.role)
-        ? user.role.includes('Admin')
-        : user?.role === 'Admin';
+  if (role !== "Admin") {
+    return <Navigate to="/pokedex" replace />;
+  }
 
-    // 3️⃣ Redirect non-admin users to Pokedex
-    if (!isAdmin) {
-        return <Navigate to="/pokedex" replace />;
-    }
-
-    // 4️⃣ Admin users can access children
-    return <>{children}</>;
+  return children;
 }
