@@ -16,6 +16,8 @@ public class PokemonDbContext : DbContext
     // FIX: Eto ang Join Table para sa Many-to-Many
     public DbSet<PokemonType> PokemonTypes { get; set; } = null!;
 
+    public DbSet<Capture> Captures { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
