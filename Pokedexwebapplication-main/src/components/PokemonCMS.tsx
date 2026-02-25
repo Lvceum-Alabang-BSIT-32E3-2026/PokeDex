@@ -258,27 +258,38 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     });
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isAdding) {
-      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
-      const newPokemon: Pokemon = {
-        id: newId,
-        name: formData.name || 'Unknown',
-        types: formData.types || ['normal'],
-        image: formData.image || '',
-        generation: formData.generation || 1
-      };
-      setPokemonList([newPokemon, ...pokemonList]);
-    } else if (isEditing) {
-      setPokemonList(prev =>
-        prev.map(p => (p.id === isEditing ? ({ ...p, ...formData } as Pokemon) : p))
-      );
-    }
+    setIsSaving(true);
+    setError(null);
 
-    setIsAdding(false);
-    setIsEditing(null);
+    try {
+      if (isAdding) {
+        const created = await pokemonService.createPokemon({
+          name: formData.name || 'Unknown',
+          types: formData.types || ['normal'],
+          image: formData.image || '',
+          generation: formData.generation || 1
+        });
+        setPokemonList([created, ...pokemonList]);
+        setSuccess('Pokemon added successfully!');
+      } else if (isEditing) {
+        const updated = await pokemonService.updatePokemon(isEditing, formData);
+        setPokemonList(prev =>
+          prev.map(p => (p.id === isEditing ? updated : p))
+        );
+        setSuccess('Pokemon updated successfully!');
+      }
+
+      setIsAdding(false);
+      setIsEditing(null);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save Pokemon.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getTypeColor = (type: string) => {
@@ -367,6 +378,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     <div>
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
+                        {p.generation && (
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            Gen {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][p.generation - 1] || p.generation}
+                          </span>
+                        )}
                         {p.types.map(t => (
                           <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
                             {t}
@@ -435,9 +451,10 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                         onChange={e => setFormData({ ...formData, generation: Number(e.target.value) })}
                         className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                       >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                          <option key={num} value={num}>Generation {num}</option>
-                        ))}
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                          const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][num - 1];
+                          return <option key={num} value={num}>Gen {roman}</option>;
+                        })}
                       </select>
                     </div>
                   </div>
