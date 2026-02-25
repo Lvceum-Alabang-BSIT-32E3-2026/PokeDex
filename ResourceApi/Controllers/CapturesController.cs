@@ -1,105 +1,54 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// ResourceApi/Controllers/CapturesController.cs
+using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using ResourceApi.Data;
-using ResourceApi.Models;
+using ResourceApi.Data; // Your DbContext namespace
+using ResourceApi.Models; // Your Pokemon & Capture models
 
 namespace ResourceApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class CapturesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
 
-        public CapturesController(ApplicationDbContext context)
+        public CapturesController(AppDbContext context)
         {
             _context = context;
         }
 
-        // GET: api/captures
-        // Returns list of Pokemon IDs captured by current user
-        [HttpGet]
-        public async Task<IActionResult> GetAllCaptures()
+        // POST: /api/captures/{pokemonId}
+        [HttpPost("{pokemonId}")]
+        public async Task<IActionResult> CapturePokemon(int pokemonId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+            // Check if Pokemon exists
+            var pokemon = await _context.Pokemons.FindAsync(pokemonId);
+            if (pokemon == null)
+            {
+                return NotFound(new { message = "Pokemon not found." });
+            }
 
-            var capturedPokemonIds = await _context.Captures
-                .Where(c => c.UserId == userId)
-                .Select(c => c.PokemonId)
-                .ToListAsync();
+            // Check if Pokemon is already captured
+            var alreadyCaptured = await _context.Captures
+                .AnyAsync(c => c.PokemonId == pokemonId);
 
-            return Ok(capturedPokemonIds);
-        }
+            if (alreadyCaptured)
+            {
+                return Conflict(new { message = "Pokemon already captured." });
+            }
 
-        // GET: api/captures/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCaptureById(int id)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            var capture = await _context.Captures
-                .Where(c => c.Id == id && c.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (capture == null)
-                return NotFound();
-
-            return Ok(capture);
-        }
-
-        // POST: api/captures
-        [HttpPost]
-        public async Task<IActionResult> CreateCapture([FromBody] int pokemonId)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            // Prevent duplicate captures
-            var exists = await _context.Captures
-                .AnyAsync(c => c.UserId == userId && c.PokemonId == pokemonId);
-
-            if (exists)
-                return BadRequest("Pokemon already captured.");
-
+            // Create capture record
             var capture = new Capture
             {
-                UserId = userId,
-                PokemonId = pokemonId
+                PokemonId = pokemonId,
+                CapturedAt = DateTime.UtcNow
             };
 
             _context.Captures.Add(capture);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Pokemon captured successfully." });
-        }
-
-        // DELETE: api/captures/{id}
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCapture(int id)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            var capture = await _context.Captures
-                .Where(c => c.Id == id && c.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (capture == null)
-                return NotFound();
-
-            _context.Captures.Remove(capture);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Capture deleted successfully." });
+            return CreatedAtAction(nameof(CapturePokemon), new { pokemonId = pokemonId }, capture);
         }
     }
 }
