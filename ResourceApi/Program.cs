@@ -41,21 +41,21 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-
         ValidIssuer = jwtSettings["Issuer"],
+
+        ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"],
+
+        ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
 
-        RoleClaimType = "role"
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero, // optional strict expiration
+
+        RoleClaimType = "role" // map IdentityServer "role" claims to ASP.NET roles
     };
 });
 
