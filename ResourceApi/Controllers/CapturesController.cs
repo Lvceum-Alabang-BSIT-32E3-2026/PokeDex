@@ -1,4 +1,4 @@
-﻿// ResourceApi/Controllers/CapturesController.cs
+// ResourceApi/Controllers/CapturesController.cs
 using System;
 using System.Linq;
 using System.Threading.Tasks;
