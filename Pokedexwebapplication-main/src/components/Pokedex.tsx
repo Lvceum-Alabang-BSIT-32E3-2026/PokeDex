@@ -70,14 +70,17 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, onOpenCMS, onOpenRec
 
   const toggleCapture = async (id: number) => {
     const isCaptured = captured.has(id);
-    const newCaptured = new Set(captured);
-    if (isCaptured) {
-      newCaptured.delete(id);
-    } else {
-      newCaptured.add(id);
-    }
-    setCaptured(newCaptured);
-    localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+    setCaptured(prev => {
+      const wasCaptured = prev.has(id);
+      const next = new Set(prev);
+      if (wasCaptured) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(next)));
+      return next;
+    });
 
     try {
       const token = localStorage.getItem('token');
