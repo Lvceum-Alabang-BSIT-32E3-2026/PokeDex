@@ -1,41 +1,71 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- SERVICES CONFIGURATION ---
+// --------------------
+// SERVICES
+// --------------------
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ✅ Database
+builder.Services.AddDbContext<PokemonDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
-// 1. CORS Configuration: Dito nire-register ang policy
+// ✅ CORS (single clean policy)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // Siguraduhin na ang origin na ito ay tugma sa port ng iyong frontend
-        policy.WithOrigins("http://localhost:5173")
-
-// Task 2.1.10: Enable CORS (Allow frontend access)
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins("http://localhost:3000") // Frontend URL
-
+        policy.WithOrigins("http://localhost:5173") // adjust if needed
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-builder.Services.AddDbContext<PokemonDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
+// ✅ JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+
+        RoleClaimType = "role"
+    };
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// --- SEEDING LOGIC ---
+// --------------------
+// SEED DATABASE
+// --------------------
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -48,11 +78,13 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Nagkaroon ng error sa pag-seed ng database.");
+        logger.LogError(ex, "Error while seeding database.");
     }
 }
 
-// --- MIDDLEWARE PIPELINE ---
+// --------------------
+// MIDDLEWARE
+// --------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -61,16 +93,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-
-// 2. CORS Middleware: Dapat itong ilagay bago ang Authorization
 app.UseCors("AllowFrontend");
 
-
-// Task 2.1.10: CORS must be placed after UseRouting (implicit) and before UseAuthorization
-app.UseCors();
-
-app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
-
+app.UseAuthentication();   // MUST come before Authorization
 app.UseAuthorization();
 
 app.MapControllers();
