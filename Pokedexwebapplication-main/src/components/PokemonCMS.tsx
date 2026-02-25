@@ -165,21 +165,14 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  // Error & success state
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
     name: '',
     types: [],
     imageUrl: ''
   });
-
   const [formErrors, setFormErrors] = useState<{ name?: string; types?: string }>({});
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
@@ -305,7 +298,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
-    setValidationErrors({});
+    setFormErrors({});
     setError(null);
   };
 
@@ -456,109 +449,95 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => startEdit(p)}
-                        disabled={loading}
-                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        disabled={loading}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEdit(p)}
-                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                      disabled={loading}
+                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(p)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      disabled={loading}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {pageOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <span>per page</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="First Page"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <span className="text-blue-600">Page {currentPage}</span>
+                <span className="text-slate-400">of</span>
+                <span className="text-slate-700">{totalPages || 1}</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* Pagination Controls */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <span>Show</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {pageOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-                <span>per page</span>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="First Page"
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Previous Page"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <span className="text-blue-600">Page {currentPage}</span>
-                  <span className="text-slate-400">of</span>
-                  <span className="text-slate-700">{totalPages || 1}</span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Next Page"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Last Page"
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="text-xs text-slate-400 font-medium">
-                Showing {totalContents === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalContents)} of {totalContents} entries
-              </div>
+            <div className="text-xs text-slate-400 font-medium">
+              Showing {totalContents === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalContents)} of {totalContents} entries
             </div>
           </div>
         </div>
@@ -655,24 +634,17 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     </div>
                     {formData.imageUrl && (
                       <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
-                        <img src={formData.imageUrl} className="h-24 object-contain" alt="Preview" />
+                        <img
+                          src={formData.imageUrl}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
+                          }}
+                          className="h-24 object-contain"
+                          alt="Preview"
+                        />
                       </div>
-                      {validationErrors.image && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.image}</p>
-                      )}
-                      {formData.image && (!validationErrors.image) && (
-                        <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
-                          <img
-                            src={formData.image}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
-                            }}
-                            className="h-24 object-contain"
-                            alt="Preview"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
                   <div className="pt-4 border-t border-slate-100 flex gap-3">
                     <button
@@ -705,58 +677,60 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </main >
 
       {/* ── Delete Confirmation Modal ── */}
       <AnimatePresence>
-        {deleteTarget && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-              onClick={handleDeleteCancel}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-red-100 p-2.5 rounded-full">
-                    <Trash2 className="w-5 h-5 text-red-600" />
+        {
+          deleteTarget && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+                onClick={handleDeleteCancel}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              >
+                <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-red-100 p-2.5 rounded-full">
+                      <Trash2 className="w-5 h-5 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
+                  <p className="text-slate-600 text-sm mb-6">
+                    Are you sure you want to delete{' '}
+                    <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
+                    This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDeleteCancel}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSaving ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-slate-600 text-sm mb-6">
-                  Are you sure you want to delete{' '}
-                  <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
-                  This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleDeleteCancel}
-                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    disabled={isSaving}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+              </motion.div>
+            </>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 };
