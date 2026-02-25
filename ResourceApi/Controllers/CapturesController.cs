@@ -1,4 +1,3 @@
-// ResourceApi/Controllers/CapturesController.cs
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,14 +25,10 @@ namespace ResourceApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserCaptures()
         {
-            // Get current user's ID from JWT
             var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (userId == null)
-            {
                 return Unauthorized();
-            }
 
-            // Query captured Pokemon IDs for this user
             var capturedPokemonIds = await _context.Captures
                 .Where(c => c.UserId == userId)
                 .Select(c => c.PokemonId)
@@ -50,12 +45,10 @@ namespace ResourceApi.Controllers
             if (userId == null)
                 return Unauthorized();
 
-            // Check if Pokemon exists
             var pokemon = await _context.Pokemons.FindAsync(pokemonId);
             if (pokemon == null)
                 return NotFound(new { message = "Pokemon not found." });
 
-            // Check if already captured by this user
             var alreadyCaptured = await _context.Captures
                 .AnyAsync(c => c.PokemonId == pokemonId && c.UserId == userId);
 
@@ -72,7 +65,7 @@ namespace ResourceApi.Controllers
             _context.Captures.Add(capture);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(CapturePokemon), new { pokemonId = pokemonId }, capture);
+            return StatusCode(201, capture);
         }
 
         // DELETE: /api/captures/{pokemonId}
