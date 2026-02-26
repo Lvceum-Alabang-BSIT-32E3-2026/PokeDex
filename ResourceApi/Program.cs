@@ -1,4 +1,3 @@
-using ResourceApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -6,11 +5,30 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Task 2.4.6: JWT Configuration
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secret = jwtSettings["Secret"]!;
-var issuer = jwtSettings["Issuer"]!;
-var audience = jwtSettings["Audience"]!;
+// --- SERVICES CONFIGURATION ---
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ✅ Database
+builder.Services.AddDbContext<PokemonDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
+// ✅ CORS (single clean policy)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// ✅ JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -53,7 +71,7 @@ builder.Services.AddDbContext<PokemonDbContext>(options =>
 
 var app = builder.Build();
 
-// --- SEEDING LOGIC ---
+// --- SEED DATABASE ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -78,11 +96,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// Task 2.1.10: CORS Middleware: Dapat itong ilagay bago ang Authorization
 app.UseCors("AllowFrontend");
-
-app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
