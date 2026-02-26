@@ -26,6 +26,7 @@ namespace ResourceApi.Controllers
             [FromQuery] int offset = 0,
             [FromQuery] int limit = 20)
         {
+            // Initial query with Many-to-Many includes
             var query = _context.Pokemons
                 .Include(p => p.PokemonTypes)
                     .ThenInclude(pt => pt.Type)
@@ -40,6 +41,7 @@ namespace ResourceApi.Controllers
             if (!string.IsNullOrWhiteSpace(type))
             {
                 string typeLower = type.ToLower();
+                // Filters Pokemon that have at least one type matching the query
                 query = query.Where(p => p.PokemonTypes.Any(pt => pt.Type.Name.ToLower() == typeLower));
             }
 
@@ -89,6 +91,7 @@ namespace ResourceApi.Controllers
             {
                 foreach (var typeName in createDto.Types)
                 {
+                    // Search in the Master List (PokemonTypeEntities)
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
@@ -121,13 +124,13 @@ namespace ResourceApi.Controllers
             if (pokemon == null) return NotFound();
 
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
-            if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
 
             if (updateDto.Types != null)
             {
                 pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
+                    // Find correct Type from Master List
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
