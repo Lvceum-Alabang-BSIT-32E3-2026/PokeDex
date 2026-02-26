@@ -12,6 +12,7 @@ import {
     Select,
     MenuItem,
 } from "@mui/material";
+import { toast, Toaster } from "react-hot-toast"; // feedback notifications
 
 interface User {
     id: string;
@@ -45,6 +46,15 @@ export default function UserManagementPage() {
     }, []);
 
     const handleRoleChange = async (userId: string, newRole: string) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        // Confirmation dialog
+        const confirmChange = window.confirm(
+            `Are you sure you want to change ${user.username}'s role to ${newRole}?`
+        );
+        if (!confirmChange) return;
+
         try {
             const response = await fetch(`/api/users/${userId}/roles`, {
                 method: "PUT",
@@ -55,18 +65,21 @@ export default function UserManagementPage() {
 
             if (!response.ok) throw new Error("Failed to update role");
 
-            setUsers((prev) =>
-                prev.map((user) =>
-                    user.id === userId ? { ...user, roles: [newRole] } : user
-                )
+            setUsers(prev =>
+                prev.map(u => (u.id === userId ? { ...u, roles: [newRole] } : u))
             );
+
+            toast.success(`${user.username}'s role updated to ${newRole}`);
         } catch {
-            alert("Failed to update role");
+            toast.error(`Failed to update ${user.username}'s role`);
         }
     };
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm("Are you sure you want to delete this user?")) return;
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        if (!confirm(`Are you sure you want to delete ${user.username}?`)) return;
 
         try {
             const response = await fetch(`/api/users/${userId}`, {
@@ -76,9 +89,10 @@ export default function UserManagementPage() {
 
             if (!response.ok) throw new Error("Failed to delete user");
 
-            setUsers((prev) => prev.filter((user) => user.id !== userId));
+            setUsers(prev => prev.filter(u => u.id !== userId));
+            toast.success(`${user.username} deleted`);
         } catch {
-            alert("Failed to delete user");
+            toast.error(`Failed to delete ${user.username}`);
         }
     };
 
@@ -93,6 +107,7 @@ export default function UserManagementPage() {
 
     return (
         <div style={{ padding: "2rem" }}>
+            <Toaster position="top-right" />
             <h1>User Management</h1>
             <TableContainer component={Paper}>
                 <Table>
@@ -108,7 +123,7 @@ export default function UserManagementPage() {
                     <TableBody>
                         {users
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map((user) => (
+                            .map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell>{user.username}</TableCell>
                                     <TableCell>{user.email}</TableCell>
