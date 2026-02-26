@@ -1,7 +1,3 @@
-﻿using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +10,7 @@ namespace ResourceApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Require authentication for all endpoints
+    [Authorize]
     public class CapturesController : ControllerBase
     {
         private readonly PokemonDbContext _context;
@@ -24,9 +20,30 @@ namespace ResourceApi.Controllers
             _context = context;
         }
 
-        // POST: api/captures/{pokemonId}
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CaptureDto>>> GetCaptures()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var captures = await _context.Captures
+                .Include(c => c.Pokemon)
+                .Where(c => c.UserId == userId)
+                .Select(c => new CaptureDto
+                {
+                    Id = c.Id,
+                    PokemonId = c.PokemonId,
+                    PokemonName = c.Pokemon.Name,
+                    PokemonImageUrl = c.Pokemon.ImageUrl,
+                    CapturedAt = c.CapturedAt
+                })
+                .ToListAsync();
+
+            return Ok(captures);
+        }
+
         [HttpPost("{pokemonId}")]
-        public async Task<IActionResult> CapturePokemon(int pokemonId)
+        public async Task<ActionResult<CaptureDto>> CapturePokemon(int pokemonId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
