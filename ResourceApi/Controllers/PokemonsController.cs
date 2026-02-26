@@ -20,8 +20,9 @@ namespace ResourceApi.Controllers
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons(
-            [FromQuery] string? search = null, // Task 2.2.1
-            [FromQuery] string? type = null,   // Task 2.2.2
+            [FromQuery] string? search = null,
+            [FromQuery] string? type = null,
+            [FromQuery] int? generation = null,
             [FromQuery] int offset = 0,
             [FromQuery] int limit = 20)
         {
@@ -31,14 +32,12 @@ namespace ResourceApi.Controllers
                     .ThenInclude(pt => pt.Type)
                 .AsQueryable();
 
-            // Task 2.2.1: Search by Name (Case-insensitive, Partial Match)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string searchLower = search.ToLower();
                 query = query.Where(p => p.Name.ToLower().Contains(searchLower));
             }
 
-            // Task 2.2.2: Filter by Type Name (Case-insensitive)
             if (!string.IsNullOrWhiteSpace(type))
             {
                 string typeLower = type.ToLower();
@@ -46,7 +45,11 @@ namespace ResourceApi.Controllers
                 query = query.Where(p => p.PokemonTypes.Any(pt => pt.Type.Name.ToLower() == typeLower));
             }
 
-            // Order by PokedexNumber as per standard sorting
+            if (generation.HasValue)
+            {
+                query = query.Where(p => p.Generation == generation.Value);
+            }
+
             query = query.OrderBy(p => p.PokedexNumber);
 
             var pokemons = await query
