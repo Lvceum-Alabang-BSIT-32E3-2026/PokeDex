@@ -14,21 +14,52 @@ namespace ResourceApi.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
-            modelBuilder.Entity("PokemonPokemonType", b =>
+            modelBuilder.Entity("ResourceApi.Models.Capture", b =>
                 {
-                    b.Property<int>("PokemonTypesId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("PokemonsId")
+                    b.Property<DateTime>("CapturedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PokemonId")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("PokemonTypesId", "PokemonsId");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
-                    b.HasIndex("PokemonsId");
+                    b.HasKey("Id");
 
-                    b.ToTable("PokemonPokemonType");
+                    b.HasIndex("PokemonId");
+
+                    b.ToTable("Captures");
+                });
+
+            modelBuilder.Entity("ResourceApi.Models.Capture", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CapturedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PokemonId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PokemonId");
+
+                    b.ToTable("Captures");
                 });
 
             modelBuilder.Entity("ResourceApi.Models.Pokemon", b =>
@@ -37,10 +68,19 @@ namespace ResourceApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Attack")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("BaseExperience")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Defense")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Generation")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HP")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Height")
@@ -63,6 +103,15 @@ namespace ResourceApi.Migrations
                     b.Property<int>("PokedexNumber")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("SpecialAttack")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SpecialDefense")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Speed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("Weight")
                         .HasColumnType("TEXT");
 
@@ -74,36 +123,70 @@ namespace ResourceApi.Migrations
                         new
                         {
                             Id = 1,
+                            Attack = 0,
                             BaseExperience = 64,
+                            Defense = 0,
                             Generation = 1,
+                            HP = 0,
                             Height = 0.7m,
                             ImageUrl = "bulbasaur.png",
                             IsLegendary = false,
                             IsMythical = false,
                             Name = "Bulbasaur",
                             PokedexNumber = 1,
+                            SpecialAttack = 0,
+                            SpecialDefense = 0,
+                            Speed = 0,
                             Weight = 6.9m
                         },
                         new
                         {
                             Id = 4,
+                            Attack = 0,
                             BaseExperience = 62,
+                            Defense = 0,
                             Generation = 1,
+                            HP = 0,
                             Height = 0.6m,
                             ImageUrl = "charmander.png",
                             IsLegendary = false,
                             IsMythical = false,
                             Name = "Charmander",
                             PokedexNumber = 4,
+                            SpecialAttack = 0,
+                            SpecialDefense = 0,
+                            Speed = 0,
                             Weight = 8.5m
                         });
                 });
 
             modelBuilder.Entity("ResourceApi.Models.PokemonType", b =>
                 {
+                    b.Property<int>("PokemonId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("PokemonId", "TypeId");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("PokemonTypes");
+                });
+
+            modelBuilder.Entity("ResourceApi.Models.PokemonTypeEntity", b =>
+                {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -111,22 +194,36 @@ namespace ResourceApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PokemonTypes");
+                    b.ToTable("PokemonTypeEntities");
                 });
 
-            modelBuilder.Entity("PokemonPokemonType", b =>
+            modelBuilder.Entity("ResourceApi.Models.PokemonType", b =>
                 {
-                    b.HasOne("ResourceApi.Models.PokemonType", null)
-                        .WithMany()
-                        .HasForeignKey("PokemonTypesId")
+                    b.HasOne("ResourceApi.Models.Pokemon", "Pokemon")
+                        .WithMany("PokemonTypes")
+                        .HasForeignKey("PokemonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ResourceApi.Models.Pokemon", null)
-                        .WithMany()
-                        .HasForeignKey("PokemonsId")
+                    b.HasOne("ResourceApi.Models.PokemonTypeEntity", "Type")
+                        .WithMany("PokemonTypes")
+                        .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Pokemon");
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("ResourceApi.Models.Pokemon", b =>
+                {
+                    b.Navigation("PokemonTypes");
+                });
+
+            modelBuilder.Entity("ResourceApi.Models.PokemonTypeEntity", b =>
+                {
+                    b.Navigation("PokemonTypes");
                 });
 #pragma warning restore 612, 618
         }
