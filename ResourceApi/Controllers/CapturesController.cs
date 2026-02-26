@@ -1,13 +1,10 @@
-﻿// ResourceApi/Controllers/CapturesController.cs
-using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceApi.Data;
+using ResourceApi.DTOs;
 using ResourceApi.Models;
+using System.Security.Claims;
 
 namespace ResourceApi.Controllers
 {
@@ -23,38 +20,78 @@ namespace ResourceApi.Controllers
             _context = context;
         }
 
-        // GET: api/captures
         [HttpGet]
-        public async Task<IActionResult> GetUserCaptures()
+        public async Task<ActionResult<IEnumerable<CaptureDto>>> GetCaptures()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            var capturedPokemonIds = await _context.Captures
+            var captures = await _context.Captures
+                .Include(c => c.Pokemon)
                 .Where(c => c.UserId == userId)
-                .Select(c => c.PokemonId)
+                .Select(c => new CaptureDto
+                {
+                    Id = c.Id,
+                    PokemonId = c.PokemonId,
+                    PokemonName = c.Pokemon.Name,
+                    PokemonImageUrl = c.Pokemon.ImageUrl,
+                    CapturedAt = c.CapturedAt
+                })
                 .ToListAsync();
 
-            return Ok(capturedPokemonIds);
+            return Ok(captures);
         }
 
-        // GET: api/captures/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCaptureById(int id)
+        [HttpPost("{pokemonId}")]
+        public async Task<ActionResult<CaptureDto>> CapturePokemon(int pokemonId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var pokemon = await _context.Pokemons.FindAsync(pokemonId);
+            if (pokemon == null) return NotFound("Pokemon not found.");
+
+            // Check if already captured
+            var existing = await _context.Captures
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.PokemonId == pokemonId);
+            
+            if (existing != null) return BadRequest("Pokemon already captured.");
+
+            var capture = new Capture
+            {
+                PokemonId = pokemonId,
+                UserId = userId,
+                CapturedAt = DateTime.UtcNow
+            };
+
+            _context.Captures.Add(capture);
+            await _context.SaveChangesAsync();
+
+            return Ok(new CaptureDto
+            {
+                Id = capture.Id,
+                PokemonId = capture.PokemonId,
+                PokemonName = pokemon.Name,
+                PokemonImageUrl = pokemon.ImageUrl,
+                CapturedAt = capture.CapturedAt
+            });
+        }
+
+        [HttpDelete("{pokemonId}")]
+        public async Task<IActionResult> ReleasePokemon(int pokemonId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var capture = await _context.Captures
-                .Where(c => c.Id == id && c.UserId == userId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.PokemonId == pokemonId);
 
-            if (capture == null)
-                return NotFound();
+            if (capture == null) return NotFound("Capture not found.");
 
-            return Ok(capture);
+            _context.Captures.Remove(capture);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }
