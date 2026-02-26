@@ -16,6 +16,7 @@ import { pokemonService } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from "./ThemeToggle";
 
 export const Pokedex: React.FC = () => {
     const { isAdmin, user, logout } = useAuth();
@@ -127,6 +128,8 @@ export const Pokedex: React.FC = () => {
                         <h1 className="text-2xl font-bold text-white hidden sm:block">Pokedex</h1>
 
                         <div className="flex items-center gap-2">
+                            <ThemeToggle />
+
                             <button
                                 onClick={() => navigate('/recommendations')}
                                 className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
