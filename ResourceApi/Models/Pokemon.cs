@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ResourceApi.Models;
 
@@ -19,9 +19,6 @@ public class Pokemon
     public decimal Height { get; set; } // in meters
     public decimal Weight { get; set; } // in kg
 
-    // Navigation property
-    // Make sure the class 'PokemonType' is defined elsewhere in your project!
-    // Sa loob ng Pokemon class
     public int HP { get; set; }
     public int Attack { get; set; }
     public int Defense { get; set; }

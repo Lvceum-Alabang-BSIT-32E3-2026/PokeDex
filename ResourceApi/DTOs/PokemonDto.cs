@@ -1,4 +1,4 @@
-namespace ResourceApi.DTOs
+﻿namespace ResourceApi.DTOs
 {
     public class PokemonDto
     {
@@ -17,5 +17,8 @@ namespace ResourceApi.DTOs
         public int SpecialAttack { get; set; }
         public int SpecialDefense { get; set; }
         public int Speed { get; set; }
+
+        public decimal Height { get; set; }
+        public decimal Weight { get; set; }
     }
 }
