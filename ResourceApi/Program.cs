@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -6,10 +6,7 @@ using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// SERVICES
-// --------------------
-
+// --- SERVICES CONFIGURATION ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,7 +21,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // adjust if needed
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -32,7 +29,7 @@ builder.Services.AddCors(options =>
 
 // ✅ JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -63,9 +60,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// --------------------
-// SEED DATABASE
-// --------------------
+// --- SEED DATABASE ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -82,9 +77,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// --------------------
-// MIDDLEWARE
-// --------------------
+// --- MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -92,10 +85,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowFrontend");
-
-app.UseAuthentication();   // MUST come before Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

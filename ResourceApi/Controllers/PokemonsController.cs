@@ -22,7 +22,7 @@ namespace ResourceApi.Controllers
         public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons(
             [FromQuery] string? search = null,
             [FromQuery] string? type = null,
-            [FromQuery] int? generation = null, // Task 2.2.3: Added generation filter
+            [FromQuery] int? generation = null,
             [FromQuery] int offset = 0,
             [FromQuery] int limit = 20)
         {
@@ -31,21 +31,18 @@ namespace ResourceApi.Controllers
                     .ThenInclude(pt => pt.Type)
                 .AsQueryable();
 
-            // Task 2.2.1: Search by Name
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string searchLower = search.ToLower();
                 query = query.Where(p => p.Name.ToLower().Contains(searchLower));
             }
 
-            // Task 2.2.2: Filter by Type Name
             if (!string.IsNullOrWhiteSpace(type))
             {
                 string typeLower = type.ToLower();
                 query = query.Where(p => p.PokemonTypes.Any(pt => pt.Type.Name.ToLower() == typeLower));
             }
 
-            // Task 2.2.3: Filter by Generation
             if (generation.HasValue)
             {
                 query = query.Where(p => p.Generation == generation.Value);
