@@ -1,38 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+using ResourceApi.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// SERVICES
-// --------------------
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// ✅ Database
-builder.Services.AddDbContext<PokemonDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
-
-// ✅ CORS (single clean policy)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173") // adjust if needed
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-
-// ✅ JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+// Task 2.4.6: JWT Configuration
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secret = jwtSettings["Secret"]!;
+var issuer = jwtSettings["Issuer"]!;
+var audience = jwtSettings["Audience"]!;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -44,28 +22,38 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
-
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
-
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero, // optional strict expiration
-
-        RoleClaimType = "role" // map IdentityServer "role" claims to ASP.NET roles
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
     };
 });
 
-builder.Services.AddAuthorization();
+// --- SERVICES CONFIGURATION ---
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Task 2.1.10: Enable CORS (Allow frontend access)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+builder.Services.AddDbContext<PokemonDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
 var app = builder.Build();
 
-// --------------------
-// SEED DATABASE
-// --------------------
+// --- SEEDING LOGIC ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -78,13 +66,11 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error while seeding database.");
+        logger.LogError(ex, "Nagkaroon ng error sa pag-seed ng database.");
     }
 }
 
-// --------------------
-// MIDDLEWARE
-// --------------------
+// --- MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -93,9 +79,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Task 2.1.10: CORS Middleware: Dapat itong ilagay bago ang Authorization
 app.UseCors("AllowFrontend");
 
-app.UseAuthentication();   // MUST come before Authorization
+app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
 app.UseAuthorization();
 
 app.MapControllers();
