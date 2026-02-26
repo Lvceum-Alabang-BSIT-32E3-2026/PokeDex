@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { pokemonService, Pokemon } from '../services/pokemonService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Plus, X, Save, Edit2, Trash2 } from 'lucide-react';
+import { Pokemon } from '../types/pokemon';
+import { pokemonService } from '../services/pokemonService';
+import { useParams, Link } from "react-router-dom";
 
-interface PokemonCMSProps {
-  onBack: () => void;
+function PokemonCMS() {
+    const { id } = useParams<{ id: string }>();
+
+    return (
+        <div>
+            <h1>Pokemon Details - {id}</h1>
+            {/* Your Pokemon detail UI */}
+            <Link to="/">← Back to Pokedex</Link>
+        </div>
+    );
 }
+
+export default PokemonCMS;
 
 // All 18 Pokemon types (fallback if API fails)
 const FALLBACK_TYPES = [
@@ -164,21 +176,16 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Error & success state
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  // Form State
   const [formData, setFormData] = useState<Partial<Pokemon>>({
     name: '',
     types: [],
-    image: ''
+    imageUrl: ''
   });
-
   const [formErrors, setFormErrors] = useState<{ name?: string; types?: string }>({});
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
 
@@ -215,10 +222,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     loadTypes();
   }, []);
 
-  const showSuccess = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(null), 3000);
-  };
+  // Function removed as unused
 
   // Pagination Logic
   const totalContents = pokemonList.length;
@@ -253,8 +257,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
-      setPokemonList(data);
+      const response = await pokemonService.getList(0, 200); // Fetch a larger set for client-side pagination
+      setPokemonList(response.items);
       setCurrentPage(1); // Reset to first page on reload
     } catch (err: any) {
       setError(err?.message || 'Failed to load Pokémon. Please try again.');
@@ -305,6 +309,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setIsEditing(p.id);
     setFormData({ ...p });
     setIsAdding(false);
+    setFormErrors({});
+    setError(null);
   };
 
   const startAdd = () => {
@@ -314,7 +320,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     setFormData({
       name: '',
       types: [],
-      image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
+      imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'
     });
     setFormErrors({});
   };
@@ -328,9 +334,13 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
       const newPokemon: Pokemon = {
         id: newId,
+        pokedexNumber: newId,
         name: formData.name || 'Unknown',
         types: formData.types || ['normal'],
-        image: formData.image || ''
+        imageUrl: formData.imageUrl || '',
+        generation: 1,
+        isLegendary: false,
+        isMythical: false
       };
       setPokemonList([newPokemon, ...pokemonList]);
     } else if (isEditing) {
@@ -343,9 +353,9 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     try {
       if (isAdding) {
         const created = await pokemonService.createPokemon({
-          name: formData.name.trim(),
+          name: formData.name?.trim() || '',
           types: formData.types || ['normal'],
-          image: formData.image || '',
+          imageUrl: formData.imageUrl || '',
         });
 
         // Ensure the new pokemon appears at the very top of the list (Criterion: New Pokemon appears in list)
@@ -439,7 +449,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${isEditing === p.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                 >
                   <div className="flex items-center gap-4">
-                    <img src={p.image} alt={p.name} className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1" />
+                    <img src={p.imageUrl} alt={p.name} className="w-12 h-12 object-contain bg-slate-100 rounded-lg p-1" />
                     <div>
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
@@ -454,13 +464,15 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEdit(p)}
-                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                      disabled={loading}
+                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(p)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      disabled={loading}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -468,75 +480,75 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Pagination Controls */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <span>Show</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+          {/* Pagination Controls */}
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {pageOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <span>per page</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="First Page"
                 >
-                  {pageOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-                <span>per page</span>
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="First Page"
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Previous Page"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <span className="text-blue-600">Page {currentPage}</span>
-                  <span className="text-slate-400">of</span>
-                  <span className="text-slate-700">{totalPages || 1}</span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Next Page"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
-                    title="Last Page"
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
-                </div>
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <span className="text-blue-600">Page {currentPage}</span>
+                <span className="text-slate-400">of</span>
+                <span className="text-slate-700">{totalPages || 1}</span>
               </div>
 
-              <div className="text-xs text-slate-400 font-medium">
-                Showing {totalContents === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalContents)} of {totalContents} entries
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition-colors"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
               </div>
+            </div>
+
+            <div className="text-xs text-slate-400 font-medium">
+              Showing {totalContents === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalContents)} of {totalContents} entries
             </div>
           </div>
         </div>
@@ -570,11 +582,10 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className={`w-full border rounded-lg px-3 py-2 outline-none transition-all ${
-                        formErrors.name 
-                          ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-red-50' 
-                          : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      }`}
+                      className={`w-full border rounded-lg px-3 py-2 outline-none transition-all ${formErrors.name
+                        ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-red-50'
+                        : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                       placeholder="e.g. Pikachu"
                     />
                     {formErrors.name && (
@@ -626,15 +637,22 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                       <div className="flex-1">
                         <input
                           type="text"
-                          value={formData.image}
-                          onChange={e => setFormData({ ...formData, image: e.target.value })}
+                          value={formData.imageUrl}
+                          onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
                           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         />
                       </div>
                     </div>
-                    {formData.image && (
+                    {formData.imageUrl && (
                       <div className="mt-2 p-2 border border-slate-100 rounded-lg flex justify-center bg-slate-50">
-                        <img src={formData.image} className="h-24 object-contain" alt="Preview" />
+                        <img
+                          src={formData.imageUrl}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
+                          }}
+                          className="h-24 object-contain"
+                          alt="Preview"
+                        />
                       </div>
                     )}
                   </div>
@@ -647,7 +665,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     >
                       Cancel
                     </button>
-                     <button
+                    <button
                       type="submit"
                       disabled={isFormInvalid || isSaving}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -670,58 +688,60 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </main >
 
       {/* ── Delete Confirmation Modal ── */}
       <AnimatePresence>
-        {deleteTarget && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
-              onClick={handleDeleteCancel}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-red-100 p-2.5 rounded-full">
-                    <Trash2 className="w-5 h-5 text-red-600" />
+        {
+          deleteTarget && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+                onClick={handleDeleteCancel}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              >
+                <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-red-100 p-2.5 rounded-full">
+                      <Trash2 className="w-5 h-5 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Delete {deleteTarget.name}?</h3>
+                  <p className="text-slate-600 text-sm mb-6">
+                    Are you sure you want to delete{' '}
+                    <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
+                    This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDeleteCancel}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      disabled={isSaving}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSaving ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-slate-600 text-sm mb-6">
-                  Are you sure you want to delete{' '}
-                  <span className="font-bold capitalize text-slate-800">"{deleteTarget.name}"</span>?
-                  This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleDeleteCancel}
-                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-600 font-medium rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    disabled={isSaving}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+              </motion.div>
+            </>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 };
