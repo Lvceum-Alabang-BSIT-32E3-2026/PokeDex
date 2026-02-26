@@ -22,5 +22,12 @@ public class Pokemon
     // Navigation property
     // Make sure the class 'PokemonType' is defined elsewhere in your project!
     // Sa loob ng Pokemon class
+    public int HP { get; set; }
+    public int Attack { get; set; }
+    public int Defense { get; set; }
+    public int SpecialAttack { get; set; }
+    public int SpecialDefense { get; set; }
+    public int Speed { get; set; }
+
     public ICollection<PokemonType> PokemonTypes { get; set; } = new List<PokemonType>();
 }
