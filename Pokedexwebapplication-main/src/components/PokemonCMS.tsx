@@ -7,12 +7,37 @@ import { useParams, Link } from "react-router-dom";
 
 function PokemonCMS() {
     const { id } = useParams<{ id: string }>();
+    const { isAdmin } = useAuth(); // Admin check
 
     return (
         <div>
-            <h1>Pokemon Details - {id}</h1>
-            {/* Your Pokemon detail UI */}
-            <Link to="/">← Back to Pokedex</Link>
+            {/* CMS Navigation */}
+            <nav>
+                <ul>
+                    <li>
+                        <Link to="/cms/dashboard">Dashboard</Link>
+                    </li>
+                    <li>
+                        <Link to="/cms/pokedex">Pokedex</Link>
+                    </li>
+
+                    {/* User Management link only for admins */}
+                    {isAdmin && (
+                        <li>
+                            <Link to="/cms/users">User Management</Link>
+                        </li>
+                    )}
+                </ul>
+            </nav>
+
+            {/* Pokemon Details Section */}
+            {id && (
+                <div>
+                    <h1>Pokemon Details - {id}</h1>
+                    {/* Your Pokemon detail UI */}
+                    <Link to="/cms/pokedex">← Back to Pokedex</Link>
+                </div>
+            )}
         </div>
     );
 }
