@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceApi.Data;
+using ResourceApi.DTOs;
 using ResourceApi.Models;
+using System.Security.Claims;
 
 namespace ResourceApi.Controllers
 {
