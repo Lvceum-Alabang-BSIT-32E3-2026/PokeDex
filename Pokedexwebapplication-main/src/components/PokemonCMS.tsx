@@ -1,48 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, X, Save, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, X, Save, Edit2, Trash2, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
 import { Pokemon } from '../types/pokemon';
 import { pokemonService } from '../services/pokemonService';
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from '../contexts/AuthContext';
 
-function PokemonCMS() {
-    const { id } = useParams<{ id: string }>();
-    const { isAdmin } = useAuth(); // Admin check
-
-    return (
-        <div>
-            {/* CMS Navigation */}
-            <nav>
-                <ul>
-                    <li>
-                        <Link to="/cms/dashboard">Dashboard</Link>
-                    </li>
-                    <li>
-                        <Link to="/cms/pokedex">Pokedex</Link>
-                    </li>
-
-                    {/* User Management link only for admins */}
-                    {isAdmin && (
-                        <li>
-                            <Link to="/cms/users">User Management</Link>
-                        </li>
-                    )}
-                </ul>
-            </nav>
-
-            {/* Pokemon Details Section */}
-            {id && (
-                <div>
-                    <h1>Pokemon Details - {id}</h1>
-                    {/* Your Pokemon detail UI */}
-                    <Link to="/cms/pokedex">← Back to Pokedex</Link>
-                </div>
-            )}
-        </div>
-    );
+interface PokemonCMSProps {
+  onBack: () => void;
 }
-
-export default PokemonCMS;
 
 // All 18 Pokemon types (fallback if API fails)
 const FALLBACK_TYPES = [
@@ -197,6 +163,8 @@ const TypeSelect: React.FC<TypeSelectProps> = ({
 
 // ─── Main CMS Component ─────────────────────────────────────────────────────
 export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
+  const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useAuth(); // Admin check
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -210,9 +178,10 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -240,29 +209,38 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   const isFormInvalid = !formData.name?.trim() || !formData.types || formData.types.length === 0 || !formData.types[0];
 
-  const isOperating = loading || isSaving || deletingId !== null;
+  const isOperating = loading || isSaving || deletingId !== null || deleteTarget !== null;
 
   useEffect(() => {
     loadData();
     loadTypes();
   }, []);
 
-  // Function removed as unused
-
   // Pagination Logic
-  const totalContents = pokemonList.length;
-  const totalPages = Math.ceil(totalContents / itemsPerPage);
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredList = normalizedSearch
+    ? pokemonList.filter(p =>
+        p.name.toLowerCase().includes(normalizedSearch) ||
+        p.types.some(t => t.toLowerCase().includes(normalizedSearch))
+      )
+    : pokemonList;
+  const totalContents = filteredList.length;
+  const totalPages = Math.max(1, Math.ceil(totalContents / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedList = pokemonList.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedList = filteredList.slice(startIndex, startIndex + itemsPerPage);
 
   // Reset to first page when data or page size changes
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
+    if (currentPage > totalPages) {
       setCurrentPage(totalPages);
-    } else if (totalPages === 0) {
+    } else if (totalContents === 0 && currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [pokemonList.length, itemsPerPage, totalPages, currentPage]);
+  }, [totalPages, currentPage, totalContents]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
 
   useEffect(() => {
     if (error) {
@@ -356,7 +334,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     if (!validateForm()) return;
 
     if (isAdding) {
-      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
+      const newId = Math.max(...pokemonList.map(p => p.id), 0) + 1;
       const newPokemon: Pokemon = {
         id: newId,
         pokedexNumber: newId,
@@ -401,6 +379,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       setError(err.message || 'Failed to save Pokemon. Please try again.');
     } finally {
       setIsSaving(false);
+      setIsAdding(false);
+      setIsEditing(null);
     }
   };
 
@@ -410,14 +390,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              disabled={isOperating}
-              className="p-2 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold">CMS Dashboard</h1>
+            <Link to="/cms/dashboard" className="mr-4 hover:underline text-sm font-bold text-slate-300">Dashboard</Link>
+            <Link to="/cms/pokedex" className="hover:underline text-sm font-bold text-slate-300">CMS</Link>
+            {isAdmin && (
+              <Link to="/cms/users" className="ml-4 hover:underline text-sm font-bold text-slate-300">Users</Link>
+            )}
+            <h1 className="text-xl font-bold ml-6">CMS Editor</h1>
           </div>
           <button
             onClick={startAdd}
@@ -464,8 +442,30 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
         {/* List View */}
         <div className="flex-1">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex justify-between">
-              <span>Inventory ({pokemonList.length})</span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-500 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <span>Inventory ({totalContents})</span>
+              <div className="w-full md:w-auto">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search Pokémon..."
+                    className="w-full md:w-64 pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="divide-y divide-slate-100 max-h-[80vh] overflow-y-auto">
               {paginatedList.map(p => (
@@ -478,11 +478,6 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     <div>
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
-                        {p.generation && (
-                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                            Gen {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][p.generation - 1] || p.generation}
-                          </span>
-                        )}
                         {p.types.map(t => (
                           <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
                             {t}
@@ -509,6 +504,9 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                   </div>
                 </div>
               ))}
+              {paginatedList.length === 0 && (
+                <div className="text-center text-slate-500 py-12">No Pokémon found.</div>
+              )}
             </div>
           </div>
 
@@ -585,7 +583,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
         {/* Editor Panel */}
         <AnimatePresence mode="wait">
-          {(isEditing || isAdding) && (
+          {(isEditing !== null || isAdding) && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -775,3 +773,5 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     </div >
   );
 };
+
+export default PokemonCMS;
