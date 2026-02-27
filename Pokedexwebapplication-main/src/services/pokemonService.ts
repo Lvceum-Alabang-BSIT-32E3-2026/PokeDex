@@ -19,6 +19,11 @@ export interface EvolutionNode {
   image: string;
 }
 
+export interface BaseStat {
+  name: string;
+  value: number;
+}
+
 // Helper to clean up API responses
 const formatApiPokemon = (p: any): Pokemon => ({
   name: p.name,
@@ -49,55 +54,6 @@ export const pokemonService = {
 
     // Live API Implementation — calls our local ResourceApi
     try {
-<<<<<<< Updated upstream
-      let results = [];
-
-      if (genFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/generation/${genFilter}`);
-        const data = await res.json();
-        // Process species to get proper IDs for sorting/fetching
-        results = data.pokemon_species.map((s: any) => {
-          const id = parseInt(s.url.split('/').filter(Boolean).pop());
-          return {
-            name: s.name,
-            url: `https://pokeapi.co/api/v2/pokemon/${id}`,
-            id: id
-          };
-        }).sort((a: any, b: any) => a.id - b.id);
-
-        // Pagination for Gen view (client side slice for now)
-        // results = results.slice(offset, offset + limit);
-
-      } else if (typeFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/type/${typeFilter}`);
-        const data = await res.json();
-        results = data.pokemon.map((p: any) => p.pokemon);
-      } else {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
-        const data = await res.json();
-        results = data.results;
-      }
-
-      // If we have a huge list (Gen/Type filters), we slice it for the view here
-      // For standard pagination, 'results' is already chunked.
-      const viewResults = (genFilter !== 'all' || typeFilter !== 'all')
-        ? results.slice(0, 50)
-        : results;
-
-      // Fetch details for each
-      const detailed = await Promise.all(
-        viewResults.map(async (p: any) => {
-          let url = p.url;
-          if (!url && p.pokemon) url = p.pokemon.url;
-
-          const res = await fetch(url);
-          const details = await res.json();
-          return formatApiPokemon(details);
-        })
-      );
-
-      return detailed;
-=======
       const params = new URLSearchParams();
       if (genFilter !== 'all') params.append('generation', genFilter);
       if (typeFilter !== 'all') params.append('type', typeFilter);
@@ -119,7 +75,6 @@ export const pokemonService = {
         types: p.type ? p.type.split(',').map((t: string) => t.trim().toLowerCase()) : [],
         image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
       }));
->>>>>>> Stashed changes
     } catch (error) {
       console.error('API Error:', error);
       return [];
@@ -179,6 +134,49 @@ export const pokemonService = {
     } catch (error) {
       console.error('Evo API Error:', error);
       return [];
+    }
+  },
+
+  async getBaseStats(pokemonId: number): Promise<BaseStat[]> {
+    const MOCK_STATS: Record<number, BaseStat[]> = {
+      1: [{ name: 'HP', value: 45 }, { name: 'Attack', value: 49 }, { name: 'Defense', value: 49 }, { name: 'Sp. Atk', value: 65 }, { name: 'Sp. Def', value: 65 }, { name: 'Speed', value: 45 }],
+      4: [{ name: 'HP', value: 39 }, { name: 'Attack', value: 52 }, { name: 'Defense', value: 43 }, { name: 'Sp. Atk', value: 60 }, { name: 'Sp. Def', value: 50 }, { name: 'Speed', value: 65 }],
+      6: [{ name: 'HP', value: 78 }, { name: 'Attack', value: 84 }, { name: 'Defense', value: 78 }, { name: 'Sp. Atk', value: 109 }, { name: 'Sp. Def', value: 85 }, { name: 'Speed', value: 100 }],
+      7: [{ name: 'HP', value: 44 }, { name: 'Attack', value: 48 }, { name: 'Defense', value: 65 }, { name: 'Sp. Atk', value: 50 }, { name: 'Sp. Def', value: 64 }, { name: 'Speed', value: 43 }],
+      25: [{ name: 'HP', value: 35 }, { name: 'Attack', value: 55 }, { name: 'Defense', value: 40 }, { name: 'Sp. Atk', value: 50 }, { name: 'Sp. Def', value: 50 }, { name: 'Speed', value: 90 }],
+      39: [{ name: 'HP', value: 115 }, { name: 'Attack', value: 45 }, { name: 'Defense', value: 20 }, { name: 'Sp. Atk', value: 45 }, { name: 'Sp. Def', value: 25 }, { name: 'Speed', value: 20 }],
+      94: [{ name: 'HP', value: 60 }, { name: 'Attack', value: 65 }, { name: 'Defense', value: 60 }, { name: 'Sp. Atk', value: 130 }, { name: 'Sp. Def', value: 75 }, { name: 'Speed', value: 110 }],
+      133: [{ name: 'HP', value: 55 }, { name: 'Attack', value: 55 }, { name: 'Defense', value: 50 }, { name: 'Sp. Atk', value: 45 }, { name: 'Sp. Def', value: 65 }, { name: 'Speed', value: 55 }],
+      143: [{ name: 'HP', value: 160 }, { name: 'Attack', value: 110 }, { name: 'Defense', value: 65 }, { name: 'Sp. Atk', value: 65 }, { name: 'Sp. Def', value: 110 }, { name: 'Speed', value: 30 }],
+      150: [{ name: 'HP', value: 106 }, { name: 'Attack', value: 110 }, { name: 'Defense', value: 90 }, { name: 'Sp. Atk', value: 154 }, { name: 'Sp. Def', value: 90 }, { name: 'Speed', value: 130 }],
+    };
+    const DEFAULT_STATS: BaseStat[] = [
+      { name: 'HP', value: 50 }, { name: 'Attack', value: 50 }, { name: 'Defense', value: 50 },
+      { name: 'Sp. Atk', value: 50 }, { name: 'Sp. Def', value: 50 }, { name: 'Speed', value: 50 },
+    ];
+
+    if (!USE_LIVE_API) {
+      return MOCK_STATS[pokemonId] ?? DEFAULT_STATS;
+    }
+
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+      if (!res.ok) throw new Error(`PokeAPI error: ${res.status}`);
+      const data = await res.json();
+      const statNameMap: Record<string, string> = {
+        'hp': 'HP',
+        'attack': 'Attack',
+        'defense': 'Defense',
+        'special-attack': 'Sp. Atk',
+        'special-defense': 'Sp. Def',
+        'speed': 'Speed',
+      };
+      return data.stats
+        .filter((s: any) => statNameMap[s.stat.name] !== undefined)
+        .map((s: any) => ({ name: statNameMap[s.stat.name], value: s.base_stat }));
+    } catch (error) {
+      console.error('Stats API Error:', error);
+      return DEFAULT_STATS;
     }
   },
 
