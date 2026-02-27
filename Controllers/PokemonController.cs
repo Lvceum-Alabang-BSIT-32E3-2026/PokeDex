@@ -52,5 +52,31 @@ namespace ResourceApi.Controllers
                 PageSize = limit
             });
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<PokemonDto>> GetPokemon(int id)
+        {
+            var pokemon = await _context.Pokemons
+                .Include(p => p.PokemonTypes)
+                    .ThenInclude(pt => pt.Type)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pokemon == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new PokemonDto
+            {
+                Id = pokemon.Id,
+                PokedexNumber = pokemon.PokedexNumber,
+                Name = pokemon.Name,
+                ImageUrl = pokemon.ImageUrl,
+                Generation = pokemon.Generation,
+                IsLegendary = pokemon.IsLegendary,
+                IsMythical = pokemon.IsMythical,
+                Types = pokemon.PokemonTypes.Select(pt => pt.Type.Name).ToList()
+            });
+        }
     }
 }
