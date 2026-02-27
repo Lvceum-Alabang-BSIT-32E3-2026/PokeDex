@@ -1,31 +1,21 @@
-﻿// src/components/AdminRoute.tsx
-import React, { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from 'hooks/useAuth'; // absolute path from src/hooks/useAuth
-import { Pokedex } from 'components/Pokedex'; // absolute path from src/components/Pokedex
+﻿import React, { ReactNode } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import Login from "../components/Login";
+import { Pokedex } from "../components/Pokedex"; // keep this if your Pokedex is in pages
 
-interface AdminRouteProps {
-    children: ReactNode;
-}
+export function AdminRoute({ children }: { children: ReactNode }) {
+    const { isAuthenticated, isAdmin } = useAuth();
 
-export function AdminRoute({ children }: AdminRouteProps) {
-    const { isAuthenticated, user } = useAuth();
-
-    // 1️⃣ Redirect non-authenticated users to login
+    // If not authenticated → show Login
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Login />;
     }
 
-    // 2️⃣ Check if user is admin
-    const isAdmin = Array.isArray(user?.role)
-        ? user.role.includes('Admin')
-        : user?.role === 'Admin';
-
-    // 3️⃣ Redirect non-admin users to Pokedex
+    // If authenticated but not admin → redirect to Pokedex
     if (!isAdmin) {
-        return <Navigate to="/pokedex" replace />;
+        return <Pokedex />;
     }
 
-    // 4️⃣ Admin users can access children
+    // If admin → allow access
     return <>{children}</>;
 }
