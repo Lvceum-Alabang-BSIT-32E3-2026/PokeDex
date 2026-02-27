@@ -1,32 +1,21 @@
-﻿//// src/components/AdminRoute.tsx
-import React, { ReactNode } from "react";
-import { useAuth } from "hooks/useAuth"; // absolute path from src/hooks/useAuth
-import { Login } from "components/Login"; // absolute path from src/components/Login
-import { Pokedex } from "components/Pokedex"; // absolute path from src/components/Pokedex
+﻿import React, { ReactNode } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import Login from "../components/Login";
+import { Pokedex } from "../components/Pokedex"; // keep this if your Pokedex is in pages
 
-interface AdminRouteProps {
-  children: ReactNode;
-}
+export function AdminRoute({ children }: { children: ReactNode }) {
+    const { isAuthenticated, isAdmin } = useAuth();
 
-export function AdminRoute({ children }: AdminRouteProps) {
-  const { isAuthenticated, isAdmin } = useAuth();
+    // If not authenticated → show Login
+    if (!isAuthenticated) {
+        return <Login />;
+    }
 
-  // 1️⃣ Redirect non-authenticated users to login
-  if (!isAuthenticated) {
-    return <Login />;
-  }
+    // If authenticated but not admin → redirect to Pokedex
+    if (!isAdmin) {
+        return <Pokedex />;
+    }
 
-  // 2️⃣ Redirect non-admin users to Pokedex or show access denied
-  if (!isAdmin) {
-    return (
-      <div>
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view this page.</p>
-        <Pokedex />
-      </div>
-    );
-  }
-
-  // 3️⃣ Admin users can access children
-  return <>{children}</>;
+    // If admin → allow access
+    return <>{children}</>;
 }

@@ -6,6 +6,7 @@ import Pokedex from './components/Pokedex';
 import PokemonCMS from './components/PokemonCMS';
 import Recommendations from './components/Recommendations';
 import ProfilePage from './components/ProfilePage';
+import UserManagement from './components/UserManagement';
 
 const AppRoutes = () => {
     const { isAuthenticated, user, logout } = useAuth();

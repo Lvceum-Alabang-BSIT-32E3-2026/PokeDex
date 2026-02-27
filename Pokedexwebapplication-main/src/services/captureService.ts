@@ -1,82 +1,49 @@
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-const handleResponse = async (response: Response) => {
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message = (errorBody && errorBody.message) || response.statusText;
-        throw new Error(message || 'Capture API request failed');
-    }
-    return response;
+const getAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 export const captureService = {
-    async list(): Promise<number[]> {
-        if (!USE_LIVE_API) {
-            const saved = localStorage.getItem('capturedPokemon');
-            return saved ? JSON.parse(saved) : [];
-        }
+  async getCaptures(): Promise<number[]> {
+    const response = await fetch(`${API_BASE}/api/captures`, {
+      headers: getAuthHeaders(),
+    });
 
-        const response = await handleResponse(
-            await fetch(`${API_URL}/api/captures`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders()
-                }
-            })
-        );
-
-        const data = await response.json();
-        if (Array.isArray(data)) {
-            return data;
-        }
-        if (Array.isArray(data?.items)) {
-            return data.items;
-        }
-        if (Array.isArray(data?.pokemonIds)) {
-            return data.pokemonIds;
-        }
-        return [];
-    },
-
-    async capture(id: number): Promise<void> {
-        if (!USE_LIVE_API) {
-            const current = new Set<number>(JSON.parse(localStorage.getItem('capturedPokemon') || '[]'));
-            current.add(id);
-            localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(current)));
-            return;
-        }
-
-        await handleResponse(
-            await fetch(`${API_URL}/api/captures/${id}`, {
-                method: 'POST',
-                headers: {
-                    ...getAuthHeaders()
-                }
-            })
-        );
-    },
-
-    async release(id: number): Promise<void> {
-        if (!USE_LIVE_API) {
-            const current = new Set<number>(JSON.parse(localStorage.getItem('capturedPokemon') || '[]'));
-            current.delete(id);
-            localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(current)));
-            return;
-        }
-
-        await handleResponse(
-            await fetch(`${API_URL}/api/captures/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    ...getAuthHeaders()
-                }
-            })
-        );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch captures.');
     }
+
+    return response.json();
+  },
+
+  async capture(pokemonId: number): Promise<void> {
+    const response = await fetch(`${API_BASE}/api/captures`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ pokemonId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to capture Pokémon.');
+    }
+  },
+
+  async release(pokemonId: number): Promise<void> {
+    const response = await fetch(`${API_BASE}/api/captures/${pokemonId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to release Pokémon.');
+    }
+  },
 };
