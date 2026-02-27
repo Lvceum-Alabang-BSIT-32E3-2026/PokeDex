@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Heart, Weight, Ruler, ArrowRight, Crown, Sparkles, Fingerprint } from 'lucide-react';
-import { Pokemon } from '../types/pokemon';
+import {
+    X, ArrowRight, Crown, Sparkles, Fingerprint,
+    Ruler, Weight, Heart
+} from 'lucide-react';
 import { pokemonService, EvolutionNode } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
+import { StatBar } from './StatBar';
 
 interface PokemonDetailProps {
     pokemon: Pokemon;
@@ -10,6 +14,17 @@ interface PokemonDetailProps {
     isCaptured: boolean;
     onToggleCapture: (id: number) => void | Promise<void>;
 }
+
+const STAT_COLORS: Record<string, string> = {
+  'HP': '#ff5959',
+  'Attack': '#f5ac78',
+  'Defense': '#fae078',
+  'Sp. Atk': '#9db7f5',
+  'Sp. Def': '#a7db8d',
+  'Speed': '#fa92b2',
+};
+
+const MAX_STAT = 255;
 
 export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, isCaptured, onToggleCapture }) => {
     const [evolutionChain, setEvolutionChain] = useState<EvolutionNode[]>([]);
@@ -46,128 +61,137 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
             onClick={onClose}
         >
             <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
+                layoutId={`pokemon-card-${pokemon.id}`}
                 className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row relative"
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* CLOSE BUTTON */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 p-2 bg-slate-100/80 hover:bg-white rounded-full text-slate-500 transition-all"
+                    className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg z-20 transition-colors"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
-                {/* Left Side: Visuals (Merged UI) */}
-                <div className={`w-full md:w-1/2 p-10 flex flex-col items-center justify-center relative ${isCaptured ? 'bg-yellow-50/50' : 'bg-gradient-to-br from-slate-100 to-slate-200'}`}>
-                    {/* Pokeball Background Decoration */}
-                    <div className="absolute inset-0 opacity-10 pointer-events-none">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-[40px] border-slate-900 rounded-full"></div>
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-10 bg-slate-900"></div>
+                {/* LEFT PANEL: Visuals */}
+                <div className={`w-full md:w-1/2 p-10 flex flex-col items-center justify-center relative overflow-hidden ${isCaptured ? 'bg-yellow-50' : 'bg-slate-100'}`}>
+                    {/* Background Decoration */}
+                    <div className="absolute inset-0 opacity-5 pointer-events-none">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-[40px] border-slate-900 rounded-full" />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-10 bg-slate-900" />
                     </div>
+
+                    {pokemon.generation && (
+                        <div className="absolute top-6 left-6 text-xs font-bold text-slate-400 flex gap-1 items-center">
+                            <Fingerprint className="w-3 h-3" />
+                            Gen {roman[pokemon.generation - 1] || pokemon.generation}
+                        </div>
+                    )}
 
                     <motion.img
                         layoutId={`pokemon-img-${pokemon.id}`}
                         src={pokemon.imageUrl || pokemon.image}
                         alt={pokemon.name}
-                        className="w-64 h-64 object-contain drop-shadow-2xl z-10"
+                        className="w-64 h-64 object-contain z-10 drop-shadow-2xl"
                     />
 
-                    {/* Status Badges */}
-                    <div className="mt-6 flex flex-wrap justify-center gap-2 z-10">
-                        {pokemon.isLegendary && (
-                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                <Crown className="w-3 h-3" /> Legendary
-                            </span>
-                        )}
-                        {pokemon.isMythical && (
-                            <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                <Sparkles className="w-3 h-3" /> Mythical
-                            </span>
-                        )}
-                    </div>
+                    <button
+                        onClick={() => onToggleCapture(pokemon.id)}
+                        className={`mt-8 px-8 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 z-10
+                        ${isCaptured
+                                ? 'bg-red-500 text-white shadow-red-200 shadow-lg'
+                                : 'bg-slate-800 text-white hover:bg-slate-700 shadow-xl'
+                            }`}
+                    >
+                        <Heart className={`w-5 h-5 ${isCaptured ? 'fill-current' : ''}`} />
+                        {isCaptured ? 'Captured' : 'Capture'}
+                    </button>
                 </div>
 
-                {/* Right Side: Info & Evolutions */}
+                {/* RIGHT PANEL: Info & Stats */}
                 <div className="w-full md:w-1/2 p-8 overflow-y-auto bg-white">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            {pokemon.generation && (
-                                <div className="flex items-center gap-1 text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">
-                                    <Fingerprint className="w-3 h-3" />
-                                    {getGenLabel(pokemon.generation)}
-                                </div>
+                    <div className="mb-6">
+                        <span className="text-sm font-mono font-bold text-slate-400">
+                            #{String(pokemon.id).padStart(3, '0')}
+                        </span>
+
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <h2 className="text-4xl font-black capitalize text-slate-800">{pokemon.name}</h2>
+                            {pokemon.isLegendary && (
+                                <span className="bg-amber-100 text-amber-700 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                                    <Crown className="w-3 h-3" /> Legendary
+                                </span>
                             )}
-                            <span className="text-sm font-bold text-slate-400 tracking-widest">#{String(pokemon.id).padStart(3, '0')}</span>
-                            <h2 className="text-4xl font-black text-slate-900 capitalize leading-none">{pokemon.name}</h2>
+                            {pokemon.isMythical && (
+                                <span className="bg-purple-100 text-purple-700 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                                    <Sparkles className="w-3 h-3" /> Mythical
+                                </span>
+                            )}
                         </div>
-                        <button
-                            onClick={() => onToggleCapture(pokemon.id)}
-                            className={`p-4 rounded-2xl shadow-lg transition-all ${isCaptured ? 'bg-red-500 text-white scale-110' : 'bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-400'}`}
-                        >
-                            <Heart className={`w-6 h-6 ${isCaptured ? 'fill-current' : ''}`} />
-                        </button>
-                    </div>
 
-                    <div className="flex gap-2 mb-8">
-                        {pokemon.types.map((type: string) => (
-                            <span key={type} className="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-800 text-white">
-                                {type}
-                            </span>
-                        ))}
-                    </div>
-
-                    {/* Physical Attributes */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                <Weight className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Weight</span>
-                            </div>
-                            <p className="text-lg font-bold text-slate-700">
-                                {pokemon.weight != null ? `${(pokemon.weight / 10).toFixed(1)} kg` : 'N/A'}
-                            </p>
-                        </div>
-                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                <Ruler className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Height</span>
-                            </div>
-                            <p className="text-lg font-bold text-slate-700">
-                                {pokemon.height != null ? `${(pokemon.height / 10).toFixed(1)} m` : 'N/A'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Evolution Chain Section */}
-                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Evolution Chain</h3>
-                    {loadingEvo ? (
-                        <div className="flex justify-center py-4">
-                            <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {evolutionChain.map((node, idx) => (
-                                <div key={node.species_name} className="flex items-center gap-4">
-                                    <div className="flex-shrink-0 w-16 h-16 bg-slate-50 rounded-xl p-2 border border-slate-100">
-                                        <img src={node.image} alt={node.species_name} className="w-full h-full object-contain" />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <h4 className="font-bold capitalize text-slate-700 text-sm">{node.species_name}</h4>
-                                        {idx > 0 && (
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                                {node.min_level ? `Level ${node.min_level}` : node.trigger_name || 'Evolution'}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {idx < evolutionChain.length - 1 && (
-                                        <ArrowRight className="w-4 h-4 text-slate-300" />
-                                    )}
-                                </div>
+                        <div className="flex gap-2">
+                            {pokemon.types.map(t => (
+                                <span key={t} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200">
+                                    {t}
+                                </span>
                             ))}
                         </div>
-                    )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex gap-1 items-center mb-1">
+                                <Weight className="w-3 h-3" /> Weight
+                            </div>
+                            <p className="font-bold text-slate-700">{pokemon.weight ?? '--'} kg</p>
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex gap-1 items-center mb-1">
+                                <Ruler className="w-3 h-3" /> Height
+                            </div>
+                            <p className="font-bold text-slate-700">{pokemon.height ?? '--'} m</p>
+                        </div>
+                    </div>
+
+                    {/* EVOLUTION CHAIN */}
+                    <div className="mb-8">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Evolution Chain</h3>
+                        {loadingEvo ? (
+                            <div className="flex justify-center py-4">
+                                <div className="h-6 w-6 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {evolutionChain.map((node, i) => (
+                                    <div key={node.species_name} className="flex items-center gap-4 p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                                        <img src={node.image} alt={node.species_name} className="w-12 h-12 object-contain bg-white rounded-lg border shadow-sm" />
+                                        <div className="flex-1">
+                                            <p className="font-bold capitalize text-slate-700 text-sm">{node.species_name}</p>
+                                            {i > 0 && (
+                                                <p className="text-[10px] text-slate-400 font-medium">
+                                                    {node.min_level ? `Level ${node.min_level}` : node.trigger_name ?? 'Special condition'}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {i < evolutionChain.length - 1 && (
+                                            <ArrowRight className="text-slate-300 w-4 h-4" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* BASE STATS */}
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Base Stats</h3>
+                        <StatBar label="hp" value={pokemon.hp ?? 0} />
+                        <StatBar label="attack" value={pokemon.attack ?? 0} />
+                        <StatBar label="defense" value={pokemon.defense ?? 0} />
+                        <StatBar label="special-attack" value={pokemon.specialAttack ?? 0} />
+                        <StatBar label="special-defense" value={pokemon.specialDefense ?? 0} />
+                        <StatBar label="speed" value={pokemon.speed ?? 0} />
+                    </div>
                 </div>
             </motion.div>
         </motion.div>
