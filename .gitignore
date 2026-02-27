@@ -1,36 +1,20 @@
-# .NET Build Code
-bin/
-obj/
-<<<<<<< HEAD
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
-# Visual Studio
+﻿# IDEs
 .vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-
-# Visual Studio Code
 .vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+FileContentIndex/
 
 # Node
 node_modules/
-npm-debug.log
-=======
->>>>>>> origin/dev-frontend
+**/node_modules/
+
+# Build
+dist/
+**/dist/
+bin/
+obj/
+AppHost1/obj/
+AppHost1/bin/
+
+# Env
+.env
+
