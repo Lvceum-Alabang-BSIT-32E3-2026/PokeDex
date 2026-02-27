@@ -125,14 +125,18 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
                                 <Weight className="w-4 h-4" />
                                 <span className="text-xs font-bold uppercase tracking-wider">Weight</span>
                             </div>
-                            <p className="text-lg font-bold text-slate-700">{pokemon.weight ? `${pokemon.weight / 10} kg` : '7.0 kg'}</p>
+                            <p className="text-lg font-bold text-slate-700">
+                                {pokemon.weight != null ? `${(pokemon.weight / 10).toFixed(1)} kg` : 'N/A'}
+                            </p>
                         </div>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                             <div className="flex items-center gap-2 text-slate-400 mb-1">
                                 <Ruler className="w-4 h-4" />
                                 <span className="text-xs font-bold uppercase tracking-wider">Height</span>
                             </div>
-                            <p className="text-lg font-bold text-slate-700">{pokemon.height ? `${pokemon.height / 10} m` : '0.7 m'}</p>
+                            <p className="text-lg font-bold text-slate-700">
+                                {pokemon.height != null ? `${(pokemon.height / 10).toFixed(1)} m` : 'N/A'}
+                            </p>
                         </div>
                     </div>
 
