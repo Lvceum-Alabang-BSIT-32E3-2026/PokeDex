@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, BarChart3 } from 'lucide-react';
-import { pokemonService, Pokemon } from '../services/pokemonService';
+import { ArrowLeft, CheckCircle, BarChart3, ShieldCheck } from 'lucide-react';
+import { pokemonService } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
 
-// Define standard Pokemon types and their colors for Task 3.2.5
+interface CollectionPageProps {
+    onBack: () => void;
+    capturedIds: Set<number>;
+}
+
 const typeColors: Record<string, string> = {
     grass: 'bg-green-500', fire: 'bg-orange-500', water: 'bg-blue-500',
     bug: 'bg-lime-600', normal: 'bg-slate-400', poison: 'bg-purple-500',
@@ -12,70 +17,124 @@ const typeColors: Record<string, string> = {
     steel: 'bg-zinc-400', flying: 'bg-sky-400', dark: 'bg-slate-800'
 };
 
-interface CollectionPageProps {
-    onBack: () => void;
-    capturedIds: Set<number>;
-}
+const GENERATION_NAMES: Record<number, string> = {
+    1: 'Gen I — Kanto', 2: 'Gen II — Johto', 3: 'Gen III — Hoenn',
+    4: 'Gen IV — Sinnoh', 5: 'Gen V — Unova', 6: 'Gen VI — Kalos',
+    7: 'Gen VII — Alola', 8: 'Gen VIII — Galar', 9: 'Gen IX — Paldea',
+};
+
+const ProgressBar: React.FC<{ percent: number; colorClass: string }> = ({ percent, colorClass }) => (
+    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div 
+            className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass}`}
+            style={{ width: `${percent}%` }}
+        />
+    </div>
+);
 
 export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack, capturedIds }) => {
-    // 1. Create a state to hold the actual list of pokemon
     const [allPokemon, setAllPokemon] = useState<Pokemon[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [view, setView] = useState<'generation' | 'type'>('generation');
 
-    // 2. Fetch data when the component loads
     useEffect(() => {
         const loadPokemon = async () => {
-            const data = await pokemonService.getAllRaw();
-            setAllPokemon(data);
+            try {
+                const data = await pokemonService.getAllRaw();
+                setAllPokemon(data);
+            } catch (err) {
+                console.error("Failed to load collection", err);
+            } finally {
+                setLoading(false);
+            }
         };
         loadPokemon();
     }, []);
 
-    // 3. Logic to calculate breakdown per type using the state
+    // --- Stats Logic ---
+    const totalCaptured = capturedIds.size;
+    
+    const legendaryCount = allPokemon.filter(p => 
+        capturedIds.has(p.id) && (p.isLegendary || p.isMythical)
+    ).length;
+
+    const genStats = Object.keys(GENERATION_NAMES).map(genStr => {
+        const gen = Number(genStr);
+        const inGen = allPokemon.filter(p => (p.generation || 1) === gen);
+        const captured = inGen.filter(p => capturedIds.has(p.id)).length;
+        return { gen, name: GENERATION_NAMES[gen], total: inGen.length, captured };
+    }).filter(s => s.total > 0);
+
     const typeStats = Object.keys(typeColors).map(type => {
-        // filter now works because allPokemon is an Array, not a Promise
-        const totalInType = allPokemon.filter(p =>
-            p.types.some(t => t.toLowerCase() === type.toLowerCase())
-        ).length;
-
-        const capturedInType = allPokemon.filter(p =>
-            p.types.some(t => t.toLowerCase() === type.toLowerCase()) &&
-            capturedIds.has(p.id)
-        ).length;
-
-        return { type, total: totalInType, captured: capturedInType };
-    });
+        const inType = allPokemon.filter(p => p.types.some(t => t.toLowerCase() === type));
+        const captured = inType.filter(p => capturedIds.has(p.id)).length;
+        return { type, total: inType.length, captured };
+    }).filter(s => s.total > 0);
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
-            {/* Header with Back Button */}
-            <div className="max-w-4xl mx-auto mb-8 flex items-center justify-between">
-                <button onClick={onBack} className="flex items-center text-slate-600 hover:text-red-600 font-medium transition-colors">
-                    <ChevronLeft className="w-5 h-5 mr-1" /> Back to Pokedex
-                </button>
-                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <BarChart3 className="w-6 h-6 text-red-600" /> Type Breakdown
-                </h2>
-            </div>
-
-            {/* Type Progress Cards */}
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-                {typeStats.map(({ type, total, captured }) => (
-                    <div key={type} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className={`px-3 py-1 rounded-full text-white text-xs font-bold uppercase ${typeColors[type]}`}>
-                                {type}
-                            </span>
-                            <span className="text-sm font-medium text-slate-500">{captured} / {total}</span>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                            <div
-                                className={`h-2 rounded-full ${typeColors[type]} transition-all duration-500`}
-                                style={{ width: `${total > 0 ? (captured / total) * 100 : 0}%` }}
-                            />
-                        </div>
+        <div className="min-h-screen bg-slate-50">
+            {/* Header */}
+            <header className="bg-red-600 shadow-lg sticky top-0 z-30">
+                <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={onBack} className="p-2 text-white hover:bg-red-700 rounded-full">
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold text-white">Trainer Collection</h1>
                     </div>
-                ))}
-            </div>
+                    <div className="flex bg-red-700 rounded-lg p-1">
+                        <button 
+                            onClick={() => setView('generation')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${view === 'generation' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >GENS</button>
+                        <button 
+                            onClick={() => setView('type')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${view === 'type' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >TYPES</button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                {/* Legendary Badge Section */}
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <ShieldCheck className="w-6 h-6 text-yellow-400" /> Legendary Tracker
+                        </h2>
+                        <p className="text-indigo-100 text-sm">Rare & Mythical Pokémon captured</p>
+                    </div>
+                    <div className="text-3xl font-black">{legendaryCount}</div>
+                </div>
+
+                {loading ? (
+                    <div className="text-center py-20 text-slate-400">Loading Stats...</div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {(view === 'generation' ? genStats : typeStats).map((stat) => {
+                            const isGen = 'gen' in stat;
+                            const label = isGen ? (stat as any).name : (stat as any).type;
+                            const pct = stat.total > 0 ? (stat.captured / stat.total) * 100 : 0;
+                            
+                            return (
+                                <div key={label} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className={`text-xs font-bold uppercase px-2 py-1 rounded ${isGen ? 'bg-slate-100 text-slate-600' : `${typeColors[label]} text-white`}`}>
+                                            {label}
+                                        </span>
+                                        <span className="text-sm font-bold text-slate-700">{stat.captured} / {stat.total}</span>
+                                    </div>
+                                    <ProgressBar 
+                                        percent={pct} 
+                                        colorClass={isGen ? 'bg-red-500' : typeColors[label]} 
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-2 font-medium">{pct.toFixed(1)}% COMPLETE</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </main>
         </div>
     );
 };
