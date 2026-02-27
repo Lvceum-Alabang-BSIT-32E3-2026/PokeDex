@@ -23,6 +23,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+// Trigger Seeding
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<PokemonDbContext>();
+    SeedData.Initialize(context);
+}
+
 app.MapControllers();
 
 // 3. WeatherForecast Endpoint (Optional)
