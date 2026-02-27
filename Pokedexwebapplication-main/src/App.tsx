@@ -136,6 +136,9 @@ const AppContent = () => {
 export default function App() {
     return (
         <AuthProvider>
+            {/* HashRouter is used to handle #/routing logic automatically 
+                without needing manual window.location.hash listeners.
+            */}
             <Router>
                 <AppContent />
             </Router>
