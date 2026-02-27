@@ -10,6 +10,17 @@ interface PokemonDetailProps {
     onToggleCapture: (id: number) => void | Promise<void>;
 }
 
+const STAT_COLORS: Record<string, string> = {
+  'HP': '#ff5959',
+  'Attack': '#f5ac78',
+  'Defense': '#fae078',
+  'Sp. Atk': '#9db7f5',
+  'Sp. Def': '#a7db8d',
+  'Speed': '#fa92b2',
+};
+
+const MAX_STAT = 255;
+
 export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, isCaptured, onToggleCapture }) => {
     return (
         <motion.div
