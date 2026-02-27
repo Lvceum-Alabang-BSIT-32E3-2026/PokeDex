@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Heart, Weight, Ruler } from 'lucide-react';
+import { X, Heart, Weight, Ruler, Star, Sparkles } from 'lucide-react';
 import { Pokemon } from '../types/pokemon';
 
 interface PokemonDetailProps {
@@ -9,6 +9,20 @@ interface PokemonDetailProps {
     isCaptured: boolean;
     onToggleCapture: (id: number) => void | Promise<void>;
 }
+
+const LegendaryBadge = () => (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-amber-400 text-amber-900 shadow-md shadow-amber-200 border border-amber-300">
+        <Star className="w-3.5 h-3.5 fill-current" />
+        Legendary
+    </span>
+);
+
+const MythicalBadge = () => (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-violet-500 text-white shadow-md shadow-violet-200 border border-violet-400">
+        <Sparkles className="w-3.5 h-3.5" />
+        Mythical
+    </span>
+);
 
 export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, isCaptured, onToggleCapture }) => {
     return (
@@ -47,10 +61,16 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
                 </div>
 
                 <div className="p-8">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-4">
                         <div>
                             <span className="text-sm font-bold text-slate-400 tracking-widest uppercase">#{String(pokemon.id).padStart(3, '0')}</span>
                             <h2 className="text-4xl font-black text-slate-900 capitalize tracking-tight">{pokemon.name}</h2>
+                            {(pokemon.isLegendary || pokemon.isMythical) && (
+                                <div className="mt-2">
+                                    {pokemon.isLegendary && <LegendaryBadge />}
+                                    {pokemon.isMythical && <MythicalBadge />}
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => onToggleCapture(pokemon.id)}
