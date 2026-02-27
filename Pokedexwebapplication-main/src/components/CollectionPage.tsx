@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, BarChart3, CheckCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, CheckCircle, BarChart3, Layers } from 'lucide-react';
 import { pokemonService } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
 
-// --- Configuration & Constants ---
-
-const TYPE_COLORS: Record<string, string> = {
+// Type Colors from task/232
+const typeColors: Record<string, string> = {
     grass: 'bg-green-500', fire: 'bg-orange-500', water: 'bg-blue-500',
     bug: 'bg-lime-600', normal: 'bg-slate-400', poison: 'bg-purple-500',
     electric: 'bg-yellow-400', ground: 'bg-amber-600', fairy: 'bg-pink-400',
@@ -14,42 +13,58 @@ const TYPE_COLORS: Record<string, string> = {
     steel: 'bg-zinc-400', flying: 'bg-sky-400', dark: 'bg-slate-800'
 };
 
-const GEN_NAMES: Record<number, string> = {
-    1: 'Gen I (Kanto)', 2: 'Gen II (Johto)', 3: 'Gen III (Hoenn)',
-    4: 'Gen IV (Sinnoh)', 5: 'Gen V (Unova)', 6: 'Gen VI (Kalos)',
-    7: 'Gen VII (Alola)', 8: 'Gen VIII (Galar)', 9: 'Gen IX (Paldea)',
+const GENERATION_NAMES: Record<number, string> = {
+    1: 'Generation I — Kanto', 2: 'Generation II — Johto', 3: 'Generation III — Hoenn',
+    4: 'Generation IV — Sinnoh', 5: 'Generation V — Unova', 6: 'Generation VI — Kalos',
+    7: 'Generation VII — Alola', 8: 'Generation VIII — Galar', 9: 'Generation IX — Paldea',
 };
 
-// --- Sub-Components ---
-
-const ProgressBar: React.FC<{ percent: number; colorClass: string }> = ({ percent, colorClass }) => (
-    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-        <div
-            className={`h-full rounded-full ${colorClass} transition-all duration-700 ease-out`}
-            style={{ width: `${percent}%` }}
-        />
-    </div>
-);
-
-// --- Main Component ---
+const GEN_COLORS: Record<number, { bar: string; badge: string }> = {
+    1: { bar: 'from-red-500 to-red-400', badge: 'bg-red-100 text-red-700' },
+    2: { bar: 'from-yellow-500 to-yellow-400', badge: 'bg-yellow-100 text-yellow-700' },
+    3: { bar: 'from-emerald-500 to-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
+    4: { bar: 'from-blue-500 to-blue-400', badge: 'bg-blue-100 text-blue-700' },
+    5: { bar: 'from-slate-600 to-slate-500', badge: 'bg-slate-100 text-slate-700' },
+    6: { bar: 'from-pink-500 to-pink-400', badge: 'bg-pink-100 text-pink-700' },
+    7: { bar: 'from-orange-500 to-orange-400', badge: 'bg-orange-100 text-orange-700' },
+    8: { bar: 'from-violet-500 to-violet-400', badge: 'bg-violet-100 text-violet-700' },
+    9: { bar: 'from-teal-500 to-teal-400', badge: 'bg-teal-100 text-teal-700' },
+};
 
 interface CollectionPageProps {
     onBack: () => void;
-    capturedIds: Set<number>;
+    capturedIds: Set<number>; // Passed from App.tsx
 }
 
+const ProgressBar: React.FC<{ percent: number; colorClass: string }> = ({ percent, colorClass }) => {
+    const [width, setWidth] = useState(0);
+    useEffect(() => {
+        const timer = setTimeout(() => setWidth(percent), 80);
+        return () => clearTimeout(timer);
+    }, [percent]);
+
+    return (
+        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+            <div
+                className={`h-full rounded-full bg-gradient-to-r ${colorClass.includes('from-') ? colorClass : ''} ${!colorClass.includes('from-') ? colorClass : ''} transition-all duration-700 ease-out`}
+                style={{ width: `${width}%` }}
+            />
+        </div>
+    );
+};
+
 export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack, capturedIds }) => {
-    const [allPokemon, setAllPokemon] = useState<Pokemon[]>([]);
     const [loading, setLoading] = useState(true);
+    const [allPokemon, setAllPokemon] = useState<Pokemon[]>([]);
+    const [view, setView] = useState<'gen' | 'type'>('gen');
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Using getAllRaw from task-325 implementation
                 const data = await pokemonService.getAllRaw();
                 setAllPokemon(data);
-            } catch (error) {
-                console.error("Failed to load collection data", error);
+            } catch (err) {
+                console.error("Failed to load Pokemon", err);
             } finally {
                 setLoading(false);
             }
@@ -57,113 +72,133 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack, captured
         loadData();
     }, []);
 
-    // --- Statistics Calculation ---
+    // Logic for Generation Stats
+    const genStats = Object.entries(
+        allPokemon.reduce((acc, p) => {
+            const g = p.generation ?? 1;
+            if (!acc[g]) acc[g] = [];
+            acc[g].push(p);
+            return acc;
+        }, {} as Record<number, Pokemon[]>)
+    ).map(([gen, list]) => ({
+        gen: Number(gen),
+        name: GENERATION_NAMES[Number(gen)] ?? `Generation ${gen}`,
+        total: list.length,
+        captured: list.filter(p => capturedIds.has(p.id)).length
+    })).sort((a, b) => a.gen - b.gen);
 
-    const totalCount = allPokemon.length;
-    const capturedCount = capturedIds.size;
-    const overallPct = totalCount > 0 ? (capturedCount / totalCount) * 100 : 0;
-
-    // 1. Generation Stats
-    const genStats = Object.keys(GEN_NAMES).map(num => {
-        const gen = Number(num);
-        const inGen = allPokemon.filter(p => (p.generation || 1) === gen);
-        const captured = inGen.filter(p => capturedIds.has(p.id)).length;
-        return { gen, name: GEN_NAMES[gen], total: inGen.length, captured };
+    // Logic for Type Stats
+    const typeStats = Object.keys(typeColors).map(type => {
+        const list = allPokemon.filter(p => p.types.some(t => t.toLowerCase() === type));
+        return {
+            type,
+            total: list.length,
+            captured: list.filter(p => capturedIds.has(p.id)).length
+        };
     }).filter(s => s.total > 0);
 
-    // 2. Type Stats
-    const typeStats = Object.keys(TYPE_COLORS).map(type => {
-        const inType = allPokemon.filter(p => 
-            p.types.some(t => t.toLowerCase() === type.toLowerCase())
-        );
-        const captured = inType.filter(p => capturedIds.has(p.id)).length;
-        return { type, total: inType.length, captured };
-    }).filter(s => s.total > 0);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-            </div>
-        );
-    }
+    const totalCaptured = capturedIds.size;
+    const overallPercent = allPokemon.length > 0 ? (totalCaptured / allPokemon.length) * 100 : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-            <div className="max-w-5xl mx-auto">
-                
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <button onClick={onBack} className="flex items-center text-slate-600 hover:text-red-600 transition-colors font-medium">
-                        <ChevronLeft className="w-5 h-5" /> Back to Pokedex
-                    </button>
-                    <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                        <Trophy className="w-8 h-8 text-yellow-500" /> My Collection
-                    </h2>
-                </div>
-
-                {/* Overall Summary Card */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-                    <div className="flex justify-between items-end mb-4">
-                        <div>
-                            <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">National Pokedex</p>
-                            <h3 className="text-4xl font-black text-slate-900">
-                                {capturedCount} <span className="text-slate-300 text-2xl">/ {totalCount}</span>
-                            </h3>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-2xl font-black text-red-600">{overallPct.toFixed(1)}%</span>
-                        </div>
+        <div className="min-h-screen bg-slate-50">
+            <header className="bg-red-600 shadow-lg sticky top-0 z-30">
+                <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={onBack} className="p-2 text-white hover:bg-red-700 rounded-full transition-colors">
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold text-white">My Collection</h1>
                     </div>
-                    <ProgressBar percent={overallPct} colorClass="bg-red-600" />
+                    {/* View Switcher */}
+                    <div className="flex bg-red-700 rounded-lg p-1">
+                        <button 
+                            onClick={() => setView('gen')}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${view === 'gen' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >
+                            BY GEN
+                        </button>
+                        <button 
+                            onClick={() => setView('type')}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${view === 'type' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >
+                            BY TYPE
+                        </button>
+                    </div>
                 </div>
+            </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    {/* Generation Breakdown Column */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <h4 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <CheckCircle className="w-5 h-5 text-emerald-500" /> By Generation
-                        </h4>
-                        {genStats.map(s => (
-                            <div key={s.gen} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <div className="flex justify-between text-sm mb-2 font-bold">
-                                    <span className="text-slate-700">{s.name}</span>
-                                    <span className="text-slate-500">{s.captured}/{s.total}</span>
+            <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                {loading ? (
+                    <div className="flex flex-col items-center py-24 gap-4">
+                        <div className="w-12 h-12 rounded-full border-4 border-red-600 border-t-transparent animate-spin" />
+                        <p className="text-slate-500">Syncing Pokedex...</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Overall Progress */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-lg font-bold text-slate-800">Overall Progress</h2>
+                                <div className="px-4 py-1 bg-red-50 text-red-700 rounded-full font-bold text-sm">
+                                    {totalCaptured} / {allPokemon.length}
                                 </div>
-                                <ProgressBar 
-                                    percent={(s.captured / s.total) * 100} 
-                                    colorClass="bg-slate-700" 
-                                />
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Type Breakdown Column */}
-                    <div className="lg:col-span-2">
-                        <h4 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <BarChart3 className="w-5 h-5 text-blue-500" /> By Type Breakdown
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {typeStats.map(s => (
-                                <div key={s.type} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className={`${TYPE_COLORS[s.type]} text-white px-3 py-1 rounded-full text-[10px] font-black uppercase`}>
-                                            {s.type}
-                                        </span>
-                                        <span className="text-xs font-bold text-slate-400">{s.captured} / {s.total}</span>
-                                    </div>
-                                    <ProgressBar 
-                                        percent={(s.captured / s.total) * 100} 
-                                        colorClass={TYPE_COLORS[s.type]} 
-                                    />
-                                </div>
-                            ))}
+                            <ProgressBar percent={overallPercent} colorClass="from-red-600 to-red-400" />
                         </div>
-                    </div>
 
-                </div>
+                        {/* Stats Grid */}
+                        <div className="grid gap-4 md:grid-cols-1">
+                            {view === 'gen' ? (
+                                genStats.map((s) => (
+                                    <div key={s.gen} className="bg-white rounded-xl border border-slate-200 p-5">
+                                        <div className="flex justify-between mb-2">
+                                            <span className="font-bold text-slate-700">{s.name}</span>
+                                            <span className="text-sm font-medium">{s.captured}/{s.total}</span>
+                                        </div>
+                                        <ProgressBar 
+                                            percent={(s.captured / s.total) * 100} 
+                                            colorClass={GEN_COLORS[s.gen]?.bar || 'bg-slate-500'} 
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {typeStats.map((s) => (
+                                        <div key={s.type} className="bg-white rounded-xl border border-slate-200 p-4">
+                                            <div className="flex justify-between mb-2 items-center">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black text-white uppercase ${typeColors[s.type]}`}>
+                                                    {s.type}
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-500">{s.captured}/{s.total}</span>
+                                            </div>
+                                            <ProgressBar 
+                                                percent={(s.captured / s.total) * 100} 
+                                                colorClass={typeColors[s.type]} 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </main>
+        </div>
+    );
+};
+
+const StatCard = ({ label, captured, total, color, isType }: any) => {
+    const pct = total > 0 ? (captured / total) * 100 : 0;
+    return (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-3">
+                <span className={`px-3 py-1 rounded-full text-white text-xs font-black uppercase ${color}`}>
+                    {label}
+                </span>
+                <span className="text-sm font-bold text-slate-400">{captured} <span className="text-slate-300">/</span> {total}</span>
             </div>
+            <ProgressBar percent={pct} colorClass={color} />
         </div>
     );
 };

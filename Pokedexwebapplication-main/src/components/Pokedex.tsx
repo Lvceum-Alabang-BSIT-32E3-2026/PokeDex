@@ -1,6 +1,5 @@
-// src/components/Pokedex.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // Using framer-motion as per dev-frontend
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, LogOut, ChevronRight, ChevronLeft, Filter, Settings,
     Lightbulb, User, ChevronDown, AlertCircle, Library, X
@@ -20,7 +19,7 @@ interface PokedexProps {
     onOpenRecommendations: () => void;
     onOpenProfile: () => void;
     onOpenCollection: () => void;
-    userEmail?: string | null;
+    userEmail: string;
 }
 
 export const Pokedex: React.FC<PokedexProps> = ({
@@ -31,94 +30,108 @@ export const Pokedex: React.FC<PokedexProps> = ({
     onOpenCollection,
     userEmail
 }) => {
-    const { isAdmin, user, isAuthenticated } = useAuth();
+    const { isAdmin, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    
-    // Core State
+
+    // Data State
     const [pokemon, setPokemon] = useState<Pokemon[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [searchTerm, setSearchTerm] = useState('');
-    
-    // Refs
-    const searchInputRef = useRef<HTMLInputElement>(null);
-    const profileMenuRef = useRef<HTMLDivElement>(null);
 
-    // Filters & Pagination
+    // Filter/Search State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedGen, setSelectedGen] = useState<string>('all');
     const [selectedType, setSelectedType] = useState<string>('all');
     const [offset, setOffset] = useState(0);
     const limit = 24;
+    
+    // UI Refs & State
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const currentHash = window.location.hash;
 
-    // Capture & UI State
+    // Capture State
     const [captured, setCaptured] = useState<Set<number>>(new Set());
     const [captureError, setCaptureError] = useState<string | null>(null);
+
+    // UI State
     const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
-    // Derived Values
+    const profileMenuRef = useRef<HTMLDivElement>(null);
     const currentHash = window.location.hash;
-    const effectiveEmail = userEmail || user?.email;
-    const userInitial = effectiveEmail ? effectiveEmail.charAt(0).toUpperCase() : '?';
-    const userDisplayName = effectiveEmail ? effectiveEmail.split('@')[0] : 'Trainer';
 
-    // --- Effects ---
+    // Derived User Display
+    const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : '?';
+    const userDisplayName = userEmail ? userEmail.split('@')[0] : 'Trainer';
 
-    // Sync Captured Pokemon
+    // Handle Search Debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setOffset(0);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Sync Captures (Local + Server)
     useEffect(() => {
         let isMounted = true;
 
-        const loadCaptured = async () => {
+        const loadCaptures = async () => {
             const saved = localStorage.getItem('capturedPokemon');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    setCaptured(new Set(parsed));
-                } catch (e) { console.error("Parse error", e); }
-            }
+            if (saved) setCaptured(new Set(JSON.parse(saved)));
 
             if (isAuthenticated) {
                 try {
                     const ids = await captureService.getCaptures();
-                    if (!isMounted) return;
-                    setCaptured(new Set(ids));
-                    localStorage.setItem('capturedPokemon', JSON.stringify(ids));
+                    if (isMounted) {
+                        setCaptured(new Set(ids));
+                        localStorage.setItem('capturedPokemon', JSON.stringify(ids));
+                    }
                 } catch (err) {
-                    setCaptureError('Failed to sync captures. Using local data.');
+                    setCaptureError('Failed to sync captures with server.');
                 }
             }
         };
 
-        loadCaptured();
+        loadCaptures();
         return () => { isMounted = false; };
     }, [isAuthenticated]);
 
-    // Fetch Pokemon Data with Debounce
+    // Fetch Pokemon List
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             setError(null);
+
+            setPokemon([]);
             try {
-                const genNum = selectedGen !== 'all' ? parseInt(selectedGen) : undefined;
-                const typeStr = selectedType !== 'all' ? selectedType : undefined;
-                
-                const response = await pokemonService.getList(offset, limit, genNum, typeStr, searchTerm);
-                // Handle both raw arrays and paginated response objects
-                setPokemon(Array.isArray(response) ? response : response.items || []);
-            } catch (err: any) {
-                setError(err.message || 'Failed to load Pokemon.');
-                setPokemon([]);
+                const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
+                setPokemon(data);
+            } catch (error: any) {
+                console.error('Error fetching pokemon:', error);
+                if (error.name === 'TypeError' || error.message.toLowerCase().includes('network')) {
+                    setError('Network error: Please check your connection and try again.');
+                } else {
+                    setError('API Error: Failed to load Pokemon.');
+                }
+
+            try {
+                const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
+                setPokemon(data);
+            } catch (err) {
+                setError('Failed to load Pokemon.');
             } finally {
                 setLoading(false);
             }
         };
+        fetchData();
+    }, [offset, selectedGen, selectedType, debouncedSearch, retryCount]);
 
-        const timer = setTimeout(fetchData, 400);
-        return () => clearTimeout(timer);
-    }, [offset, selectedGen, selectedType, searchTerm, retryCount]);
-
-    // Handle Click Outside for Dropdown
+    // Close dropdown on outside click
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
@@ -129,137 +142,142 @@ export const Pokedex: React.FC<PokedexProps> = ({
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    // --- Handlers ---
-
     const toggleCapture = async (id: number) => {
         const wasCaptured = captured.has(id);
-        const updated = new Set(captured);
+        const newCaptured = new Set(captured);
         
-        if (wasCaptured) updated.delete(id);
-        else updated.add(id);
+        if (wasCaptured) newCaptured.delete(id);
+        else newCaptured.add(id);
         
-        setCaptured(updated);
-        localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(updated)));
+        setCaptured(newCaptured);
+        localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
 
         if (isAuthenticated) {
             try {
                 if (wasCaptured) await captureService.release(id);
                 else await captureService.capture(id);
             } catch (err) {
-                setCaptureError('Cloud sync failed.');
-                // Optional: Revert state if critical
+                setCaptureError('Server sync failed.');
             }
         }
     };
 
-    const handleGenChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedGen(e.target.value);
-        setOffset(0);
-    };
+    const generations = [
+        { id: '1', name: 'Gen I' }, { id: '2', name: 'Gen II' }, { id: '3', name: 'Gen III' },
+        { id: '4', name: 'Gen IV' }, { id: '5', name: 'Gen V' }, { id: '6', name: 'Gen VI' },
+        { id: '7', name: 'Gen VII' }, { id: '8', name: 'Gen VIII' }, { id: '9', name: 'Gen IX' }
+    ];
 
-    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedType(e.target.value);
-        setOffset(0);
-    };
+    const types = ['fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'steel', 'fairy'];
+
+    // Close profile dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const generations = [
+        { id: '1', name: 'Gen I (Kanto)' }, { id: '2', name: 'Gen II (Johto)' },
+        { id: '3', name: 'Gen III (Hoenn)' }, { id: '4', name: 'Gen IV (Sinnoh)' },
+        { id: '5', name: 'Gen V (Unova)' }, { id: '6', name: 'Gen VI (Kalos)' },
+        { id: '7', name: 'Gen VII (Alola)' }, { id: '8', name: 'Gen VIII (Galar)' },
+        { id: '9', name: 'Gen IX (Paldea)' },
+    ];
+
+    const generations = [
+        { id: '1', name: 'Gen I' }, { id: '2', name: 'Gen II' }, { id: '3', name: 'Gen III' },
+        { id: '4', name: 'Gen IV' }, { id: '5', name: 'Gen V' }, { id: '6', name: 'Gen VI' },
+        { id: '7', name: 'Gen VII' }, { id: '8', name: 'Gen VIII' }, { id: '9', name: 'Gen IX' },
+    ];
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-            {/* HEADER */}
+            {/* Header */}
             <header className="bg-red-600 shadow-lg sticky top-0 z-30">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        {/* Logo */}
-                        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-slate-800">
-                                <div className="w-3 h-3 bg-slate-800 rounded-full"></div>
-                            </div>
-                            <h1 className="text-2xl font-bold text-white tracking-tight hidden sm:block">Pokedex</h1>
+                <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/pokedex')}>
+                        <div className="w-10 h-10 bg-white rounded-full border-4 border-slate-800 flex items-center justify-center">
+                            <div className="w-3 h-3 bg-slate-800 rounded-full animate-pulse" />
                         </div>
+                        <h1 className="text-2xl font-bold text-white hidden sm:block">Pokedex</h1>
+                    </div>
 
-                        {/* Search */}
-                        <div className="flex-1 max-w-xl mx-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    placeholder="Search Pokémon..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-white/10 border border-white/20 rounded-full py-2 pl-10 pr-10 text-white placeholder-red-200 focus:outline-none focus:bg-white focus:text-slate-900 transition-all"
-                                />
-                                {searchTerm && (
-                                    <button 
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                    <div className="flex-1 max-w-md mx-4 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-red-200 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Search Pokemon..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-red-700/50 border-none rounded-full py-2 pl-10 pr-4 text-white placeholder-red-300 focus:ring-2 focus:ring-white outline-none"
+                        />
+                    </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                            <ThemeToggle />
-                            
-                            <button onClick={onOpenRecommendations} className="p-2 text-white hover:bg-red-700 rounded-full transition-colors" title="Recommendations">
-                                <Lightbulb className="w-6 h-6" />
-                            </button>
-
-                            {isAdmin && (
-                                <button onClick={onOpenCMS} className="p-2 text-white hover:bg-red-700 rounded-full transition-colors" title="Admin CMS">
-                                    <Settings className="w-6 h-6" />
-                                </button>
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
+                        <button onClick={onOpenCollection} className="p-2 text-white hover:bg-red-700 rounded-full relative">
+                            <Library className="w-6 h-6" />
+                            {captured.size > 0 && (
+                                <span className="absolute top-0 right-0 bg-white text-red-600 text-[10px] font-bold px-1 rounded-full">
+                                    {captured.size}
+                                </span>
                             )}
-
-                            {/* Profile Dropdown */}
-                            <div className="relative" ref={profileMenuRef}>
-                                <button
-                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-red-700 transition-colors text-white"
-                                >
-                                    <div className="w-7 h-7 rounded-full bg-white text-red-600 flex items-center justify-center text-sm font-black">
-                                        {userInitial}
-                                    </div>
-                                    <span className="hidden md:block text-sm font-medium">{userDisplayName}</span>
-                                    <ChevronDown className={`w-4 h-4 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                <AnimatePresence>
-                                    {isProfileMenuOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden"
-                                        >
-                                            <div className="px-4 py-3 bg-slate-50 border-b">
-                                                <p className="text-xs text-slate-500 font-bold uppercase">Trainer</p>
-                                                <p className="text-sm font-semibold text-slate-800 truncate">{effectiveEmail}</p>
-                                            </div>
-                                            <div className="py-1">
-                                                <button onClick={() => { setIsProfileMenuOpen(false); onOpenProfile(); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                                                    <User className="w-4 h-4" /> My Profile
-                                                </button>
-                                                <button onClick={() => { setIsProfileMenuOpen(false); onOpenCollection(); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                                                    <Library className="w-4 h-4" /> My Collection
-                                                </button>
-                                                <hr className="my-1 border-slate-100" />
-                                                <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                                    <LogOut className="w-4 h-4" /> Logout
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+                        </button>
+                        
+                        {/* Profile Dropdown Logic Here... */}
+                        <div className="relative" ref={profileMenuRef}>
+                            <button 
+                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                className="flex items-center gap-2 bg-red-700 p-1 pr-3 rounded-full text-white hover:bg-red-800"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-white text-red-600 flex items-center justify-center font-bold">
+                                    {userInitial}
+                                </div>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            <AnimatePresence>
+                                {isProfileMenuOpen && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-2"
+                                    >
+                                        <button onClick={onOpenProfile} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                            <User className="w-4 h-4" /> Profile
+                                        </button>
+                                        {isAdmin && (
+                                            <button onClick={onOpenCMS} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                                <Settings className="w-4 h-4" /> CMS
+                                            </button>
+                                        )}
+                                        <hr className="my-1 border-slate-100 dark:border-slate-700" />
+                                        <button onClick={onLogout} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
+                                            <LogOut className="w-4 h-4" /> Logout
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* Sub-Header & Filters can go here... */}
+            {/* Main Content & Grid logic would follow here */}
+            <main className="max-w-7xl mx-auto p-6">
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-2 mb-6">
+                        <AlertCircle className="w-5 h-5" /> {error}
+                    </div>
+                )}
+                {/* ... Render Pokemon Cards ... */}
+            </main>
         </div>
     );
 };
