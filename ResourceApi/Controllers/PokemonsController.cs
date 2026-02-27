@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceApi.Data;
@@ -18,14 +18,39 @@ namespace ResourceApi.Controllers
             _context = context;
         }
 
-        // GET: /api/pokemons
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons([FromQuery] int offset = 0, [FromQuery] int limit = 20)
+        public async Task<ActionResult<IEnumerable<Pokemon>>> GetPokemons(
+            [FromQuery] string? search = null,
+            [FromQuery] string? type = null,
+            [FromQuery] int? generation = null,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 20)
         {
-            // FIX: Pinalitan ang .PokemonTypes ng .Types
+            // Initial query with Many-to-Many includes
             var query = _context.Pokemons
-                .Include(p => p.Types)
-                .OrderBy(p => p.PokedexNumber); // Mas accurate kung PokedexNumber ang gagamitin
+                .Include(p => p.PokemonTypes)
+                    .ThenInclude(pt => pt.Type)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string searchLower = search.ToLower();
+                query = query.Where(p => p.Name.ToLower().Contains(searchLower));
+            }
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                string typeLower = type.ToLower();
+                // Filters Pokemon that have at least one type matching the query
+                query = query.Where(p => p.PokemonTypes.Any(pt => pt.Type.Name.ToLower() == typeLower));
+            }
+
+            if (generation.HasValue)
+            {
+                query = query.Where(p => p.Generation == generation.Value);
+            }
+
+            query = query.OrderBy(p => p.PokedexNumber);
 
             var pokemons = await query
                 .Skip(offset)
@@ -35,24 +60,19 @@ namespace ResourceApi.Controllers
             return Ok(pokemons);
         }
 
-        // GET: /api/pokemons/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<Pokemon>> GetPokemon(int id)
         {
-            // FIX: Pinalitan ang .PokemonTypes ng .Types
             var pokemon = await _context.Pokemons
-                .Include(p => p.Types)
+                .Include(p => p.PokemonTypes)
+                    .ThenInclude(pt => pt.Type)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (pokemon == null)
-            {
-                return NotFound();
-            }
+            if (pokemon == null) return NotFound();
 
             return Ok(pokemon);
         }
 
-        // POST: /api/pokemons
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
@@ -64,22 +84,25 @@ namespace ResourceApi.Controllers
                 Generation = createDto.Generation,
                 IsLegendary = createDto.IsLegendary,
                 IsMythical = createDto.IsMythical,
-                Height = 0,
-                Weight = 0,
-                BaseExperience = 0
+                PokemonTypes = new List<PokemonType>()
             };
 
-            if (createDto.Types != null && createDto.Types.Any())
+            if (createDto.Types != null)
             {
                 foreach (var typeName in createDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    // Search in the Master List (PokemonTypeEntities)
+                    var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
                     if (existingType != null)
                     {
-                        // FIX: Pinalitan ang .PokemonTypes ng .Types
-                        pokemon.Types.Add(existingType);
+                        pokemon.PokemonTypes.Add(new PokemonType
+                        {
+                            Pokemon = pokemon,
+                            Type = existingType,
+                            IsPrimary = pokemon.PokemonTypes.Count == 0
+                        });
                     }
                 }
             }
@@ -90,67 +113,40 @@ namespace ResourceApi.Controllers
             return CreatedAtAction(nameof(GetPokemon), new { id = pokemon.Id }, pokemon);
         }
 
-        // PUT: /api/pokemons/{id}
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutPokemon(int id, UpdatePokemonDto updateDto)
         {
-            // FIX: Pinalitan ang .PokemonTypes ng .Types
             var pokemon = await _context.Pokemons
-                .Include(p => p.Types)
+                .Include(p => p.PokemonTypes)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pokemon == null) return NotFound();
 
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
-            if (!string.IsNullOrEmpty(updateDto.ImageUrl)) pokemon.ImageUrl = updateDto.ImageUrl;
-            if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
-            if (updateDto.IsLegendary.HasValue) pokemon.IsLegendary = updateDto.IsLegendary.Value;
-            if (updateDto.IsMythical.HasValue) pokemon.IsMythical = updateDto.IsMythical.Value;
 
             if (updateDto.Types != null)
             {
-                // FIX: Pinalitan ang .PokemonTypes ng .Types
-                pokemon.Types.Clear();
+                pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
-                    var existingType = await _context.PokemonTypes
+                    // Find correct Type from Master List
+                    var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
+
                     if (existingType != null)
                     {
-                        pokemon.Types.Add(existingType);
+                        pokemon.PokemonTypes.Add(new PokemonType
+                        {
+                            PokemonId = pokemon.Id,
+                            TypeId = existingType.Id,
+                            IsPrimary = pokemon.PokemonTypes.Count == 0
+                        });
                     }
                 }
             }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Pokemons.Any(e => e.Id == id)) return NotFound();
-                else throw;
-            }
-
-            return NoContent();
-        }
-
-        // DELETE: /api/pokemons/{id}
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeletePokemon(int id)
-        {
-            var pokemon = await _context.Pokemons.FindAsync(id);
-
-            if (pokemon == null)
-            {
-                return NotFound();
-            }
-
-            _context.Pokemons.Remove(pokemon);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

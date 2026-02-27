@@ -1,27 +1,103 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using ResourceApi.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// --- SERVICES CONFIGURATION ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ✅ Database
+builder.Services.AddDbContext<PokemonDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
+// ✅ CORS (single clean policy)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// ✅ JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+    };
+});
+
+// --- SERVICES CONFIGURATION ---
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Task 2.1.10: Enable CORS (Allow frontend access)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddDbContext<PokemonDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+// --- 2. JWT AUTHENTICATION SETUP ---
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretDefaultKey123456789012";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+        };
+    });
+
 var app = builder.Build();
 
-// --- SEEDING LOGIC START ---
+// --- SEED DATABASE ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<PokemonDbContext>();
-        // Siguraduhin na ang DB ay created bago mag-seed
         context.Database.EnsureCreated();
         SeedData.Initialize(context);
     }
@@ -31,8 +107,8 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Nagkaroon ng error sa pag-seed ng database.");
     }
 }
-// --- SEEDING LOGIC END ---
 
+// --- MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -40,7 +116,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
+app.UseAuthentication();
 app.UseAuthorization();
+
+// IMPORTANT: Authentication must come BEFORE Authorization
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
