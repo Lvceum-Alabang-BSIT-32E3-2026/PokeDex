@@ -9,7 +9,8 @@ namespace ResourceApi.Models
         public int Generation { get; set; } // DAPAT INT
         public bool IsLegendary { get; set; }
         public bool IsMythical { get; set; }
-
+        
+        // Navigation property
         public ICollection<PokemonType> PokemonTypes { get; set; } = new List<PokemonType>();
     }
 }
