@@ -49,55 +49,6 @@ export const pokemonService = {
 
     // Live API Implementation — calls our local ResourceApi
     try {
-<<<<<<< Updated upstream
-      let results = [];
-
-      if (genFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/generation/${genFilter}`);
-        const data = await res.json();
-        // Process species to get proper IDs for sorting/fetching
-        results = data.pokemon_species.map((s: any) => {
-          const id = parseInt(s.url.split('/').filter(Boolean).pop());
-          return {
-            name: s.name,
-            url: `https://pokeapi.co/api/v2/pokemon/${id}`,
-            id: id
-          };
-        }).sort((a: any, b: any) => a.id - b.id);
-
-        // Pagination for Gen view (client side slice for now)
-        // results = results.slice(offset, offset + limit);
-
-      } else if (typeFilter !== 'all') {
-        const res = await fetch(`https://pokeapi.co/api/v2/type/${typeFilter}`);
-        const data = await res.json();
-        results = data.pokemon.map((p: any) => p.pokemon);
-      } else {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
-        const data = await res.json();
-        results = data.results;
-      }
-
-      // If we have a huge list (Gen/Type filters), we slice it for the view here
-      // For standard pagination, 'results' is already chunked.
-      const viewResults = (genFilter !== 'all' || typeFilter !== 'all')
-        ? results.slice(0, 50)
-        : results;
-
-      // Fetch details for each
-      const detailed = await Promise.all(
-        viewResults.map(async (p: any) => {
-          let url = p.url;
-          if (!url && p.pokemon) url = p.pokemon.url;
-
-          const res = await fetch(url);
-          const details = await res.json();
-          return formatApiPokemon(details);
-        })
-      );
-
-      return detailed;
-=======
       const params = new URLSearchParams();
       if (genFilter !== 'all') params.append('generation', genFilter);
       if (typeFilter !== 'all') params.append('type', typeFilter);
@@ -119,7 +70,6 @@ export const pokemonService = {
         types: p.type ? p.type.split(',').map((t: string) => t.trim().toLowerCase()) : [],
         image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`,
       }));
->>>>>>> Stashed changes
     } catch (error) {
       console.error('API Error:', error);
       return [];
