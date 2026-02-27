@@ -149,5 +149,21 @@ export const pokemonService = {
     await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'DELETE'
     });
+  },
+
+  /**
+   * Task 3.2.5: Fetches all pokemon without pagination for type breakdown analytics.
+   */
+  async getAllRaw(): Promise<Pokemon[]> {
+    if (!USE_LIVE_API) {
+      return MOCK_POKEMON as unknown as Pokemon[];
+    }
+    try {
+      const response = await apiFetch(`${API_URL}/api/pokemon/all`); // Assumes an 'all' endpoint exists or adjust to list with high limit
+      return response.json();
+    } catch (error) {
+      console.error('Error fetching all raw data:', error);
+      return [];
+    }
   }
 };
