@@ -27,12 +27,37 @@ const STAT_COLORS: Record<string, string> = {
 const MAX_STAT = 255;
 
 export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, isCaptured, onToggleCapture }) => {
+    const [evolutionChain, setEvolutionChain] = useState<EvolutionNode[]>([]);
+    const [loadingEvo, setLoadingEvo] = useState(true);
+
+    // Helper for Generation Roman Numerals
+    const getGenLabel = (gen: number) => {
+        const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+        return `Gen ${roman[gen - 1] || gen}`;
+    };
+
+    useEffect(() => {
+        const fetchEvolution = async () => {
+            setLoadingEvo(true);
+            try {
+                const chain = await pokemonService.getEvolutionChain(pokemon.id);
+                setEvolutionChain(chain);
+            } catch (error) {
+                console.error("Failed to load evolution", error);
+            } finally {
+                setLoadingEvo(false);
+            }
+        };
+
+        if (pokemon) fetchEvolution();
+    }, [pokemon]);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
             onClick={onClose}
         >
             <motion.div
@@ -65,7 +90,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
 
                     <motion.img
                         layoutId={`pokemon-img-${pokemon.id}`}
-                        src={pokemon.imageUrl}
+                        src={pokemon.imageUrl || pokemon.image}
                         alt={pokemon.name}
                         className="w-64 h-64 object-contain z-10 drop-shadow-2xl"
                     />

@@ -40,7 +40,7 @@ export const pokemonService = {
   async getList(
     offset: number = 0,
     limit: number = 20,
-    generation?: number,
+    generation?: number | string,
     type?: string,
     search?: string
   ): Promise<PokemonListResponse> {
@@ -71,8 +71,8 @@ export const pokemonService = {
     const params = new URLSearchParams({
       offset: String(offset),
       limit: String(limit),
-      ...(generation && { generation: String(generation) }),
-      ...((type && type !== 'all') && { type }),
+      ...(generation && generation !== 'all' && { generation: String(generation) }),
+      ...(type && type !== 'all' && { type }),
       ...(search && { search })
     });
 
@@ -131,7 +131,7 @@ export const pokemonService = {
    */
   async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
-      return { ...data, id } as Pokemon;
+      return { ...data, id } as unknown as Pokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'PUT',

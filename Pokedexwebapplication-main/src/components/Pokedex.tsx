@@ -101,6 +101,19 @@ export const Pokedex: React.FC<PokedexProps> = ({
         const fetchData = async () => {
             setLoading(true);
             setError(null);
+
+            setPokemon([]);
+            try {
+                const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
+                setPokemon(data);
+            } catch (error: any) {
+                console.error('Error fetching pokemon:', error);
+                if (error.name === 'TypeError' || error.message.toLowerCase().includes('network')) {
+                    setError('Network error: Please check your connection and try again.');
+                } else {
+                    setError('API Error: Failed to load Pokemon.');
+                }
+
             try {
                 const data = await pokemonService.getList(offset, limit, selectedGen, selectedType, debouncedSearch);
                 setPokemon(data);

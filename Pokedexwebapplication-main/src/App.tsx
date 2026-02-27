@@ -25,6 +25,46 @@ const AppRoutes = () => {
 
     // Public Routes: Redirect to Pokedex if already logged in
     if (!isAuthenticated) {
+
+        if (currentPath === '#/register') {
+            content = (
+                <div className="flex items-center justify-center min-h-screen bg-slate-50">
+                    <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-slate-200">
+                        <h2 className="text-2xl font-bold mb-4">Create Trainer Account</h2>
+                        <p className="text-slate-500 mb-6">Registration is currently under maintenance.</p>
+                        <button onClick={() => window.location.hash = '#/login'} className="text-red-600 font-bold underline">
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            );
+        } else {
+            content = <Login onLogin={() => {}} />;
+        }
+    } else {
+        const userEmail = user?.email || '';
+
+        switch (currentPath) {
+            case '#/cms':
+                content = <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
+                break;
+            case '#/recommendations':
+                content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
+                break;
+            case '#/collection':
+                content = (
+                    <CollectionPage
+                        onBack={() => window.location.hash = '#/pokedex'}
+                        capturedIds={capturedIds}
+                    />
+                );
+                break;
+            case '#/profile':
+                content = (
+                    <ProfilePage
+                        userEmail={userEmail}
+                        onBack={() => window.location.hash = '#/pokedex'}
+
         return (
             <Routes>
                 <Route 
