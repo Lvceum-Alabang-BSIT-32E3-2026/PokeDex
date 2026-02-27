@@ -1,15 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Pokemon } from '../services/pokemonService';
+import { Pokemon } from '../types/pokemon';
 import { Heart } from 'lucide-react';
 
 interface PokemonCardProps extends Pokemon {
     isCaptured: boolean;
-    onToggleCapture: (id: number) => void;
+    onToggleCapture: (id: number) => void | Promise<void>;
     onClick: () => void;
 }
 
-export const PokemonCard: React.FC<PokemonCardProps> = ({ id, name, types, image, isCaptured, onToggleCapture, onClick }) => {
+export const PokemonCard: React.FC<PokemonCardProps> = ({ id, name, types, imageUrl, isCaptured, onToggleCapture, onClick }) => {
     return (
         <motion.div
             layout
@@ -35,7 +35,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ id, name, types, image
 
             <div className="aspect-square bg-slate-50 flex items-center justify-center p-6 bg-gradient-to-b from-slate-100 to-white">
                 <img
-                    src={image}
+                    src={imageUrl}
                     alt={name}
                     className="w-full h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
                 />
