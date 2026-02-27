@@ -1,1 +1,73 @@
-@import "tailwindcss";
+/* =========================
+   Theme Variables - Light
+   ========================= */
+:root {
+    /* Backgrounds */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-card: #ffffff;
+    /* Text */
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #6b7280;
+    /* Borders */
+    --border-color: #e5e7eb;
+    /* Accent / Brand */
+    --color-primary: #ef5350;
+    --color-primary-hover: #e53935;
+    /* Status */
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    /* Shadows */
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* =========================
+   Dark Mode Overrides
+   ========================= */
+.dark {
+    /* Backgrounds */
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-card: #2a2a2a;
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    /* Borders */
+    --border-color: #3a3a3a;
+    /* Accent / Brand */
+    --color-primary: #f87171;
+    --color-primary-hover: #ef4444;
+    /* Status */
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-danger: #f87171;
+    /* Shadows */
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* =========================
+   Global Usage
+   ========================= */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-card);
+}
+
+button {
+    background-color: var(--color-primary);
+    color: #ffffff;
+}
+
+    button:hover {
+        background-color: var(--color-primary-hover);
+    }
