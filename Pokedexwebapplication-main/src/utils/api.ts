@@ -1,35 +1,35 @@
-// src/utils/api.ts
-
+﻿// src/utils/api.ts
 export async function apiFetch(
     url: string,
     options: RequestInit = {}
-): Promise<Response> {
-    // Get token from localStorage
+): Promise<any> {
     const token = localStorage.getItem('token');
 
-    // Merge headers
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers, // Allows overriding defaults
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers,
     };
 
-    try {
-        const response = await fetch(url, {
-            ...options,
-            headers,
-        });
+    const response = await fetch(url, { ...options, headers });
 
-        // Handle 401 Unauthorized
-        if (response.status === 401) {
-            localStorage.removeItem('token');
-            window.dispatchEvent(new Event('auth:logout'));
-        }
+    // Automatically handle 401 Unauthorized
+    if (response.status === 401) {
+        // Remove token from localStorage
+        localStorage.removeItem('token');
 
-        return response;
-    } catch (error) {
-        // Optional: handle network errors
-        console.error('API Fetch Error:', error);
-        throw error;
+        // Dispatch global logout event
+        window.dispatchEvent(
+            new CustomEvent('logout', { detail: { reason: 'Session expired' } })
+        );
     }
+
+    // Parse JSON if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        return { ...data, status: response.status };
+    }
+
+    return response;
 }
