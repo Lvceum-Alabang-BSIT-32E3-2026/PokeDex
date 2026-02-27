@@ -1,245 +1,204 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle, BarChart3, Layers } from 'lucide-react';
 import { pokemonService } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
 
-interface CollectionPageProps {
-  onBack: () => void;
-}
-
-interface GenStats {
-  gen: number;
-  name: string;
-  total: number;
-  captured: number;
-}
+// Type Colors from task/232
+const typeColors: Record<string, string> = {
+    grass: 'bg-green-500', fire: 'bg-orange-500', water: 'bg-blue-500',
+    bug: 'bg-lime-600', normal: 'bg-slate-400', poison: 'bg-purple-500',
+    electric: 'bg-yellow-400', ground: 'bg-amber-600', fairy: 'bg-pink-400',
+    fighting: 'bg-red-700', psychic: 'bg-pink-600', rock: 'bg-stone-500',
+    ghost: 'bg-indigo-700', ice: 'bg-cyan-300', dragon: 'bg-indigo-600',
+    steel: 'bg-zinc-400', flying: 'bg-sky-400', dark: 'bg-slate-800'
+};
 
 const GENERATION_NAMES: Record<number, string> = {
-  1: 'Generation I — Kanto',
-  2: 'Generation II — Johto',
-  3: 'Generation III — Hoenn',
-  4: 'Generation IV — Sinnoh',
-  5: 'Generation V — Unova',
-  6: 'Generation VI — Kalos',
-  7: 'Generation VII — Alola',
-  8: 'Generation VIII — Galar',
-  9: 'Generation IX — Paldea',
+    1: 'Generation I — Kanto', 2: 'Generation II — Johto', 3: 'Generation III — Hoenn',
+    4: 'Generation IV — Sinnoh', 5: 'Generation V — Unova', 6: 'Generation VI — Kalos',
+    7: 'Generation VII — Alola', 8: 'Generation VIII — Galar', 9: 'Generation IX — Paldea',
 };
 
-// Color gradient per generation
 const GEN_COLORS: Record<number, { bar: string; badge: string }> = {
-  1: { bar: 'from-red-500 to-red-400',       badge: 'bg-red-100 text-red-700' },
-  2: { bar: 'from-yellow-500 to-yellow-400',  badge: 'bg-yellow-100 text-yellow-700' },
-  3: { bar: 'from-emerald-500 to-emerald-400',badge: 'bg-emerald-100 text-emerald-700' },
-  4: { bar: 'from-blue-500 to-blue-400',      badge: 'bg-blue-100 text-blue-700' },
-  5: { bar: 'from-slate-600 to-slate-500',    badge: 'bg-slate-100 text-slate-700' },
-  6: { bar: 'from-pink-500 to-pink-400',      badge: 'bg-pink-100 text-pink-700' },
-  7: { bar: 'from-orange-500 to-orange-400',  badge: 'bg-orange-100 text-orange-700' },
-  8: { bar: 'from-violet-500 to-violet-400',  badge: 'bg-violet-100 text-violet-700' },
-  9: { bar: 'from-teal-500 to-teal-400',      badge: 'bg-teal-100 text-teal-700' },
+    1: { bar: 'from-red-500 to-red-400', badge: 'bg-red-100 text-red-700' },
+    2: { bar: 'from-yellow-500 to-yellow-400', badge: 'bg-yellow-100 text-yellow-700' },
+    3: { bar: 'from-emerald-500 to-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
+    4: { bar: 'from-blue-500 to-blue-400', badge: 'bg-blue-100 text-blue-700' },
+    5: { bar: 'from-slate-600 to-slate-500', badge: 'bg-slate-100 text-slate-700' },
+    6: { bar: 'from-pink-500 to-pink-400', badge: 'bg-pink-100 text-pink-700' },
+    7: { bar: 'from-orange-500 to-orange-400', badge: 'bg-orange-100 text-orange-700' },
+    8: { bar: 'from-violet-500 to-violet-400', badge: 'bg-violet-100 text-violet-700' },
+    9: { bar: 'from-teal-500 to-teal-400', badge: 'bg-teal-100 text-teal-700' },
 };
 
-interface ProgressBarProps {
-  percent: number;
-  colorClass: string;
+interface CollectionPageProps {
+    onBack: () => void;
+    capturedIds: Set<number>; // Passed from App.tsx
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ percent, colorClass }) => {
-  const [width, setWidth] = useState(0);
+const ProgressBar: React.FC<{ percent: number; colorClass: string }> = ({ percent, colorClass }) => {
+    const [width, setWidth] = useState(0);
+    useEffect(() => {
+        const timer = setTimeout(() => setWidth(percent), 80);
+        return () => clearTimeout(timer);
+    }, [percent]);
 
-  useEffect(() => {
-    // Animate on mount
-    const timer = setTimeout(() => setWidth(percent), 80);
-    return () => clearTimeout(timer);
-  }, [percent]);
-
-  return (
-    <div
-      className="w-full h-3 bg-slate-200 rounded-full overflow-hidden"
-      role="progressbar"
-      aria-valuenow={Math.round(percent)}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
-      <div
-        className={`h-full rounded-full bg-gradient-to-r ${colorClass} transition-all duration-700 ease-out`}
-        style={{ width: `${width}%` }}
-      />
-    </div>
-  );
+    return (
+        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+            <div
+                className={`h-full rounded-full bg-gradient-to-r ${colorClass.includes('from-') ? colorClass : ''} ${!colorClass.includes('from-') ? colorClass : ''} transition-all duration-700 ease-out`}
+                style={{ width: `${width}%` }}
+            />
+        </div>
+    );
 };
 
-export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [genStats, setGenStats] = useState<GenStats[]>([]);
-  const [totalCaptured, setTotalCaptured] = useState(0);
-  const [totalPokemon, setTotalPokemon] = useState(0);
+export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack, capturedIds }) => {
+    const [loading, setLoading] = useState(true);
+    const [allPokemon, setAllPokemon] = useState<Pokemon[]>([]);
+    const [view, setView] = useState<'gen' | 'type'>('gen');
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Read captured IDs from localStorage
-        const saved = localStorage.getItem('capturedPokemon');
-        const capturedIds = new Set<number>(saved ? JSON.parse(saved) : []);
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const data = await pokemonService.getAllRaw();
+                setAllPokemon(data);
+            } catch (err) {
+                console.error("Failed to load Pokemon", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
 
-        // Fetch all Pokemon — large page size to get everything at once
-        // We fetch per-generation so the service's generation filter is used correctly
-        const allPokemon: Pokemon[] = [];
-        const FETCH_LIMIT = 2000;
-        const response = await pokemonService.getList(0, FETCH_LIMIT);
-        allPokemon.push(...response.items);
+    // Logic for Generation Stats
+    const genStats = Object.entries(
+        allPokemon.reduce((acc, p) => {
+            const g = p.generation ?? 1;
+            if (!acc[g]) acc[g] = [];
+            acc[g].push(p);
+            return acc;
+        }, {} as Record<number, Pokemon[]>)
+    ).map(([gen, list]) => ({
+        gen: Number(gen),
+        name: GENERATION_NAMES[Number(gen)] ?? `Generation ${gen}`,
+        total: list.length,
+        captured: list.filter(p => capturedIds.has(p.id)).length
+    })).sort((a, b) => a.gen - b.gen);
 
-        if (allPokemon.length === 0) {
-          setGenStats([]);
-          setTotalPokemon(0);
-          setTotalCaptured(0);
-          setLoading(false);
-          return;
-        }
+    // Logic for Type Stats
+    const typeStats = Object.keys(typeColors).map(type => {
+        const list = allPokemon.filter(p => p.types.some(t => t.toLowerCase() === type));
+        return {
+            type,
+            total: list.length,
+            captured: list.filter(p => capturedIds.has(p.id)).length
+        };
+    }).filter(s => s.total > 0);
 
-        // Group by generation
-        const byGen: Record<number, Pokemon[]> = {};
-        for (const p of allPokemon) {
-          const g = p.generation ?? 1;
-          if (!byGen[g]) byGen[g] = [];
-          byGen[g].push(p);
-        }
+    const totalCaptured = capturedIds.size;
+    const overallPercent = allPokemon.length > 0 ? (totalCaptured / allPokemon.length) * 100 : 0;
 
-        // Build stats — only include gens that actually have Pokemon
-        const stats: GenStats[] = Object.entries(byGen)
-          .map(([gen, list]) => {
-            const g = Number(gen);
-            const captured = list.filter(p => capturedIds.has(p.id)).length;
-            return {
-              gen: g,
-              name: GENERATION_NAMES[g] ?? `Generation ${g}`,
-              total: list.length,
-              captured,
-            };
-          })
-          .filter(s => s.total > 0)
-          .sort((a, b) => a.gen - b.gen);
-
-        setGenStats(stats);
-        setTotalPokemon(allPokemon.length);
-        setTotalCaptured(stats.reduce((sum, s) => sum + s.captured, 0));
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load data.';
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  const overallPercent = totalPokemon > 0 ? (totalCaptured / totalPokemon) * 100 : 0;
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* HEADER */}
-      <header className="bg-red-600 shadow-lg sticky top-0 z-30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 h-16">
-            <button
-              onClick={onBack}
-              className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
-              title="Back to Pokedex"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">My Collection</h1>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-12 h-12 rounded-full border-4 border-red-600 border-t-transparent animate-spin" />
-            <p className="text-slate-500 text-sm">Loading your collection…</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-16">
-            <p className="text-red-500 font-medium">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* OVERALL SUMMARY CARD */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800">Overall Progress</h2>
-                  <p className="text-sm text-slate-500">Across all generations</p>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-full font-semibold text-sm">
-                  <CheckCircle className="w-4 h-4" />
-                  {totalCaptured} / {totalPokemon} Captured
-                </div>
-              </div>
-              <ProgressBar percent={overallPercent} colorClass="from-red-600 to-red-400" />
-              <p className="text-right text-xs text-slate-400 mt-1">{overallPercent.toFixed(1)}%</p>
-            </div>
-
-            {/* PER-GENERATION CARDS */}
-            {genStats.length === 0 ? (
-              <div className="text-center py-16 text-slate-400">No Pokemon data found.</div>
-            ) : (
-              <div className="grid gap-4">
-                {genStats.map(({ gen, name, total, captured }) => {
-                  const pct = total > 0 ? (captured / total) * 100 : 0;
-                  const colors = GEN_COLORS[gen] ?? { bar: 'from-slate-500 to-slate-400', badge: 'bg-slate-100 text-slate-700' };
-                  const isComplete = captured === total && total > 0;
-
-                  return (
-                    <div
-                      key={gen}
-                      className={`bg-white rounded-2xl shadow-sm border p-5 transition-all hover:shadow-md ${
-                        isComplete ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          {isComplete && (
-                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                          )}
-                          <div>
-                            <h3 className="font-semibold text-slate-800">{name}</h3>
-                          </div>
-                        </div>
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${colors.badge}`}>
-                          {captured} / {total}
-                        </span>
-                      </div>
-
-                      <ProgressBar percent={pct} colorClass={colors.bar} />
-
-                      <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs text-slate-400">
-                          {pct.toFixed(1)}% complete
-                        </p>
-                        {isComplete && (
-                          <span className="text-xs font-semibold text-emerald-600">✓ Complete!</span>
-                        )}
-                      </div>
+    return (
+        <div className="min-h-screen bg-slate-50">
+            <header className="bg-red-600 shadow-lg sticky top-0 z-30">
+                <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={onBack} className="p-2 text-white hover:bg-red-700 rounded-full transition-colors">
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold text-white">My Collection</h1>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </main>
-    </div>
-  );
+                    {/* View Switcher */}
+                    <div className="flex bg-red-700 rounded-lg p-1">
+                        <button 
+                            onClick={() => setView('gen')}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${view === 'gen' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >
+                            BY GEN
+                        </button>
+                        <button 
+                            onClick={() => setView('type')}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${view === 'type' ? 'bg-white text-red-600' : 'text-white'}`}
+                        >
+                            BY TYPE
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                {loading ? (
+                    <div className="flex flex-col items-center py-24 gap-4">
+                        <div className="w-12 h-12 rounded-full border-4 border-red-600 border-t-transparent animate-spin" />
+                        <p className="text-slate-500">Syncing Pokedex...</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Overall Progress */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-lg font-bold text-slate-800">Overall Progress</h2>
+                                <div className="px-4 py-1 bg-red-50 text-red-700 rounded-full font-bold text-sm">
+                                    {totalCaptured} / {allPokemon.length}
+                                </div>
+                            </div>
+                            <ProgressBar percent={overallPercent} colorClass="from-red-600 to-red-400" />
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid gap-4 md:grid-cols-1">
+                            {view === 'gen' ? (
+                                genStats.map((s) => (
+                                    <div key={s.gen} className="bg-white rounded-xl border border-slate-200 p-5">
+                                        <div className="flex justify-between mb-2">
+                                            <span className="font-bold text-slate-700">{s.name}</span>
+                                            <span className="text-sm font-medium">{s.captured}/{s.total}</span>
+                                        </div>
+                                        <ProgressBar 
+                                            percent={(s.captured / s.total) * 100} 
+                                            colorClass={GEN_COLORS[s.gen]?.bar || 'bg-slate-500'} 
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {typeStats.map((s) => (
+                                        <div key={s.type} className="bg-white rounded-xl border border-slate-200 p-4">
+                                            <div className="flex justify-between mb-2 items-center">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black text-white uppercase ${typeColors[s.type]}`}>
+                                                    {s.type}
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-500">{s.captured}/{s.total}</span>
+                                            </div>
+                                            <ProgressBar 
+                                                percent={(s.captured / s.total) * 100} 
+                                                colorClass={typeColors[s.type]} 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </main>
+        </div>
+    );
+};
+
+const StatCard = ({ label, captured, total, color, isType }: any) => {
+    const pct = total > 0 ? (captured / total) * 100 : 0;
+    return (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-3">
+                <span className={`px-3 py-1 rounded-full text-white text-xs font-black uppercase ${color}`}>
+                    {label}
+                </span>
+                <span className="text-sm font-bold text-slate-400">{captured} <span className="text-slate-300">/</span> {total}</span>
+            </div>
+            <ProgressBar percent={pct} colorClass={color} />
+        </div>
+    );
 };
