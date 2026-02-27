@@ -8,7 +8,8 @@ import {
     Settings,
     Lightbulb,
     User,
-    AlertCircle
+    AlertCircle,
+    BookOpen
 } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
