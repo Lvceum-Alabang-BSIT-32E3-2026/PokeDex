@@ -16,9 +16,10 @@ import { pokemonService } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { captureService } from '../services/captureService';
 
 export const Pokedex: React.FC = () => {
-    const { isAdmin, user, logout } = useAuth();
+    const { isAdmin, user, logout, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [pokemon, setPokemon] = useState<Pokemon[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,22 +34,77 @@ export const Pokedex: React.FC = () => {
     const limit = 24;
 
     const [captured, setCaptured] = useState<Set<number>>(new Set());
+    const [captureError, setCaptureError] = useState<string | null>(null);
     const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
     useEffect(() => {
-        const saved = localStorage.getItem('capturedPokemon');
-        if (saved) {
-            setCaptured(new Set(JSON.parse(saved)));
+        let isMounted = true;
+
+        if (!isAuthenticated) {
+            setCaptured(new Set());
+            return;
         }
-    }, []);
 
-    const toggleCapture = (id: number) => {
-        const newCaptured = new Set(captured);
-        if (newCaptured.has(id)) newCaptured.delete(id);
-        else newCaptured.add(id);
+        const loadCaptured = async () => {
+            try {
+                const ids = await captureService.list();
+                if (isMounted) {
+                    setCaptured(new Set(ids));
+                    setCaptureError(null);
+                }
+            } catch (error) {
+                console.error('Failed to load captured Pokémon:', error);
+                if (isMounted) {
+                    setCaptureError('Failed to sync captures. Please try again later.');
+                }
+            }
+        };
 
-        setCaptured(newCaptured);
-        localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+        loadCaptured();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated]);
+
+    const toggleCapture = async (id: number) => {
+        if (!isAuthenticated) {
+            setCaptureError('Please log in to capture Pokémon.');
+            return;
+        }
+
+        const wasCaptured = captured.has(id);
+
+        setCaptured((prev) => {
+            const updated = new Set(prev);
+            if (wasCaptured) {
+                updated.delete(id);
+            } else {
+                updated.add(id);
+            }
+            return updated;
+        });
+
+        try {
+            if (wasCaptured) {
+                await captureService.release(id);
+            } else {
+                await captureService.capture(id);
+            }
+            setCaptureError(null);
+        } catch (error) {
+            console.error('Failed to toggle capture:', error);
+            setCaptured((prev) => {
+                const updated = new Set(prev);
+                if (wasCaptured) {
+                    updated.add(id);
+                } else {
+                    updated.delete(id);
+                }
+                return updated;
+            });
+            setCaptureError('Failed to update capture status. Please try again.');
+        }
     };
 
     const filteredPokemon = pokemon;
@@ -170,6 +226,13 @@ export const Pokedex: React.FC = () => {
 
             {/* MAIN CONTENT */}
             <main className="max-w-7xl mx-auto px-4 py-8">
+                {captureError && (
+                    <div className="mb-6">
+                        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">
+                            {captureError}
+                        </div>
+                    </div>
+                )}
                 {error ? (
                     <div className="text-center py-12">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
