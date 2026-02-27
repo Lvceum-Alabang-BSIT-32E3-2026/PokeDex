@@ -1,43 +1,50 @@
 import { MOCK_POKEMON, MOCK_EVOLUTION_CHAINS } from './mockData';
+import { Pokemon, PokemonListResponse } from '../types/pokemon';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 
-import { Pokemon, PokemonListResponse } from '../types/pokemon';
-
 export interface EvolutionNode {
-  species_name: string;
-  min_level: number;
-  trigger_name?: string;
-  item?: string | null;
-  image: string;
+    species_name: string;
+    min_level: number;
+    trigger_name?: string;
+    item?: string | null;
+    image: string;
 }
 
-// Helper to add Authorization header
+/* ---------- HELPER ---------- */
+// Centralized fetch with Auth token and error handling
 const apiFetch = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
   const headers = {
     ...options.headers,
+    'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
   };
+
   const response = await fetch(url, { ...options, headers });
+  
   if (!response.ok) {
-    throw new Error(`API fetch failed: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `API fetch failed: ${response.statusText}`);
   }
   return response;
 };
 
+/* ---------- SERVICE ---------- */
 export const pokemonService = {
+  
+  /**
+   * Fetch a paginated list of Pokemon with filters
+   */
   async getList(
     offset: number = 0,
     limit: number = 20,
-    generation?: number,
+    generation?: number | string,
     type?: string,
     search?: string
   ): Promise<PokemonListResponse> {
     if (!USE_LIVE_API) {
-      // Mock Implementation
-      console.log('Using Mock Data for List');
       let data = [...MOCK_POKEMON];
 
       if (type && type !== 'all') {
@@ -45,6 +52,7 @@ export const pokemonService = {
       }
 
       if (generation) {
+        // Simple logic for Gen 1 mock data
         if (generation === 1) data = data.filter(p => p.id <= 151);
       }
 
@@ -53,7 +61,7 @@ export const pokemonService = {
       }
 
       return {
-        items: data.slice(offset, offset + limit) as unknown as Pokemon[], // Cast to match type since PokemonMock has slightly different type
+        items: data.slice(offset, offset + limit) as unknown as Pokemon[],
         totalCount: data.length,
         page: Math.floor(offset / limit) + 1,
         pageSize: limit
@@ -63,8 +71,8 @@ export const pokemonService = {
     const params = new URLSearchParams({
       offset: String(offset),
       limit: String(limit),
-      ...(generation && { generation: String(generation) }),
-      ...((type && type !== 'all') && { type }),
+      ...(generation && generation !== 'all' && { generation: String(generation) }),
+      ...(type && type !== 'all' && { type }),
       ...(search && { search })
     });
 
@@ -72,61 +80,72 @@ export const pokemonService = {
     return response.json();
   },
 
+  /**
+   * Fetch a single Pokemon by ID
+   */
   async getById(id: number): Promise<Pokemon> {
     if (!USE_LIVE_API) {
       const p = MOCK_POKEMON.find(p => p.id === id);
-      if (!p) throw new Error('Not found');
-      return p;
+      if (!p) throw new Error('Pokemon not found in mock data');
+      return p as unknown as Pokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon/${id}`);
     return response.json();
   },
 
+  /**
+   * Get the evolution chain for a specific Pokemon
+   */
   async getEvolutionChain(pokemonId: number): Promise<EvolutionNode[]> {
     if (!USE_LIVE_API) {
-      if (MOCK_EVOLUTION_CHAINS[pokemonId]) return MOCK_EVOLUTION_CHAINS[pokemonId];
-      if (MOCK_EVOLUTION_CHAINS[1]) return MOCK_EVOLUTION_CHAINS[1];
-      return [];
+      return MOCK_EVOLUTION_CHAINS[pokemonId] || MOCK_EVOLUTION_CHAINS[1] || [];
     }
+    
     try {
+      // Assuming your backend has a dedicated endpoint for evolutions
       const response = await apiFetch(`${API_URL}/api/pokemon/${pokemonId}/evolutions`);
       return response.json();
     } catch (error) {
-      console.error('Evo API Error:', error);
+      console.error('Evolution API Error:', error);
       return [];
     }
   },
 
+  /**
+   * Create a new Pokemon entry
+   */
   async createPokemon(data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
       const newPokemon = { ...data, id: Date.now() } as Pokemon;
-      MOCK_POKEMON.push(newPokemon);
       return newPokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return response.json();
   },
 
+  /**
+   * Update an existing Pokemon
+   */
   async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
-      return { ...data, id } as Pokemon;
+      return { ...data, id } as unknown as Pokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return response.json();
   },
 
+  /**
+   * Delete a Pokemon
+   */
   async deletePokemon(id: number): Promise<void> {
-    if (!USE_LIVE_API) {
-      return;
-    }
+    if (!USE_LIVE_API) return;
+    
     await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'DELETE'
     });
