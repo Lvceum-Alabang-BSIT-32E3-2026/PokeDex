@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, ArrowRight, Crown, Sparkles, Heart, Weight, Ruler, Fingerprint } from 'lucide-react';
+import {
+    X, ArrowRight, Crown, Sparkles, Fingerprint,
+    Ruler, Weight, Heart
+} from 'lucide-react';
 import { pokemonService, EvolutionNode } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
-import { ProgressBar } from './ProgressBar';
+import { StatBar } from './StatBar';
 
 interface PokemonDetailProps {
     pokemon: Pokemon;
@@ -12,37 +15,26 @@ interface PokemonDetailProps {
     onToggleCapture: (id: number) => void | Promise<void>;
 }
 
-// Map generation number to Roman numeral label
-const getGenLabel = (gen: number): string => {
-    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
-    return `Gen ${roman[gen - 1] ?? gen}`;
+const STAT_COLORS: Record<string, string> = {
+  'HP': '#ff5959',
+  'Attack': '#f5ac78',
+  'Defense': '#fae078',
+  'Sp. Atk': '#9db7f5',
+  'Sp. Def': '#a7db8d',
+  'Speed': '#fa92b2',
 };
 
-// Stat color based on stat name
-const getStatColor = (name: string): string => {
-    const colors: Record<string, string> = {
-        hp: 'bg-red-400',
-        attack: 'bg-orange-400',
-        defense: 'bg-yellow-400',
-        specialAttack: 'bg-blue-400',
-        specialDefense: 'bg-teal-400',
-        speed: 'bg-green-400',
-    };
-    return colors[name] ?? 'bg-slate-400';
-};
-
-const STAT_LABELS: Record<string, string> = {
-    hp: 'HP',
-    attack: 'Attack',
-    defense: 'Defense',
-    specialAttack: 'Sp. Atk',
-    specialDefense: 'Sp. Def',
-    speed: 'Speed',
-};
+const MAX_STAT = 255;
 
 export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, isCaptured, onToggleCapture }) => {
     const [evolutionChain, setEvolutionChain] = useState<EvolutionNode[]>([]);
     const [loadingEvo, setLoadingEvo] = useState(true);
+
+    // Helper for Generation Roman Numerals
+    const getGenLabel = (gen: number) => {
+        const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+        return `Gen ${roman[gen - 1] || gen}`;
+    };
 
     useEffect(() => {
         const fetchEvolution = async () => {
@@ -51,194 +43,154 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
                 const chain = await pokemonService.getEvolutionChain(pokemon.id);
                 setEvolutionChain(chain);
             } catch (error) {
-                console.error('Failed to load evolution', error);
+                console.error("Failed to load evolution", error);
             } finally {
                 setLoadingEvo(false);
             }
         };
 
-        if (pokemon) {
-            fetchEvolution();
-        }
+        if (pokemon) fetchEvolution();
     }, [pokemon]);
-
-    const stats = [
-        { key: 'hp', value: pokemon.hp },
-        { key: 'attack', value: pokemon.attack },
-        { key: 'defense', value: pokemon.defense },
-        { key: 'specialAttack', value: pokemon.specialAttack },
-        { key: 'specialDefense', value: pokemon.specialDefense },
-        { key: 'speed', value: pokemon.speed },
-    ].filter(s => s.value !== undefined && s.value !== null) as { key: string; value: number }[];
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
             onClick={onClose}
         >
             <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row relative"
+                layoutId={`pokemon-card-${pokemon.id}`}
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row relative"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Close Button */}
+                {/* CLOSE BUTTON */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 p-2 bg-white/20 hover:bg-black/10 rounded-full transition-colors"
-                    aria-label="Close detail modal"
+                    className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg z-20 transition-colors"
                 >
                     <X className="w-6 h-6 text-slate-800" />
                 </button>
 
-                {/* Left Side: Visuals */}
-                <div className={`w-full md:w-1/2 p-8 flex flex-col items-center justify-center relative ${isCaptured ? 'bg-yellow-50' : 'bg-slate-100'}`}>
-                    <div className="absolute top-6 left-6 w-full pr-12">
+                {/* LEFT PANEL: Visuals */}
+                <div className={`w-full md:w-1/2 p-10 flex flex-col items-center justify-center relative overflow-hidden ${isCaptured ? 'bg-yellow-50' : 'bg-slate-100'}`}>
+                    {/* Background Decoration */}
+                    <div className="absolute inset-0 opacity-5 pointer-events-none">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-[40px] border-slate-900 rounded-full" />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-10 bg-slate-900" />
+                    </div>
 
-                        {/* Generation Badge — Task 234 */}
-                        {pokemon.generation != null && (
-                            <div
-                                className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-black tracking-widest uppercase shadow-sm mb-2"
-                                aria-label={`Generation ${pokemon.generation}`}
-                            >
-                                <Fingerprint className="w-3.5 h-3.5" />
-                                {getGenLabel(pokemon.generation)}
-                            </div>
-                        )}
+                    {pokemon.generation && (
+                        <div className="absolute top-6 left-6 text-xs font-bold text-slate-400 flex gap-1 items-center">
+                            <Fingerprint className="w-3 h-3" />
+                            Gen {roman[pokemon.generation - 1] || pokemon.generation}
+                        </div>
+                    )}
 
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h2 className="text-4xl font-bold text-slate-800 capitalize tracking-tight">{pokemon.name}</h2>
+                    <motion.img
+                        layoutId={`pokemon-img-${pokemon.id}`}
+                        src={pokemon.imageUrl || pokemon.image}
+                        alt={pokemon.name}
+                        className="w-64 h-64 object-contain z-10 drop-shadow-2xl"
+                    />
 
+                    <button
+                        onClick={() => onToggleCapture(pokemon.id)}
+                        className={`mt-8 px-8 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 z-10
+                        ${isCaptured
+                                ? 'bg-red-500 text-white shadow-red-200 shadow-lg'
+                                : 'bg-slate-800 text-white hover:bg-slate-700 shadow-xl'
+                            }`}
+                    >
+                        <Heart className={`w-5 h-5 ${isCaptured ? 'fill-current' : ''}`} />
+                        {isCaptured ? 'Captured' : 'Capture'}
+                    </button>
+                </div>
+
+                {/* RIGHT PANEL: Info & Stats */}
+                <div className="w-full md:w-1/2 p-8 overflow-y-auto bg-white">
+                    <div className="mb-6">
+                        <span className="text-sm font-mono font-bold text-slate-400">
+                            #{String(pokemon.id).padStart(3, '0')}
+                        </span>
+
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <h2 className="text-4xl font-black capitalize text-slate-800">{pokemon.name}</h2>
                             {pokemon.isLegendary && (
-                                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-black tracking-widest uppercase shadow-sm">
+                                <span className="bg-amber-100 text-amber-700 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                                     <Crown className="w-3 h-3" /> Legendary
                                 </span>
                             )}
-
                             {pokemon.isMythical && (
-                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-[10px] font-black tracking-widest uppercase shadow-sm">
+                                <span className="bg-purple-100 text-purple-700 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                                     <Sparkles className="w-3 h-3" /> Mythical
                                 </span>
                             )}
                         </div>
 
                         <div className="flex gap-2">
-                            {pokemon.types.map((t: string) => (
-                                <span key={t} className="bg-slate-800 text-white px-3 py-1 rounded-full text-sm uppercase font-bold">{t}</span>
+                            {pokemon.types.map(t => (
+                                <span key={t} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200">
+                                    {t}
+                                </span>
                             ))}
                         </div>
                     </div>
 
-                    <motion.img
-                        layoutId={`image-${pokemon.id}`}
-                        src={pokemon.imageUrl}
-                        alt={pokemon.name}
-                        className="w-64 h-64 object-contain z-10 my-12"
-                    />
-
-                    {/* Height & Weight */}
-                    <div className="w-full grid grid-cols-2 gap-3 mt-2">
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                <Weight className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Weight</span>
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex gap-1 items-center mb-1">
+                                <Weight className="w-3 h-3" /> Weight
                             </div>
-                            <p className="text-lg font-bold text-slate-700">
-                                {pokemon.weight != null ? `${(pokemon.weight / 10).toFixed(1)} kg` : '—'}
-                            </p>
+                            <p className="font-bold text-slate-700">{pokemon.weight ?? '--'} kg</p>
                         </div>
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="flex items-center gap-2 text-slate-400 mb-1">
-                                <Ruler className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Height</span>
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex gap-1 items-center mb-1">
+                                <Ruler className="w-3 h-3" /> Height
                             </div>
-                            <p className="text-lg font-bold text-slate-700">
-                                {pokemon.height != null ? `${(pokemon.height / 10).toFixed(1)} m` : '—'}
-                            </p>
+                            <p className="font-bold text-slate-700">{pokemon.height ?? '--'} m</p>
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => onToggleCapture(pokemon.id)}
-                        className={`mt-4 px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all ${isCaptured
-                            ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500 shadow-lg shadow-yellow-200'
-                            : 'bg-slate-800 text-white hover:bg-slate-700'
-                            }`}
-                    >
-                        <Heart className={`w-4 h-4 ${isCaptured ? 'fill-current' : ''}`} />
-                        {isCaptured ? 'Captured!' : 'Mark as Captured'}
-                    </button>
-                </div>
-
-                {/* Right Side: Stats & Evolutions */}
-                <div className="w-full md:w-1/2 p-8 overflow-y-auto bg-white">
-
-                    {/* Base Stats */}
-                    {stats.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-xl font-bold text-slate-800 mb-4">Base Stats</h3>
-                            <div className="flex flex-col gap-3">
-                                {stats.map(({ key, value }) => (
-                                    <div key={key}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{STAT_LABELS[key]}</span>
-                                            <span className="text-xs font-bold text-slate-700">{value}</span>
+                    {/* EVOLUTION CHAIN */}
+                    <div className="mb-8">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Evolution Chain</h3>
+                        {loadingEvo ? (
+                            <div className="flex justify-center py-4">
+                                <div className="h-6 w-6 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {evolutionChain.map((node, i) => (
+                                    <div key={node.species_name} className="flex items-center gap-4 p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                                        <img src={node.image} alt={node.species_name} className="w-12 h-12 object-contain bg-white rounded-lg border shadow-sm" />
+                                        <div className="flex-1">
+                                            <p className="font-bold capitalize text-slate-700 text-sm">{node.species_name}</p>
+                                            {i > 0 && (
+                                                <p className="text-[10px] text-slate-400 font-medium">
+                                                    {node.min_level ? `Level ${node.min_level}` : node.trigger_name ?? 'Special condition'}
+                                                </p>
+                                            )}
                                         </div>
-                                        <ProgressBar
-                                            value={value}
-                                            max={255}
-                                            color={getStatColor(key)}
-                                            height="h-2"
-                                            ariaLabel={`${STAT_LABELS[key]}: ${value} out of 255`}
-                                        />
+                                        {i < evolutionChain.length - 1 && (
+                                            <ArrowRight className="text-slate-300 w-4 h-4" />
+                                        )}
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
-                    {/* Evolution Chain */}
-                    <h3 className="text-xl font-bold text-slate-800 mb-4">Evolution Chain</h3>
-
-                    {loadingEvo ? (
-                        <div className="flex justify-center py-8">
-                            <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-4">
-                            {evolutionChain.map((node, idx) => (
-                                <div key={node.species_name} className="flex items-center gap-4">
-                                    <div className="flex-shrink-0 w-20 h-20 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                                        <img src={node.image} alt={node.species_name} className="w-full h-full object-contain" />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <h4 className="font-bold capitalize text-slate-700">{node.species_name}</h4>
-                                        {idx > 0 && (
-                                            <p className="text-xs text-slate-500">
-                                                {node.min_level ? `Level ${node.min_level}` : node.trigger_name || 'Evolution'}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {idx < evolutionChain.length - 1 && (
-                                        <ArrowRight className="w-5 h-5 text-slate-300" />
-                                    )}
-                                </div>
-                            ))}
-                            {evolutionChain.length <= 1 && (
-                                <p className="text-slate-400 text-sm italic">This Pokémon does not evolve or evolution data is unavailable.</p>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="mt-8 pt-6 border-t border-slate-100">
-                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">System Status</h3>
-                        <p className="text-xs text-slate-400">
-                            Mode: {import.meta.env.VITE_USE_LIVE_API === 'true' ? 'Live Production API' : 'Local Mock Environment'}
-                        </p>
+                    {/* BASE STATS */}
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Base Stats</h3>
+                        <StatBar label="hp" value={pokemon.hp ?? 0} />
+                        <StatBar label="attack" value={pokemon.attack ?? 0} />
+                        <StatBar label="defense" value={pokemon.defense ?? 0} />
+                        <StatBar label="special-attack" value={pokemon.specialAttack ?? 0} />
+                        <StatBar label="special-defense" value={pokemon.specialDefense ?? 0} />
+                        <StatBar label="speed" value={pokemon.speed ?? 0} />
                     </div>
                 </div>
             </motion.div>
