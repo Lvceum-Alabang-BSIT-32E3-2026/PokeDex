@@ -4,20 +4,11 @@ import { ArrowLeft, Plus, X, Save, Edit2, Trash2, ChevronDown, ChevronLeft, Chev
 import { Pokemon } from '../types/pokemon';
 import { pokemonService } from '../services/pokemonService';
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from '../contexts/AuthContext';
 
-function PokemonCMS() {
-    const { id } = useParams<{ id: string }>();
-
-    return (
-        <div>
-            <h1>Pokemon Details - {id}</h1>
-            {/* Your Pokemon detail UI */}
-            <Link to="/">← Back to Pokedex</Link>
-        </div>
-    );
+interface PokemonCMSProps {
+  onBack: () => void;
 }
-
-export default PokemonCMS;
 
 // All 18 Pokemon types (fallback if API fails)
 const FALLBACK_TYPES = [
@@ -172,6 +163,8 @@ const TypeSelect: React.FC<TypeSelectProps> = ({
 
 // ─── Main CMS Component ─────────────────────────────────────────────────────
 export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
+  const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useAuth(); // Admin check
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -185,7 +178,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
   const [deleteTarget, setDeleteTarget] = useState<Pokemon | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -216,14 +209,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   const isFormInvalid = !formData.name?.trim() || !formData.types || formData.types.length === 0 || !formData.types[0];
 
-  const isOperating = loading || isSaving || deletingId !== null;
+  const isOperating = loading || isSaving || deletingId !== null || deleteTarget !== null;
 
   useEffect(() => {
     loadData();
     loadTypes();
   }, []);
-
-  // Function removed as unused
 
   // Pagination Logic
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -343,7 +334,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     if (!validateForm()) return;
 
     if (isAdding) {
-      const newId = Math.max(...pokemonList.map(p => p.id)) + 1;
+      const newId = Math.max(...pokemonList.map(p => p.id), 0) + 1;
       const newPokemon: Pokemon = {
         id: newId,
         pokedexNumber: newId,
@@ -388,6 +379,8 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       setError(err.message || 'Failed to save Pokemon. Please try again.');
     } finally {
       setIsSaving(false);
+      setIsAdding(false);
+      setIsEditing(null);
     }
   };
 
@@ -397,14 +390,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              disabled={isOperating}
-              className="p-2 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold">CMS Dashboard</h1>
+            <Link to="/cms/dashboard" className="mr-4 hover:underline text-sm font-bold text-slate-300">Dashboard</Link>
+            <Link to="/cms/pokedex" className="hover:underline text-sm font-bold text-slate-300">CMS</Link>
+            {isAdmin && (
+              <Link to="/cms/users" className="ml-4 hover:underline text-sm font-bold text-slate-300">Users</Link>
+            )}
+            <h1 className="text-xl font-bold ml-6">CMS Editor</h1>
           </div>
           <button
             onClick={startAdd}
@@ -592,7 +583,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
         {/* Editor Panel */}
         <AnimatePresence mode="wait">
-          {(isEditing || isAdding) && (
+          {(isEditing !== null || isAdding) && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -782,3 +773,5 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     </div >
   );
 };
+
+export default PokemonCMS;
