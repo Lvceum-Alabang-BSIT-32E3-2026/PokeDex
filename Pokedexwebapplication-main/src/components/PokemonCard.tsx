@@ -5,7 +5,7 @@ import { Heart } from 'lucide-react';
 
 interface PokemonCardProps extends Pokemon {
     isCaptured: boolean;
-    onToggleCapture: (id: number) => void;
+    onToggleCapture: (id: number) => void | Promise<void>;
     onClick: () => void;
 }
 

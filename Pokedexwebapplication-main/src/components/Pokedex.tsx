@@ -16,6 +16,7 @@ import {
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService } from '../services/pokemonService';
+import { captureService } from '../services/captureService';
 import { Pokemon } from '../types/pokemon';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +28,7 @@ interface PokedexProps {
 }
 
 export const Pokedex: React.FC<PokedexProps> = ({ onLogout, userEmail }) => {
-    const { isAdmin, user } = useAuth();
+    const { isAdmin, user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [pokemon, setPokemon] = useState<Pokemon[]>([]);
     const [loading, setLoading] = useState(true);
@@ -43,22 +44,116 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, userEmail }) => {
     const limit = 24;
 
     const [captured, setCaptured] = useState<Set<number>>(new Set());
+    const [captureError, setCaptureError] = useState<string | null>(null);
     const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
     useEffect(() => {
-        const saved = localStorage.getItem('capturedPokemon');
-        if (saved) {
-            setCaptured(new Set(JSON.parse(saved)));
+        let isMounted = true;
+
+        const loadLocalCaptures = () => {
+            const saved = localStorage.getItem('capturedPokemon');
+            if (!saved) {
+                setCaptured(new Set());
+                return;
+            }
+
+            try {
+                const parsed: number[] = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    setCaptured(new Set(parsed));
+                } else {
+                    setCaptured(new Set());
+                }
+            } catch (error) {
+                console.error('Failed to parse capturedPokemon from localStorage:', error);
+                setCaptured(new Set());
+            }
+        };
+
+        loadLocalCaptures();
+
+        if (!isAuthenticated) {
+            setCaptureError(null);
+            return () => {
+                isMounted = false;
+            };
         }
-    }, []);
 
-    const toggleCapture = (id: number) => {
-        const newCaptured = new Set(captured);
-        if (newCaptured.has(id)) newCaptured.delete(id);
-        else newCaptured.add(id);
+        const loadCaptured = async () => {
+            try {
+                const ids = await captureService.getCaptures();
+                if (!isMounted) return;
+                setCaptured(new Set(ids));
+                setCaptureError(null);
+                localStorage.setItem('capturedPokemon', JSON.stringify(ids));
+            } catch (error) {
+                console.error('Failed to load captured Pokémon:', error);
+                if (!isMounted) return;
+                setCaptureError('Failed to sync captures. Showing last saved data.');
+            }
+        };
 
-        setCaptured(newCaptured);
-        localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
+        loadCaptured();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated]);
+
+    const persistCaptured = (data: Set<number>) => {
+        localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(data)));
+    };
+
+    const toggleCapture = async (id: number) => {
+        if (!isAuthenticated) {
+            setCaptureError('Please log in to capture Pokémon. Progress is stored locally.');
+            setCaptured((prev) => {
+                const updated = new Set(prev);
+                if (updated.has(id)) {
+                    updated.delete(id);
+                } else {
+                    updated.add(id);
+                }
+                persistCaptured(updated);
+                return updated;
+            });
+            return;
+        }
+
+        const wasCaptured = captured.has(id);
+
+        setCaptured((prev) => {
+            const updated = new Set(prev);
+            if (wasCaptured) {
+                updated.delete(id);
+            } else {
+                updated.add(id);
+            }
+            persistCaptured(updated);
+            return updated;
+        });
+
+        try {
+            if (wasCaptured) {
+                await captureService.release(id);
+            } else {
+                await captureService.capture(id);
+            }
+            setCaptureError(null);
+        } catch (error) {
+            console.error('Failed to toggle capture:', error);
+            setCaptured((prev) => {
+                const reverted = new Set(prev);
+                if (wasCaptured) {
+                    reverted.add(id);
+                } else {
+                    reverted.delete(id);
+                }
+                persistCaptured(reverted);
+                return reverted;
+            });
+            setCaptureError('Failed to update capture status. Please try again.');
+        }
     };
 
     // Client-side filtering for Search
@@ -258,6 +353,13 @@ export const Pokedex: React.FC<PokedexProps> = ({ onLogout, userEmail }) => {
 
             {/* MAIN CONTENT */}
             <main className="max-w-7xl mx-auto px-4 py-8">
+                {captureError && (
+                    <div className="mb-6">
+                        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">
+                            {captureError}
+                        </div>
+                    </div>
+                )}
                 {error ? (
                     <div className="text-center py-12">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
