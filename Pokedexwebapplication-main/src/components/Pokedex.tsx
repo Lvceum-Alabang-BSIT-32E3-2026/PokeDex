@@ -1,41 +1,27 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿// src/components/Pokedex.tsx
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
     Search,
     LogOut,
-    ChevronRight,
-    ChevronLeft,
     Filter,
     Settings,
     Lightbulb,
     User,
-    AlertCircle
+    AlertCircle,
+    BookOpen
 } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 import { PokemonDetail } from './PokemonDetail';
 import { pokemonService } from '../services/pokemonService';
 import { Pokemon } from '../types/pokemon';
-import { useAuth } from '../context/AuthContext'; // ✅ ADDED
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from "./ThemeToggle";
 
-interface PokedexProps {
-    onLogout: () => void;
-    onOpenCMS: () => void;
-    onOpenRecommendations: () => void;
-    onOpenProfile?: () => void;
-    userEmail?: string;
-}
-
-export const Pokedex: React.FC<PokedexProps> = ({
-    onLogout,
-    onOpenCMS,
-    onOpenRecommendations,
-    onOpenProfile,
-    userEmail
-}) => {
-
-    // ✅ GET ADMIN STATUS
-    const { isAdmin } = useAuth();
-
+export const Pokedex: React.FC = () => {
+    const { isAdmin, user, logout } = useAuth();
+    const navigate = useNavigate();
     const [pokemon, setPokemon] = useState<Pokemon[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -60,11 +46,9 @@ export const Pokedex: React.FC<PokedexProps> = ({
 
     const toggleCapture = (id: number) => {
         const newCaptured = new Set(captured);
-        if (newCaptured.has(id)) {
-            newCaptured.delete(id);
-        } else {
-            newCaptured.add(id);
-        }
+        if (newCaptured.has(id)) newCaptured.delete(id);
+        else newCaptured.add(id);
+
         setCaptured(newCaptured);
         localStorage.setItem('capturedPokemon', JSON.stringify(Array.from(newCaptured)));
     };
@@ -100,7 +84,6 @@ export const Pokedex: React.FC<PokedexProps> = ({
 
         const debounceId = setTimeout(fetchData, 300);
         return () => clearTimeout(debounceId);
-
     }, [offset, selectedGen, selectedType, searchTerm, retryCount]);
 
     const generations = [
@@ -132,31 +115,33 @@ export const Pokedex: React.FC<PokedexProps> = ({
         setOffset(0);
     };
 
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
             {/* HEADER */}
             <header className="bg-red-600 shadow-lg sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-
-                        <h1 className="text-2xl font-bold text-white hidden sm:block">
-                            Pokedex
-                        </h1>
+                        <h1 className="text-2xl font-bold text-white hidden sm:block">Pokedex</h1>
 
                         <div className="flex items-center gap-2">
+                            <ThemeToggle />
 
                             <button
-                                onClick={onOpenRecommendations}
+                                onClick={() => navigate('/recommendations')}
                                 className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
                                 title="Recommendations"
                             >
                                 <Lightbulb className="w-6 h-6" />
                             </button>
 
-                            {/* ✅ ADMIN-ONLY CMS BUTTON */}
                             {isAdmin && (
                                 <button
-                                    onClick={onOpenCMS}
+                                    onClick={() => navigate('/cms')}
                                     className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
                                     title="Manage Pokemon (CMS)"
                                 >
@@ -165,38 +150,36 @@ export const Pokedex: React.FC<PokedexProps> = ({
                             )}
 
                             <button
-                                onClick={onOpenProfile}
+                                onClick={() => navigate('/profile')}
                                 className="flex items-center gap-2 px-3 py-1.5 text-white hover:bg-red-700 rounded-full transition-colors"
                                 title="Profile"
                             >
                                 <User className="w-5 h-5" />
                                 <span className="text-sm font-medium hidden md:block">
-                                    {userEmail || 'Profile'}
+                                    {user?.email || 'Profile'}
                                 </span>
                             </button>
 
                             <button
-                                onClick={onLogout}
+                                onClick={handleLogout}
                                 className="p-2 text-white hover:bg-red-700 rounded-full transition-colors"
                                 title="Logout"
                             >
                                 <LogOut className="w-6 h-6" />
                             </button>
-
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* MAIN */}
+            {/* MAIN CONTENT */}
             <main className="max-w-7xl mx-auto px-4 py-8">
-
                 {error ? (
                     <div className="text-center py-12">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                         <p className="text-slate-600">{error}</p>
                         <button
-                            onClick={() => setRetryCount(c => c + 1)}
+                            onClick={() => setRetryCount((c) => c + 1)}
                             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg"
                         >
                             Retry
@@ -217,9 +200,9 @@ export const Pokedex: React.FC<PokedexProps> = ({
                         </AnimatePresence>
                     </div>
                 )}
-
             </main>
 
+            {/* DETAIL MODAL */}
             <AnimatePresence>
                 {selectedPokemon && (
                     <PokemonDetail
@@ -230,7 +213,6 @@ export const Pokedex: React.FC<PokedexProps> = ({
                     />
                 )}
             </AnimatePresence>
-
         </div>
     );
 };

@@ -1,90 +1,61 @@
-import { useState, useEffect } from 'react';
-import { Login } from './components/Login';
-import { Pokedex } from './components/Pokedex';
-import { PokemonCMS } from './components/PokemonCMS';
-import { Recommendations } from './components/Recommendations';
-import { ProfilePage } from './components/ProfilePage';
-import RegisterPage from './components/RegisterPage';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
+import RegisterPage from './components/RegisterPage';
+import Pokedex from './components/Pokedex';
+import PokemonCMS from './components/PokemonCMS';
+import Recommendations from './components/Recommendations';
+import ProfilePage from './components/ProfilePage';
+import UserManagement from './components/UserManagement';
 
-const AppContent = () => {
-  const { isAuthenticated, user, logout } = useAuth();
-  const [currentPath, setCurrentPath] = useState(window.location.hash);
+const AppRoutes = () => {
+    const { isAuthenticated, user, logout } = useAuth();
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      setCurrentPath(window.location.hash);
-    };
-    window.addEventListener('hashchange', handleHashChange);
-
-    if (!isAuthenticated && currentPath !== '#/login' && currentPath !== '#/register') {
-      window.location.hash = '#/login';
-    } else if (isAuthenticated && (currentPath === '#/login' || currentPath === '#/register' || currentPath === '')) {
-      window.location.hash = '#/pokedex';
-    }
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, [isAuthenticated, currentPath]);
-
-  const handleLogout = () => {
-    logout();
-    window.location.hash = '#/login';
-  };
-
-  let content;
-
-  if (!isAuthenticated) {
-    if (currentPath === '#/register') {
-      content = <RegisterPage onBackToLogin={() => window.location.hash = '#/login'} />;
-    } else {
-      content = (
-        <Login
-          onLogin={() => { window.location.hash = '#/pokedex'; }}
-          onRegisterClick={() => { window.location.hash = '#/register'; }}
-        />
-      );
-    }
-  } else {
-    const userEmail = user?.email || '';
-    switch (currentPath) {
-      case '#/cms':
-        content = <PokemonCMS onBack={() => window.location.hash = '#/pokedex'} />;
-        break;
-      case '#/recommendations':
-        content = <Recommendations onBack={() => window.location.hash = '#/pokedex'} />;
-        break;
-      case '#/profile':
-        content = <ProfilePage userEmail={userEmail} onBack={() => window.location.hash = '#/pokedex'} onLogout={handleLogout} />;
-        break;
-      case '#/pokedex':
-      default:
-        content = (
-          <Pokedex
-            onLogout={handleLogout}
-            userEmail={user?.email}
-            onOpenProfile={() => window.location.hash = '#/profile'}
-            onOpenCMS={() => window.location.hash = '#/cms'}
-            onOpenRecommendations={() => window.location.hash = '#/recommendations'}
-          />
+    if (!isAuthenticated) {
+        return (
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
         );
-        break;
     }
-  }
 
-  return (
-    <div className="font-sans antialiased text-slate-900">
-      {content}
-    </div>
-  );
+    const handleLogout = () => logout();
+
+    return (
+        <Routes>
+            <Route
+                path="/pokedex"
+                element={
+                    <Pokedex
+                        onLogout={handleLogout}
+                        userEmail={user?.email}
+                    />
+                }
+            />
+            <Route path="/cms" element={<PokemonCMS />} />
+            <Route path="/recommendations" element={<Recommendations />} />
+            <Route
+                path="/profile"
+                element={
+                    <ProfilePage
+                        userEmail={user?.email}
+                        onLogout={handleLogout}
+                    />
+                }
+            />
+            <Route path="*" element={<Navigate to="/pokedex" replace />} />
+        </Routes>
+    );
 };
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <Router>
+                <AppRoutes />
+            </Router>
+        </AuthProvider>
+    );
 }
-
