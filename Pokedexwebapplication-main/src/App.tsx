@@ -127,6 +127,52 @@ const AppContent = () => {
             </Routes>
         </div>
     );
+  }
+
+  // 2. PROTECTED ROUTES
+  return (
+    <div className="font-sans antialiased text-slate-900 bg-slate-50 min-h-screen">
+      <Routes>
+        <Route
+          path="/pokedex"
+          element={
+            <Pokedex
+              onLogout={handleLogout}
+              userEmail={userEmail}
+            />
+          }
+        />
+        <Route path="/cms" element={<PokemonCMS />} />
+        <Route path="/recommendations" element={<Recommendations />} />
+        <Route
+          path="/profile"
+          element={
+            <ProfilePage
+              userEmail={userEmail}
+              onLogout={handleLogout}
+            />
+          }
+        />
+        <Route 
+          path="/collection" 
+          element={
+            <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center bg-slate-50">
+              <h2 className="text-3xl font-bold text-slate-800">My Collection</h2>
+              <p className="text-slate-500 mt-2">Your captured Pokemon will appear here soon!</p>
+              <button
+                onClick={() => window.location.hash = '#/pokedex'}
+                className="mt-6 px-6 py-2 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-colors shadow-md"
+              >
+                Back to Pokedex
+              </button>
+            </div>
+          } 
+        />
+        {/* Fallback to Pokedex */}
+        <Route path="*" element={<Navigate to="/pokedex" replace />} />
+      </Routes>
+    </div>
+  );
 };
 
 /**

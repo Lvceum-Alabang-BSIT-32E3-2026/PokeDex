@@ -1,4 +1,3 @@
-// src/components/Pokedex.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -170,6 +169,30 @@ export const Pokedex: React.FC<PokedexProps> = ({
     ];
 
     const types = ['fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'steel', 'fairy'];
+
+    // Close profile dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const generations = [
+        { id: '1', name: 'Gen I (Kanto)' }, { id: '2', name: 'Gen II (Johto)' },
+        { id: '3', name: 'Gen III (Hoenn)' }, { id: '4', name: 'Gen IV (Sinnoh)' },
+        { id: '5', name: 'Gen V (Unova)' }, { id: '6', name: 'Gen VI (Kalos)' },
+        { id: '7', name: 'Gen VII (Alola)' }, { id: '8', name: 'Gen VIII (Galar)' },
+        { id: '9', name: 'Gen IX (Paldea)' },
+    ];
+
+    const types = [
+        'fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground',
+        'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'steel', 'fairy'
+    ];
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
