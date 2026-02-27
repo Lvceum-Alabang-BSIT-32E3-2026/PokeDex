@@ -11,7 +11,11 @@ import { Recommendations } from './components/Recommendations';
 import { ProfilePage } from './components/ProfilePage';
 import { CollectionPage } from './components/CollectionPage';
 
-const AppRoutes = () => {
+/**
+ * AppContent handles the conditional rendering and routing logic.
+ * It is separated from the Providers so it can access hooks like useAuth and useNavigate.
+ */
+const AppContent = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -125,11 +129,15 @@ const AppRoutes = () => {
     );
 };
 
+/**
+ * Main Entry Point
+ * Wraps the application in necessary Context Providers and the Router.
+ */
 export default function App() {
     return (
         <AuthProvider>
             <Router>
-                <AppRoutes />
+                <AppContent />
             </Router>
         </AuthProvider>
     );

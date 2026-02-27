@@ -187,3 +187,18 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onBack, captured
         </div>
     );
 };
+
+const StatCard = ({ label, captured, total, color, isType }: any) => {
+    const pct = total > 0 ? (captured / total) * 100 : 0;
+    return (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center mb-3">
+                <span className={`px-3 py-1 rounded-full text-white text-xs font-black uppercase ${color}`}>
+                    {label}
+                </span>
+                <span className="text-sm font-bold text-slate-400">{captured} <span className="text-slate-300">/</span> {total}</span>
+            </div>
+            <ProgressBar percent={pct} colorClass={color} />
+        </div>
+    );
+};

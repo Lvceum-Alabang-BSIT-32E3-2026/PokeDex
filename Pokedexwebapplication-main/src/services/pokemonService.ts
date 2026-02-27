@@ -5,11 +5,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 
 export interface EvolutionNode {
-  species_name: string;
-  min_level: number;
-  trigger_name?: string;
-  item?: string | null;
-  image: string;
+    species_name: string;
+    min_level: number;
+    trigger_name?: string;
+    item?: string | null;
+    image: string;
 }
 
 /* ---------- HELPER ---------- */

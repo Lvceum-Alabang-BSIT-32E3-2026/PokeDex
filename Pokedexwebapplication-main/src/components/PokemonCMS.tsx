@@ -41,6 +41,16 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
   
   /* ---------------- STATE ---------------- */
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(FALLBACK_TYPES);
+  
+  // UI States
+  const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Form States
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,8 +71,7 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
 
   /* ---------------- PAGINATION STATE ---------------- */
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const pageOptions = [10, 20, 50];
+  const [pageSize, setPageSize] = useState(10);
 
   /* ---------------- LOGIC ---------------- */
 
@@ -172,6 +181,12 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       {/* Header */}
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={onBack} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
+              <ArrowLeft className="w-5 h-5" /> Back
+            </button>
+            <h1 className="text-xl font-bold hidden md:block">Pokémon CMS</h1>
+          </div>
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full">
               <ArrowLeft className="w-5 h-5" />
@@ -191,6 +206,16 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
         {/* List Section */}
         <div className="flex-1">
+          {/* Status Banners */}
+          <AnimatePresence>
+            {error && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between">
+                <span>{error}</span>
+                <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
               <div className="relative w-64">
@@ -291,5 +316,3 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
     </div>
   );
 };
-
-export default PokemonCMS;

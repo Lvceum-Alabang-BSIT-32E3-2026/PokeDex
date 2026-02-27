@@ -70,7 +70,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onClose, 
                     onClick={onClose}
                     className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg z-20 transition-colors"
                 >
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6 text-slate-800" />
                 </button>
 
                 {/* LEFT PANEL: Visuals */}

@@ -47,6 +47,12 @@ export const Pokedex: React.FC<PokedexProps> = ({
     const [selectedType, setSelectedType] = useState<string>('all');
     const [offset, setOffset] = useState(0);
     const limit = 24;
+    
+    // UI Refs & State
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const currentHash = window.location.hash;
 
     // Capture State
     const [captured, setCaptured] = useState<Set<number>>(new Set());
