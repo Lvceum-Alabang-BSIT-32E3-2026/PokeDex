@@ -5,14 +5,15 @@ const API_URL = import.meta.env.VITE_API_URL;
 const USE_LIVE_API = import.meta.env.VITE_USE_LIVE_API === 'true';
 
 export interface EvolutionNode {
-  species_name: string;
-  min_level: number;
-  trigger_name?: string;
-  item?: string | null;
-  image: string;
+    species_name: string;
+    min_level: number;
+    trigger_name?: string;
+    item?: string | null;
+    image: string;
 }
 
-// Helper to add Authorization header and handle basic errors
+/* ---------- HELPER ---------- */
+// Centralized fetch with Auth token and error handling
 const apiFetch = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
   const headers = {
@@ -20,15 +21,22 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
   };
+
   const response = await fetch(url, { ...options, headers });
+  
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `API fetch failed: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `API fetch failed: ${response.statusText}`);
   }
   return response;
 };
 
+/* ---------- SERVICE ---------- */
 export const pokemonService = {
+  
+  /**
+   * Fetch a paginated list of Pokemon with filters
+   */
   async getList(
     offset: number = 0,
     limit: number = 20,
@@ -37,15 +45,15 @@ export const pokemonService = {
     search?: string
   ): Promise<PokemonListResponse> {
     if (!USE_LIVE_API) {
-      console.log('Using Mock Data for List');
       let data = [...MOCK_POKEMON];
 
       if (type && type !== 'all') {
         data = data.filter(p => p.types.includes(type));
       }
 
-      if (generation && generation !== 'all') {
-        if (Number(generation) === 1) data = data.filter(p => p.id <= 151);
+      if (generation) {
+        // Simple logic for Gen 1 mock data
+        if (generation === 1) data = data.filter(p => p.id <= 151);
       }
 
       if (search) {
@@ -72,29 +80,40 @@ export const pokemonService = {
     return response.json();
   },
 
+  /**
+   * Fetch a single Pokemon by ID
+   */
   async getById(id: number): Promise<Pokemon> {
     if (!USE_LIVE_API) {
       const p = MOCK_POKEMON.find(p => p.id === id);
-      if (!p) throw new Error('Not found');
+      if (!p) throw new Error('Pokemon not found in mock data');
       return p as unknown as Pokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon/${id}`);
     return response.json();
   },
 
+  /**
+   * Get the evolution chain for a specific Pokemon
+   */
   async getEvolutionChain(pokemonId: number): Promise<EvolutionNode[]> {
     if (!USE_LIVE_API) {
       return MOCK_EVOLUTION_CHAINS[pokemonId] || MOCK_EVOLUTION_CHAINS[1] || [];
     }
+    
     try {
+      // Assuming your backend has a dedicated endpoint for evolutions
       const response = await apiFetch(`${API_URL}/api/pokemon/${pokemonId}/evolutions`);
       return response.json();
     } catch (error) {
-      console.error('Evo API Error:', error);
+      console.error('Evolution API Error:', error);
       return [];
     }
   },
 
+  /**
+   * Create a new Pokemon entry
+   */
   async createPokemon(data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
       const newPokemon = { ...data, id: Date.now() } as Pokemon;
@@ -107,9 +126,12 @@ export const pokemonService = {
     return response.json();
   },
 
+  /**
+   * Update an existing Pokemon
+   */
   async updatePokemon(id: number, data: Partial<Pokemon>): Promise<Pokemon> {
     if (!USE_LIVE_API) {
-      return { ...data, id } as Pokemon;
+      return { ...data, id } as unknown as Pokemon;
     }
     const response = await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'PUT',
@@ -118,8 +140,12 @@ export const pokemonService = {
     return response.json();
   },
 
+  /**
+   * Delete a Pokemon
+   */
   async deletePokemon(id: number): Promise<void> {
     if (!USE_LIVE_API) return;
+    
     await apiFetch(`${API_URL}/api/pokemon/${id}`, {
       method: 'DELETE'
     });
