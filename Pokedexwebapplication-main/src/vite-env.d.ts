@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-    readonly VITE_IDENTITY_API_URL: string;
-    readonly VITE_API_URL: string;
-    readonly VITE_USE_LIVE_API: string;
+  readonly VITE_API_URL: string;
+  readonly VITE_IDENTITY_API_URL: string;
+  readonly VITE_USE_LIVE_API: string;
 }
 
 interface ImportMeta {
-    readonly env: ImportMetaEnv;
+  readonly env: ImportMetaEnv;
 }
