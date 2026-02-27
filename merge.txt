@@ -1,0 +1,16 @@
+Auto-merging ResourceApi/Controllers/PokemonsController.cs
+CONFLICT (content): Merge conflict in ResourceApi/Controllers/PokemonsController.cs
+Auto-merging ResourceApi/DATA/PokemonDbContext.cs
+CONFLICT (content): Merge conflict in ResourceApi/DATA/PokemonDbContext.cs
+Auto-merging ResourceApi/DATA/SeedData.cs
+CONFLICT (content): Merge conflict in ResourceApi/DATA/SeedData.cs
+Auto-merging ResourceApi/Migrations/PokemonDbContextModelSnapshot.cs
+CONFLICT (content): Merge conflict in ResourceApi/Migrations/PokemonDbContextModelSnapshot.cs
+Auto-merging ResourceApi/Models/Pokemon.cs
+CONFLICT (content): Merge conflict in ResourceApi/Models/Pokemon.cs
+Auto-merging ResourceApi/Models/PokemonTypeEntity.cs
+CONFLICT (add/add): Merge conflict in ResourceApi/Models/PokemonTypeEntity.cs
+warning: Cannot merge binary files: ResourceApi/pokemon.db (HEAD vs. origin/dev-backend)
+Auto-merging ResourceApi/pokemon.db
+CONFLICT (content): Merge conflict in ResourceApi/pokemon.db
+Automatic merge failed; fix conflicts and then commit the result.
