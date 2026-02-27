@@ -1,5 +1,0 @@
-# Huwag pansinin ang node_modules kahit nasaan folder pa sila
-**/node_modules/
-node_modules/
-dist/
-.env
