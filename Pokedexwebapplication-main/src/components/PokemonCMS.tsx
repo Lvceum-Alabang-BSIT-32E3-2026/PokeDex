@@ -478,6 +478,11 @@ export const PokemonCMS = ({ onBack }: PokemonCMSProps) => {
                     <div>
                       <h3 className="font-bold text-slate-800 capitalize">{p.name}</h3>
                       <div className="flex gap-1 mt-1">
+                        {p.generation && (
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            Gen {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][p.generation - 1] || p.generation}
+                          </span>
+                        )}
                         {p.types.map(t => (
                           <span key={t} className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
                             {t}
