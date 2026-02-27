@@ -1,13 +1,13 @@
 namespace ResourceApi.Models
 {
-	public class PokemonType
-	{
-		public int Id { get; set; }
-
-		// The name of the type (e.g., "Fire", "Water")
-		public string Name { get; set; } = string.Empty;
-
-		// Navigation property back to Pokemon (if needed)
-		public ICollection<Pokemon> Pokemons { get; set; } = new List<Pokemon>();
-	}
+    public class PokemonType
+    {
+        public int PokemonId { get; set; }
+        public Pokemon Pokemon { get; set; } = null!;
+        
+        public int TypeId { get; set; }
+        public PokemonTypeEntity Type { get; set; } = null!;
+        
+        public bool IsPrimary { get; set; }
+    }
 }
