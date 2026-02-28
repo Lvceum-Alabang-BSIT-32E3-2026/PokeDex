@@ -1,0 +1,38 @@
+commit 0cf832e8b0ed8a54bcbbb9d4d2419e9438c86912
+Author: Daniel Rafael Red <danred206@gmail.com>
+Date:   Fri Feb 27 15:38:47 2026 +0800
+
+    Task 2.1.3: Create Type Entity
+
+commit aae32942874ea1d42c7316c8da95f6a53de1518e
+Author: JBLOBRICO <youremail@example.com>
+Date:   Sun Feb 22 11:44:31 2026 +0800
+
+    fix: update controller to use Types property and final seeding
+
+commit 1e261ae3bdd967887bdc4d50f4cd3ba2bcb15962
+Merge: 409012f 637ae45
+Author: Jhiii0 <c2027-23@itmlyceumalabang.onmicrosoft.com>
+Date:   Sat Feb 21 18:08:29 2026 +0800
+
+    Merge pull request #299 from Lvceum-Alabang-BSIT-32E3-2026/feature/get-pokemon-list-35
+    
+    Feature/get pokemon list 35
+
+commit 409012f18a45b94997c74f264ea32b09bd8e78a4
+Merge: be0fd51 5bc7893
+Author: Jhiii0 <c2027-23@itmlyceumalabang.onmicrosoft.com>
+Date:   Sat Feb 21 18:08:18 2026 +0800
+
+    Merge pull request #300 from Lvceum-Alabang-BSIT-32E3-2026/feature/get-pokemon-by-id-36
+    
+    Feature/get pokemon by id 36
+
+commit be0fd518199a0769957549fafb633ac2335a225b
+Merge: 18f07ec ee915af
+Author: Jhiii0 <c2027-23@itmlyceumalabang.onmicrosoft.com>
+Date:   Sat Feb 21 18:08:08 2026 +0800
+
+    Merge pull request #301 from Lvceum-Alabang-BSIT-32E3-2026/task/37-seed-pokemon-data
+    
+    Task/37 seed pokemon data
