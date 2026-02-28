@@ -1,126 +1,102 @@
-﻿// src/contexts/AuthContext.tsx
-import {
+﻿import {
     createContext,
     useContext,
     useState,
     useEffect,
-    ReactNode
+    ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-/* ===============================
-   Types
-================================ */
-
-export interface User {
-    email: string;
-    roles: string[];
-}
+import { decodeToken, isTokenExpired, UserFromToken } from '../utils/jwt';
 
 interface AuthContextType {
-    user: User | null;
+    user: UserFromToken | null;
+    token: string | null;
     isAuthenticated: boolean;
     isAdmin: boolean;
-    login: (token: string, user: User) => void;
+    login: (token: string) => void;
     logout: (reason?: string) => void;
     message: string | null;
 }
 
-/* ===============================
-   Context
-================================ */
+export const AuthContext = createContext<AuthContextType | null>(null);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-interface AuthProviderProps {
-    children: ReactNode;
-}
-
-/* ===============================
-   Provider
-================================ */
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
 
-    const [user, setUser] = useState<User | null>(() => {
-        const storedUser = localStorage.getItem('user');
-        return storedUser ? JSON.parse(storedUser) : null;
+    const [token, setToken] = useState<string | null>(() => {
+        const stored = localStorage.getItem('token');
+        if (stored && isTokenExpired(stored)) {
+            localStorage.removeItem('token');
+            return null;
+        }
+        return stored;
     });
 
-    const [isAuthenticated, setIsAuthenticated] = useState(
-        !!localStorage.getItem('token')
-    );
+    const [user, setUser] = useState<UserFromToken | null>(() => {
+        const stored = localStorage.getItem('token');
+        if (stored && !isTokenExpired(stored)) {
+            try {
+                return decodeToken(stored);
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    });
 
     const [message, setMessage] = useState<string | null>(null);
 
-    /* ---------------------------
-       Login
-    ---------------------------- */
-    const login = (token: string, userData: User) => {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
+    useEffect(() => {
+        if (token) {
+            try {
+                const decoded = decodeToken(token);
+                setUser(decoded);
+                localStorage.setItem('token', token);
+            } catch {
+                setUser(null);
+                setToken(null);
+                localStorage.removeItem('token');
+            }
+        } else {
+            setUser(null);
+        }
+    }, [token]);
 
-        setUser(userData);
-        setIsAuthenticated(true);
+    const login = (newToken: string) => {
+        setToken(newToken);
         setMessage(null);
     };
 
-    /* ---------------------------
-       Logout
-    ---------------------------- */
     const logout = (reason?: string) => {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-
+        setToken(null);
         setUser(null);
-        setIsAuthenticated(false);
-
         if (reason) setMessage(reason);
-
         navigate('/login');
     };
 
-    /* ---------------------------
-       Listen for 401 event
-    ---------------------------- */
     useEffect(() => {
-        const handleLogout = (event: CustomEvent) => {
-            logout(event.detail?.reason || 'Session expired');
-        };
-
-        window.addEventListener('logout', handleLogout as EventListener);
-
-        return () =>
-            window.removeEventListener('logout', handleLogout as EventListener);
+        const handleLogout = () => logout('Session expired');
+        window.addEventListener('auth:logout', handleLogout);
+        return () => window.removeEventListener('auth:logout', handleLogout);
     }, []);
+
+    const isAuthenticated = !!token && !!user && !isTokenExpired(token);
+    const isAdmin = user?.roles?.includes('Admin') ?? false;
 
     return (
         <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated,
-                isAdmin: user?.roles?.includes('Admin') ?? false,
-                login,
-                logout,
-                message
-            }}
+            value={{ user, token, isAuthenticated, isAdmin, login, logout, message }}
         >
             {children}
         </AuthContext.Provider>
     );
 };
 
-/* ===============================
-   Custom Hook
-================================ */
-
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
-
     if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
+        throw new Error('useAuth must be used within an AuthProvider');
     }
-
     return context;
 };

@@ -1,169 +1,179 @@
-import { useEffect, useState } from "react";
-import {
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableContainer,
-    Paper,
-    TablePagination,
-    Button,
-    Select,
-    MenuItem,
-} from "@mui/material";
-import { toast, Toaster } from "react-hot-toast"; // feedback notifications
+import React, { useEffect, useMemo, useState } from 'react';
+import { Loader2, Shield, Trash2, UserCog, CheckCircle2, AlertCircle } from 'lucide-react';
+import { apiFetch } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-interface User {
+interface UserRow {
     id: string;
     username: string;
     email: string;
     roles: string[];
 }
 
-export default function UserManagementPage() {
-    const [users, setUsers] = useState<User[]>([]);
+export const UserManagementPage: React.FC = () => {
+    const navigate = useNavigate();
+    const { isAdmin } = useAuth();
+
+    const [rows, setRows] = useState<UserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [search, setSearch] = useState('');
+    const [workingId, setWorkingId] = useState<string | null>(null);
 
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const filtered = useMemo(() => {
+        const term = search.toLowerCase();
+        return rows.filter((u) => u.username.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
+    }, [rows, search]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const load = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                const response = await fetch("/api/users", { credentials: "include" });
-                if (!response.ok) throw new Error("Failed to fetch users");
-                const data = await response.json();
-                setUsers(data);
+                const res = await apiFetch('/api/users');
+                if (!res.ok) throw new Error('Failed to fetch users');
+                const data = (await res.json()) as UserRow[];
+                setRows(data);
             } catch (err: any) {
-                setError(err.message);
+                setError(err?.message || 'Failed to load users.');
             } finally {
                 setLoading(false);
             }
         };
-        fetchUsers();
+        load();
     }, []);
 
-    const handleRoleChange = async (userId: string, newRole: string) => {
-        const user = users.find(u => u.id === userId);
+    const updateRole = async (userId: string, role: string) => {
+        const user = rows.find((u) => u.id === userId);
         if (!user) return;
+        if (!window.confirm(`Change ${user.username}'s role to ${role}?`)) return;
+        setWorkingId(userId);
+        setError(null);
+        setSuccess(null);
+        try {
+            const res = await apiFetch(`/api/users/${userId}/roles`, {
+                method: 'PUT',
+                body: JSON.stringify({ role }),
+            });
+            if (!res.ok) throw new Error('Failed to update role');
+            setRows((prev) => prev.map((u) => (u.id === userId ? { ...u, roles: [role] } : u)));
+            setSuccess(`${user.username} is now ${role}`);
+        } catch (err: any) {
+            setError(err?.message || 'Role update failed');
+        } finally {
+            setWorkingId(null);
+        }
+    };
 
-        // Confirmation dialog
-        const confirmChange = window.confirm(
-            `Are you sure you want to change ${user.username}'s role to ${newRole}?`
+    const deleteUser = async (userId: string) => {
+        const user = rows.find((u) => u.id === userId);
+        if (!user) return;
+        if (!window.confirm(`Delete user ${user.username}? This cannot be undone.`)) return;
+        setWorkingId(userId);
+        setError(null);
+        setSuccess(null);
+        try {
+            const res = await apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete user');
+            setRows((prev) => prev.filter((u) => u.id !== userId));
+            setSuccess(`Deleted ${user.username}`);
+        } catch (err: any) {
+            setError(err?.message || 'Delete failed');
+        } finally {
+            setWorkingId(null);
+        }
+    };
+
+    if (!isAdmin) {
+        return (
+            <div className="max-w-3xl mx-auto p-6">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    <span>Admin access required.</span>
+                </div>
+            </div>
         );
-        if (!confirmChange) return;
-
-        try {
-            const response = await fetch(`/api/users/${userId}/roles`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ role: newRole }),
-            });
-
-            if (!response.ok) throw new Error("Failed to update role");
-
-            setUsers(prev =>
-                prev.map(u => (u.id === userId ? { ...u, roles: [newRole] } : u))
-            );
-
-            toast.success(`${user.username}'s role updated to ${newRole}`);
-        } catch {
-            toast.error(`Failed to update ${user.username}'s role`);
-        }
-    };
-
-    const handleDeleteUser = async (userId: string) => {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
-
-        if (!confirm(`Are you sure you want to delete ${user.username}?`)) return;
-
-        try {
-            const response = await fetch(`/api/users/${userId}`, {
-                method: "DELETE",
-                credentials: "include",
-            });
-
-            if (!response.ok) throw new Error("Failed to delete user");
-
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            toast.success(`${user.username} deleted`);
-        } catch {
-            toast.error(`Failed to delete ${user.username}`);
-        }
-    };
-
-    const handleChangePage = (event: unknown, newPage: number) => setPage(newPage);
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    if (loading) return <p>Loading users...</p>;
-    if (error) return <p style={{ color: "red" }}>{error}</p>;
+    }
 
     return (
-        <div style={{ padding: "2rem" }}>
-            <Toaster position="top-right" />
-            <h1>User Management</h1>
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Username</TableCell>
-                            <TableCell>Email</TableCell>
-                            <TableCell>Roles</TableCell>
-                            <TableCell>Manage Role</TableCell>
-                            <TableCell>Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {users
-                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell>{user.username}</TableCell>
-                                    <TableCell>{user.email}</TableCell>
-                                    <TableCell>{user.roles.join(", ")}</TableCell>
-                                    <TableCell>
-                                        <Select
-                                            value={user.roles[0]}
-                                            onChange={(e) =>
-                                                handleRoleChange(user.id, e.target.value)
-                                            }
-                                            size="small"
-                                        >
-                                            <MenuItem value="User">User</MenuItem>
-                                            <MenuItem value="Admin">Admin</MenuItem>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="outlined"
-                                            color="error"
-                                            size="small"
-                                            onClick={() => handleDeleteUser(user.id)}
-                                        >
-                                            Delete
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
+        <div className="min-h-screen bg-slate-50 py-8 px-4">
+            <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-slate-700">
+                        <UserCog className="w-5 h-5" />
+                        <h1 className="text-xl font-bold">User Management</h1>
+                    </div>
+                    <button onClick={() => navigate('/pokedex')} className="text-sm font-semibold text-red-600 hover:text-red-700">Back</button>
+                </div>
+
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <input className="w-full md:w-64 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Search by user or email" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+                    {loading && <Loader2 className="w-5 h-5 animate-spin text-red-600" />}
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        <span className="flex-1">{error}</span>
+                    </div>
+                )}
+                {success && (
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span>{success}</span>
+                    </div>
+                )}
+
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="min-w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-600">
+                            <tr>
+                                <th className="text-left px-4 py-2">Username</th>
+                                <th className="text-left px-4 py-2">Email</th>
+                                <th className="text-left px-4 py-2">Role</th>
+                                <th className="text-left px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {paged.map((u) => (
+                                <tr key={u.id} className="border-t border-slate-100">
+                                    <td className="px-4 py-2 font-semibold text-slate-800">{u.username}</td>
+                                    <td className="px-4 py-2 text-slate-600">{u.email}</td>
+                                    <td className="px-4 py-2">
+                                        <select value={u.roles[0]} onChange={(e) => updateRole(u.id, e.target.value)} className="border border-slate-200 rounded px-2 py-1 text-sm" disabled={workingId === u.id}>
+                                            <option value="User">User</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <button onClick={() => deleteUser(u.id)} disabled={workingId === u.id} className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-60">
+                                            <Trash2 className="w-4 h-4" /> Delete
+                                        </button>
+                                    </td>
+                                </tr>
                             ))}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    component="div"
-                    count={users.length}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[5, 10, 25]}
-                />
-            </TableContainer>
+                            {!loading && paged.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-4 py-4 text-center text-slate-500">No users found.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex items-center justify-center gap-3">
+                    <button disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-3 py-1 rounded border bg-white disabled:opacity-50">Prev</button>
+                    <span className="text-sm font-semibold">Page {page} of {totalPages}</span>
+                    <button disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded border bg-white disabled:opacity-50">Next</button>
+                </div>
+            </div>
         </div>
     );
-}
+};

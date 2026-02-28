@@ -1,65 +1,57 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
-type Theme = "light" | "dark";
+type Theme = 'light' | 'dark';
 
-function getSystemTheme(): Theme {
-    if (typeof window !== "undefined" && window.matchMedia) {
-        return window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-    }
-    return "light";
-}
+const getSystemTheme = (): Theme => (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 
-function getStoredTheme(): Theme | null {
+const getStoredTheme = (): Theme | null => {
     try {
-        return localStorage.getItem("theme") as Theme | null;
+        return (localStorage.getItem('theme') as Theme | null) ?? null;
     } catch {
-        return null; // localStorage not available
+        return null;
     }
-}
+};
 
-function saveTheme(theme: Theme) {
+const saveTheme = (theme: Theme) => {
     try {
-        localStorage.setItem("theme", theme);
+        localStorage.setItem('theme', theme);
     } catch {
-        // localStorage unavailable — fail silently
+        /* ignore */
     }
-}
+};
 
 export default function ThemeToggle() {
-    const [theme, setTheme] = useState<Theme>(() => {
-        return getStoredTheme() ?? getSystemTheme();
-    });
+    const [theme, setTheme] = useState<Theme>(() => getStoredTheme() ?? getSystemTheme());
 
-    // Apply theme to document
     useEffect(() => {
-        document.documentElement.setAttribute("data-theme", theme);
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
         saveTheme(theme);
     }, [theme]);
 
-    // Listen to system preference changes (only if no stored preference)
     useEffect(() => {
         const stored = getStoredTheme();
         if (stored) return;
-
-        const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-        const listener = () => {
-            setTheme(media.matches ? "dark" : "light");
-        };
-
-        media.addEventListener("change", listener);
-        return () => media.removeEventListener("change", listener);
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        const listener = () => setTheme(media.matches ? 'dark' : 'light');
+        media.addEventListener('change', listener);
+        return () => media.removeEventListener('change', listener);
     }, []);
 
-    const toggleTheme = () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
-    };
+    const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
     return (
-        <button onClick={toggleTheme}>
-            {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
+        <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+            aria-label="Toggle theme"
+        >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </button>
     );
 }
