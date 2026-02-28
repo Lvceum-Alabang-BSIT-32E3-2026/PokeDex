@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ResourceApi.Models; // Ito lang ang kailangan mo
+using ResourceApi.Models;
 
 namespace ResourceApi.Data;
 
@@ -10,11 +10,21 @@ public class PokemonDbContext : DbContext
 
     public DbSet<Pokemon> Pokemons { get; set; } = null!;
 
+    // FIX: Eto ang hinahanap ng Controller mo (Master List ng Types)
+    public DbSet<PokemonTypeEntity> PokemonTypeEntities { get; set; } = null!;
+
+    // FIX: Eto ang Join Table para sa Many-to-Many
+    public DbSet<PokemonType> PokemonTypes { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Task 2.3.3: Dito natin ilalagay ang accurate stats
+        // CONFIGURATION: Composite Key para sa Join Table (Task 2.1.4 Requirement)
+        modelBuilder.Entity<PokemonType>()
+            .HasKey(pt => new { pt.PokemonId, pt.TypeId });
+
+        // Task 2.3.3: Seed data for Pokemon
         modelBuilder.Entity<Pokemon>().HasData(
             new Pokemon
             {
@@ -38,7 +48,6 @@ public class PokemonDbContext : DbContext
                 Height = 0.6m,
                 Weight = 8.5m
             }
-            // Dagdagan mo pa ang iba dito...
         );
     }
 }
