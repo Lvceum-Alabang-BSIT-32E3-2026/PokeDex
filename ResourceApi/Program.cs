@@ -10,14 +10,29 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- THIS IS CRITICAL ---
-// Register PokemonDbContext with SQLite connection
 builder.Services.AddDbContext<PokemonDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// --- SEEDING LOGIC ---
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<PokemonDbContext>();
+        context.Database.EnsureCreated();
+        SeedData.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Nagkaroon ng error sa pag-seed ng database.");
+    }
+}
+
+// --- MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -25,7 +40,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
 
 app.MapControllers();
 

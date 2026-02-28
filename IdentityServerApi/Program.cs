@@ -71,8 +71,6 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 
 // 5. Controller Support
 builder.Services.AddControllers();
-
-// 6. Swagger Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -100,43 +98,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 7. CORS Middleware
-app.UseCors("AllowFrontend");
-
-// IMPORTANT: Authentication must come before Authorization
+// Importante: Authentication bago Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 
 // 8. Map Controllers
 app.MapControllers();
-
-// 9. Auto-Migration on Startup
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        context.Database.Migrate();
-
-        // Seed Roles
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        string[] roleNames = { "Admin", "User" };
-
-        foreach (var roleName in roleNames)
-        {
-            if (!await roleManager.RoleExistsAsync(roleName))
-            {
-                await roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database migration or seeding.");
-    }
-}
-
 app.Run();
