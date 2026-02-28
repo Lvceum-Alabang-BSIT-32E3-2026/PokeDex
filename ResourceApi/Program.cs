@@ -1,54 +1,7 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// --- SERVICES CONFIGURATION ---
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// ✅ Database
-builder.Services.AddDbContext<PokemonDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
-
-// ✅ CORS (single clean policy)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-
-// ✅ JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = issuer,
-        ValidAudience = audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
-    };
-});
 
 // --- SERVICES CONFIGURATION ---
 builder.Services.AddControllers();
@@ -58,9 +11,9 @@ builder.Services.AddSwaggerGen();
 // Task 2.1.10: Enable CORS (Allow frontend access)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins("http://localhost:3000") // Frontend URL
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -70,28 +23,9 @@ builder.Services.AddDbContext<PokemonDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// --- 2. JWT AUTHENTICATION SETUP ---
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretDefaultKey123456789012";
-var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
-        };
-    });
-
 var app = builder.Build();
 
-// --- SEED DATABASE ---
+// --- SEEDING LOGIC ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -116,12 +50,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
-app.UseAuthentication();
-app.UseAuthorization();
 
-// IMPORTANT: Authentication must come BEFORE Authorization
-app.UseAuthentication();
+// Task 2.1.10: CORS must be placed after UseRouting (implicit) and before UseAuthorization
+app.UseCors();
+
+app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
 app.UseAuthorization();
 
 app.MapControllers();
