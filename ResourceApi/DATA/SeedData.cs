@@ -11,74 +11,75 @@ namespace ResourceApi.Data
         public static void Initialize(PokemonDbContext context)
         {
             // Siguraduhin na may Master List ng Types muna
-            context.Database.EnsureCreated();
+            SeedPokemonTypes(context);
 
-            if (context.Pokemons.Any())
-            {
-                return;
-            }
+            // Seed ang Pokemon at i-link sila sa Types
+            SeedGen1Pokemon(context);
+        }
 
-            // Task 2.1.9 Requirement: Seed all 18 types
-            var typesList = new Dictionary<string, string>
+        public static void SeedPokemonTypes(PokemonDbContext context)
+        {
+            // FIX: Gamitin ang PokemonTypeEntities (Master List)
+            if (context.PokemonTypeEntities.Any()) return;
+
+            var types = new List<PokemonTypeEntity>
             {
-                { "Normal", "#A8A77A" }, { "Fire", "#EE8130" }, { "Water", "#6390F0" },
-                { "Electric", "#F7D02C" }, { "Grass", "#7AC74C" }, { "Ice", "#96D9D6" },
-                { "Fighting", "#C22E28" }, { "Poison", "#A33EA1" }, { "Ground", "#E2BF65" },
-                { "Flying", "#A98FF3" }, { "Psychic", "#F95587" }, { "Bug", "#A6B91A" },
-                { "Rock", "#B6A136" }, { "Ghost", "#735797" }, { "Dragon", "#6F35FC" },
-                { "Dark", "#705746" }, { "Steel", "#B7B7CE" }, { "Fairy", "#D685AD" }
+                new PokemonTypeEntity { Name = "Normal", Color = "#A8A77A" },
+                new PokemonTypeEntity { Name = "Fire", Color = "#EE8130" },
+                new PokemonTypeEntity { Name = "Water", Color = "#6390F0" },
+                new PokemonTypeEntity { Name = "Electric", Color = "#F7D02C" },
+                new PokemonTypeEntity { Name = "Grass", Color = "#7AC74C" },
+                new PokemonTypeEntity { Name = "Poison", Color = "#A33EA1" },
+                new PokemonTypeEntity { Name = "Flying", Color = "#A98FF3" }
+                // Maaari mong dagdagan ang iba pang types dito...
             };
 
-            foreach (var type in typesList)
-            {
-                context.PokemonTypeEntities.Add(new PokemonTypeEntity { Name = type.Key, Color = type.Value });
-            }
+            context.PokemonTypeEntities.AddRange(types);
             context.SaveChanges();
+        }
 
-            var allTypes = context.PokemonTypeEntities.ToDictionary(t => t.Name, t => t.Id);
+        public static void SeedGen1Pokemon(PokemonDbContext context)
+        {
+            if (context.Pokemons.Any()) return;
 
-            // Task 2.1.8 & 2.3.3 Requirements: Seed 151 Pokemon with Stats
-            for (int i = 1; i <= 151; i++)
+            // Kunin ang Master List ng Types para sa linking
+            var allTypes = context.PokemonTypeEntities.ToList();
+
+            var bulbasaur = new Pokemon
             {
-                var stats = GetPokemonStats(i);
-                var pokemon = new Pokemon
-                {
-                    PokedexNumber = i,
-                    Name = stats.Name,
-                    ImageUrl = $"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{i}.png",
-                    Generation = 1,
-                    IsLegendary = i == 144 || i == 145 || i == 146 || i == 150,
-                    IsMythical = i == 151,
-                    HP = stats.HP,
-                    Attack = stats.Attack,
-                    Defense = stats.Defense,
-                    SpecialAttack = stats.SpecialAttack,
-                    SpecialDefense = stats.SpecialDefense,
-                    Speed = stats.Speed,
-                    Height = stats.Height,
-                    Weight = stats.Weight,
-                    BaseExperience = stats.BaseExperience
-                };
+                PokedexNumber = 1,
+                Name = "Bulbasaur",
+                ImageUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
+                Generation = 1,
+                BaseExperience = 64,
+                Height = 0.7m,
+                Weight = 6.9m
+            };
 
-                context.Pokemons.Add(pokemon);
-                context.SaveChanges(); // Save to get Id
+            // FIX: I-link si Bulbasaur sa Grass at Poison gamit ang Join Table
+            bulbasaur.PokemonTypes = new List<PokemonType>
+            {
+                new PokemonType { Pokemon = bulbasaur, Type = allTypes.First(t => t.Name == "Grass"), IsPrimary = true },
+                new PokemonType { Pokemon = bulbasaur, Type = allTypes.First(t => t.Name == "Poison"), IsPrimary = false }
+            };
 
-                // Link to Types
-                var pTypes = GetTypeNames(i);
-                for (int j = 0; j < pTypes.Count; j++)
-                {
-                    if (allTypes.TryGetValue(pTypes[j], out int typeId))
-                    {
-                        context.PokemonTypes.Add(new PokemonType
-                        {
-                            PokemonId = pokemon.Id,
-                            TypeId = typeId,
-                            IsPrimary = j == 0
-                        });
-                    }
-                }
-            }
+            var pikachu = new Pokemon
+            {
+                PokedexNumber = 25,
+                Name = "Pikachu",
+                ImageUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+                Generation = 1,
+                BaseExperience = 112,
+                Height = 0.4m,
+                Weight = 6.0m
+            };
 
+            pikachu.PokemonTypes = new List<PokemonType>
+            {
+                new PokemonType { Pokemon = pikachu, Type = allTypes.First(t => t.Name == "Electric"), IsPrimary = true }
+            };
+
+            context.Pokemons.AddRange(bulbasaur, pikachu);
             context.SaveChanges();
         }
 
