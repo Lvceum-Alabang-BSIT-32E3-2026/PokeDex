@@ -117,27 +117,15 @@ namespace ResourceApi.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<PokemonDto>> PostPokemon(CreatePokemonDto createDto)
+        public async Task<ActionResult<Pokemon>> PostPokemon(CreatePokemonDto createDto)
         {
-            var nextPokedexNumber = await _context.Pokemons.MaxAsync(p => (int?)p.PokedexNumber) ?? 0;
-            nextPokedexNumber++;
-
             var pokemon = new Pokemon
             {
-                PokedexNumber = nextPokedexNumber,
                 Name = createDto.Name,
                 ImageUrl = createDto.ImageUrl,
                 Generation = createDto.Generation,
                 IsLegendary = createDto.IsLegendary,
                 IsMythical = createDto.IsMythical,
-                HP = createDto.HP,
-                Attack = createDto.Attack,
-                Defense = createDto.Defense,
-                SpecialAttack = createDto.SpecialAttack,
-                SpecialDefense = createDto.SpecialDefense,
-                Speed = createDto.Speed,
-                Height = createDto.Height,
-                Weight = createDto.Weight,
                 PokemonTypes = new List<PokemonType>()
             };
 
@@ -145,6 +133,7 @@ namespace ResourceApi.Controllers
             {
                 foreach (var typeName in createDto.Types)
                 {
+                    // FIX: Query the Master List (PokemonTypeEntities) to find the name
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
@@ -163,25 +152,7 @@ namespace ResourceApi.Controllers
             _context.Pokemons.Add(pokemon);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetPokemon), new { id = pokemon.Id }, new PokemonDto
-            {
-                Id = pokemon.Id,
-                PokedexNumber = pokemon.PokedexNumber,
-                Name = pokemon.Name,
-                ImageUrl = pokemon.ImageUrl,
-                Generation = pokemon.Generation,
-                IsLegendary = pokemon.IsLegendary,
-                IsMythical = pokemon.IsMythical,
-                HP = pokemon.HP,
-                Attack = pokemon.Attack,
-                Defense = pokemon.Defense,
-                SpecialAttack = pokemon.SpecialAttack,
-                SpecialDefense = pokemon.SpecialDefense,
-                Speed = pokemon.Speed,
-                Height = pokemon.Height,
-                Weight = pokemon.Weight,
-                Types = pokemon.PokemonTypes.Select(pt => pt.Type.Name).ToList()
-            });
+            return CreatedAtAction(nameof(GetPokemon), new { id = pokemon.Id }, pokemon);
         }
 
         [HttpPut("{id}")]
@@ -195,25 +166,13 @@ namespace ResourceApi.Controllers
             if (pokemon == null) return NotFound();
 
             if (!string.IsNullOrEmpty(updateDto.Name)) pokemon.Name = updateDto.Name;
-            if (!string.IsNullOrEmpty(updateDto.ImageUrl)) pokemon.ImageUrl = updateDto.ImageUrl;
-            if (updateDto.Generation.HasValue) pokemon.Generation = updateDto.Generation.Value;
-            if (updateDto.IsLegendary.HasValue) pokemon.IsLegendary = updateDto.IsLegendary.Value;
-            if (updateDto.IsMythical.HasValue) pokemon.IsMythical = updateDto.IsMythical.Value;
-            
-            if (updateDto.HP.HasValue) pokemon.HP = updateDto.HP.Value;
-            if (updateDto.Attack.HasValue) pokemon.Attack = updateDto.Attack.Value;
-            if (updateDto.Defense.HasValue) pokemon.Defense = updateDto.Defense.Value;
-            if (updateDto.SpecialAttack.HasValue) pokemon.SpecialAttack = updateDto.SpecialAttack.Value;
-            if (updateDto.SpecialDefense.HasValue) pokemon.SpecialDefense = updateDto.SpecialDefense.Value;
-            if (updateDto.Speed.HasValue) pokemon.Speed = updateDto.Speed.Value;
-            if (updateDto.Height.HasValue) pokemon.Height = updateDto.Height.Value;
-            if (updateDto.Weight.HasValue) pokemon.Weight = updateDto.Weight.Value;
 
             if (updateDto.Types != null)
             {
                 pokemon.PokemonTypes.Clear();
                 foreach (var typeName in updateDto.Types)
                 {
+                    // FIX: Query the Master List (PokemonTypeEntities) to find the name
                     var existingType = await _context.PokemonTypeEntities
                         .FirstOrDefaultAsync(t => t.Name == typeName);
 
@@ -230,19 +189,6 @@ namespace ResourceApi.Controllers
             }
 
             await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> DeletePokemon(int id)
-        {
-            var pokemon = await _context.Pokemons.FindAsync(id);
-            if (pokemon == null) return NotFound();
-
-            _context.Pokemons.Remove(pokemon);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }
