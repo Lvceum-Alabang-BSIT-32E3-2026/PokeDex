@@ -1,0 +1,79 @@
+[
+    {
+        "PokedexNumber": 1,
+        "Name": "Bulbasaur",
+        "Types": [
+            "Grass",
+            "Poison"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 2,
+        "Name": "Ivysaur",
+        "Types": [
+            "Grass",
+            "Poison"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/2.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 3,
+        "Name": "Venusaur",
+        "Types": [
+            "Grass",
+            "Poison"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 4,
+        "Name": "Charmander",
+        "Types": [
+            "Fire"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 7,
+        "Name": "Squirtle",
+        "Types": [
+            "Water"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 25,
+        "Name": "Pikachu",
+        "Types": [
+            "Electric"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+        "Generation": 1
+    },
+    {
+        "PokedexNumber": 150,
+        "Name": "Mewtwo",
+        "Types": [
+            "Psychic"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/150.png",
+        "Generation": 1,
+        "IsLegendary": true
+    },
+    {
+        "PokedexNumber": 151,
+        "Name": "Mew",
+        "Types": [
+            "Psychic"
+        ],
+        "ImageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/151.png",
+        "Generation": 1,
+        "IsMythical": true
+    }
+]
