@@ -3,25 +3,15 @@ using ResourceApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- SERVICES CONFIGURATION ---
+// Add services to the container.
 builder.Services.AddControllers();
+
+// Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Task 2.1.10: Enable CORS (Allow frontend access)
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins("http://localhost:3000") // Frontend URL
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-
 builder.Services.AddDbContext<PokemonDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -50,12 +40,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// Task 2.1.10: CORS must be placed after UseRouting (implicit) and before UseAuthorization
-app.UseCors();
-
-app.UseAuthentication(); // Siguraduhing nandito ito kung may JWT ka na
-app.UseAuthorization();
 
 app.MapControllers();
 
