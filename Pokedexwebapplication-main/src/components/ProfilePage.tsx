@@ -1,206 +1,178 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, AlertCircle, CheckCircle2, Shield, Lock } from 'lucide-react';
-import { apiFetch } from '../utils/api';
-
-interface UserProfile {
-    email: string;
-    username: string;
-    displayName: string;
-}
-
-type Message = { type: 'success' | 'error'; text: string } | null;
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import { Lock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
-    const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-    const [user, setUser] = useState<UserProfile | null>(null);
-    const [displayName, setDisplayName] = useState('');
-    const [username, setUsername] = useState('');
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [savingProfile, setSavingProfile] = useState(false);
-    const [savingPassword, setSavingPassword] = useState(false);
-    const [message, setMessage] = useState<Message>(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            setLoading(true);
-            setMessage(null);
-            try {
-                const res = await apiFetch('/api/users/me');
-                if (!res.ok) throw new Error('Failed to load user info');
-                const data = (await res.json()) as UserProfile;
-                setUser(data);
-                setDisplayName(data.displayName || '');
-                setUsername(data.username || '');
-            } catch (err: any) {
-                setMessage({ type: 'error', text: err?.message || 'Failed to load user info.' });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUser();
-    }, []);
-
-    const validateProfile = () => {
-        if (!displayName.trim()) return 'Display name is required.';
-        if (displayName.trim().length < 3) return 'Display name must be at least 3 characters.';
-        if (!username.trim()) return 'Username is required.';
-        return null;
-    };
-
-    const handleSaveProfile = async () => {
-        if (!user) return;
-        const validation = validateProfile();
-        if (validation) {
-            setMessage({ type: 'error', text: validation });
-            return;
-        }
-        setSavingProfile(true);
-        setMessage(null);
-        try {
-            const res = await apiFetch('/api/users/me', {
-                method: 'PUT',
-                body: JSON.stringify({ displayName: displayName.trim(), username: username.trim() }),
-            });
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.message || 'Failed to update profile.');
-            }
-            setUser({ ...user, displayName: displayName.trim(), username: username.trim() });
-            setMessage({ type: 'success', text: 'Profile updated successfully.' });
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err?.message || 'Failed to update profile.' });
-        } finally {
-            setSavingProfile(false);
-        }
-    };
-
-    const handlePasswordChange = async () => {
-        if (newPassword.length < 6) {
-            setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setMessage({ type: 'error', text: 'Passwords do not match.' });
-            return;
-        }
-
-        setSavingPassword(true);
-        setMessage(null);
-        try {
-            const res = await apiFetch('/api/users/me/change-password', {
-                method: 'POST',
-                body: JSON.stringify({ currentPassword, newPassword }),
-            });
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.message || 'Failed to change password.');
-            }
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            setMessage({ type: 'success', text: 'Password changed successfully.' });
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err?.message || 'Failed to change password.' });
-        } finally {
-            setSavingPassword(false);
-        }
-    };
-
-    if (loading && !user) {
-        return (
-            <div className="flex justify-center items-center py-16 text-slate-600">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="ml-2">Loading profile...</span>
-            </div>
-        );
+    // Client-side validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError('All fields are required.');
+      setLoading(false);
+      return;
     }
 
-    if (!user) {
-        return (
-            <div className="max-w-md mx-auto p-4">
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Unable to load profile.</span>
-                </div>
-            </div>
-        );
+    if (newPassword !== confirmPassword) {
+      setError('New password and confirm password do not match.');
+      setLoading(false);
+      return;
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 py-10 px-4">
-            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm text-slate-500">Signed in as</p>
-                        <h1 className="text-xl font-bold text-slate-900">{user.email}</h1>
-                    </div>
-                    <button onClick={() => navigate('/pokedex')} className="text-sm font-semibold text-red-600 hover:text-red-700">Back to Pokedex</button>
-                </div>
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters long.');
+      setLoading(false);
+      return;
+    }
 
-                {message && (
-                    <div className={`rounded-lg px-4 py-3 flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-                        {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                        <span>{message.text}</span>
-                    </div>
-                )}
+    try {
+      // Use standard fetch or the project's configured API helper if available.
+      // Assuming a standard JWT auth header setup:
+      const token = localStorage.getItem('jwt');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002'; // fallback if not set
 
-                <section className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <Shield className="w-4 h-4" />
-                        <h2 className="text-lg font-semibold">Profile</h2>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-500">Username</label>
-                            <input className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" value={username} onChange={(e) => setUsername(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-500">Display Name</label>
-                            <input className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleSaveProfile}
-                        disabled={savingProfile}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {savingProfile && <Loader2 className="w-4 h-4 animate-spin" />} Save Profile
-                    </button>
-                </section>
+      const response = await fetch(`${apiBaseUrl}/api/users/me/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
 
-                <section className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <Lock className="w-4 h-4" />
-                        <h2 className="text-lg font-semibold">Change Password</h2>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-500">Current Password</label>
-                            <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-500">New Password</label>
-                            <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-500">Confirm Password</label>
-                            <input type="password" className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                        </div>
-                    </div>
-                    <button
-                        onClick={handlePasswordChange}
-                        disabled={savingPassword}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white font-semibold hover:bg-slate-900 disabled:opacity-60"
-                    >
-                        {savingPassword && <Loader2 className="w-4 h-4 animate-spin" />} Update Password
-                    </button>
-                </section>
+      if (!response.ok) {
+        // Provide specific error message if it's a wrong current password
+        if (response.status === 400 || response.status === 401) {
+             const data = await response.json().catch(() => ({}));
+             throw new Error(data.message || 'Incorrect current password or invalid request.');
+        } else {
+             throw new Error('Failed to change password. Please try again later.');
+        }
+      }
+
+      // Success handling
+      setSuccess('Password updated successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while changing the password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto">
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700"
+        >
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Change Password</h2>
+            <p className="text-slate-400">Update your account security</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center text-sm"
+              >
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <p>{error}</p>
+              </motion.div>
+            )}
+
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-lg flex items-center text-sm"
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
+                <p>{success}</p>
+              </motion.div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Current Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
             </div>
-        </div>
-    );
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-red-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Change Password'
+              )}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    </div>
+  );
 };
