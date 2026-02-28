@@ -16,52 +16,6 @@ namespace ResourceApi.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
-            modelBuilder.Entity("ResourceApi.Models.Capture", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CapturedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PokemonId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PokemonId");
-
-                    b.ToTable("Captures");
-                });
-
-            modelBuilder.Entity("ResourceApi.Models.Capture", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CapturedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PokemonId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PokemonId");
-
-                    b.ToTable("Captures");
-                });
-
             modelBuilder.Entity("ResourceApi.Models.Pokemon", b =>
                 {
                     b.Property<int>("Id")

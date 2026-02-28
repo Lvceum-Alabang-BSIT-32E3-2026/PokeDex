@@ -1,4 +1,4 @@
-﻿namespace ResourceApi.DTOs
+namespace ResourceApi.DTOs
 {
     public class PokemonDto
     {
