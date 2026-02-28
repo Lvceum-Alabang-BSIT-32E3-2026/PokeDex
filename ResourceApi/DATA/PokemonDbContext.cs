@@ -10,12 +10,19 @@ public class PokemonDbContext : DbContext
 
     public DbSet<Pokemon> Pokemons { get; set; } = null!;
 
-    // Idagdag ito para ma-access ng Controller ang PokemonTypes table
+    // FIX: Eto ang hinahanap ng Controller mo (Master List ng Types)
+    public DbSet<PokemonTypeEntity> PokemonTypeEntities { get; set; } = null!;
+
+    // FIX: Eto ang Join Table para sa Many-to-Many
     public DbSet<PokemonType> PokemonTypes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // CONFIGURATION: Composite Key para sa Join Table (Task 2.1.4 Requirement)
+        modelBuilder.Entity<PokemonType>()
+            .HasKey(pt => new { pt.PokemonId, pt.TypeId });
 
         // Task 2.3.3: Seed data for Pokemon
         modelBuilder.Entity<Pokemon>().HasData(
@@ -42,7 +49,5 @@ public class PokemonDbContext : DbContext
                 Weight = 8.5m
             }
         );
-
-    
     }
 }
