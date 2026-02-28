@@ -2387,3 +2387,117 @@ html {
     opacity: .5;
   }
 }
+
+/* =========================
+   Dark Mode Styles
+   ========================= */
+
+/* Dark mode background overrides */
+.dark body,
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-800 {
+  background-color: #0f172a !important;
+}
+
+/* Dark mode text overrides */
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Dark mode border overrides */
+.dark .border-slate-200,
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+.dark .border-slate-700 {
+  border-color: #475569 !important;
+}
+
+/* Dark mode card styling */
+.dark .shadow-md,
+.dark .shadow-sm {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Dark mode input styling */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Dark mode table styling */
+.dark table {
+  background-color: #1e293b !important;
+}
+
+.dark th {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark td {
+  border-color: #334155 !important;
+}
+
+.dark tr:hover {
+  background-color: #334155 !important;
+}
+
+/* Dark mode for specific components */
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: rgba(234, 179, 8, 0.15) !important;
+}
+
+/* Smooth transition for theme change */
+body,
+.bg-slate-50,
+.bg-white,
+.text-slate-900,
+.text-slate-800,
+.text-slate-700,
+.border-slate-200 {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
